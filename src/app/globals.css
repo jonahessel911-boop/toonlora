@@ -1,26 +1,282 @@
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Toonlora base */
+  --background: #fcfaff;
+  --surface: #ffffff;
+  --surface-soft: #f3ecff;
+  --foreground: #101828;
+
+  /* Brand */
+  --primary: #7c3aed;
+  --primary-dark: #2a114b;
+  --primary-soft: #e9d8fd;
+
+  /* Text */
+  --text: #101828;
+  --muted: #667085;
+  --border: #e7d8ff;
+
+  /* Accents */
+  --accent-pink: #ff4fa3;
+  --accent-cyan: #22d3ee;
+  --accent-yellow: #ffd84d;
+  --accent-lime: #a3ff6f;
+
+  /* Genre colors */
+  --genre-romance: #ff4fa3;
+  --genre-anime: #8b5cf6;
+  --genre-fantasy: #7c3aed;
+  --genre-adventure: #22d3ee;
+  --genre-comedy: #ffd84d;
+  --genre-drama: #fb7185;
+  --genre-slice-of-life: #34d399;
+  --genre-action: #60a5fa;
+
+  /* Typography */
+  --font-heading: "Fredoka", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  /* Legacy aliases — map old class names to Toonlora tokens */
+  --gs-bg: var(--background);
+  --gs-surface: var(--surface);
+  --gs-surface-mint: var(--surface-soft);
+  --gs-primary: var(--primary);
+  --gs-primary-dark: var(--primary-dark);
+  --gs-primary-soft: var(--primary-soft);
+  --gs-accent: var(--accent-pink);
+  --gs-text: var(--text);
+  --gs-muted: var(--muted);
+  --gs-border: var(--border);
+  --groen-light: var(--primary-soft);
+  --groen-primary: var(--primary);
+  --groen-deep: var(--primary-dark);
+  --groen-mint: var(--surface-soft);
+
+  /* LP funnel (aligned with Toonlora purple) */
+  --lp-purple: #7c3aed;
+  --lp-purple-dark: #6d28d9;
+  --lp-purple-deep: #2a114b;
+  --lp-purple-glass: rgba(255, 255, 255, 0.14);
+  --lp-coral: #ff4fa3;
+  --lp-coral-hover: #e63d8f;
+  --lp-yellow: #ffd84d;
+  --lp-yellow-dark: #f5c800;
+  --lp-blue: #22d3ee;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-soft: var(--primary-soft);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent-pink: var(--accent-pink);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-yellow: var(--accent-yellow);
+  --color-accent-lime: var(--accent-lime);
+  --color-genre-romance: var(--genre-romance);
+  --color-genre-anime: var(--genre-anime);
+  --color-genre-fantasy: var(--genre-fantasy);
+  --color-genre-adventure: var(--genre-adventure);
+  --color-genre-comedy: var(--genre-comedy);
+  --color-genre-drama: var(--genre-drama);
+  --color-genre-slice-of-life: var(--genre-slice-of-life);
+  --color-genre-action: var(--genre-action);
+  --color-gs-bg: var(--gs-bg);
+  --color-gs-surface: var(--gs-surface);
+  --color-gs-surface-mint: var(--gs-surface-mint);
+  --color-gs-primary: var(--gs-primary);
+  --color-gs-primary-dark: var(--gs-primary-dark);
+  --color-gs-primary-soft: var(--gs-primary-soft);
+  --color-gs-accent: var(--gs-accent);
+  --color-gs-text: var(--gs-text);
+  --color-gs-muted: var(--gs-muted);
+  --color-gs-border: var(--gs-border);
+  --color-groen-light: var(--groen-light);
+  --color-groen-primary: var(--groen-primary);
+  --color-groen-deep: var(--groen-deep);
+  --color-groen-mint: var(--groen-mint);
+  --color-lp-purple: var(--lp-purple);
+  --color-lp-purple-dark: var(--lp-purple-dark);
+  --color-lp-purple-deep: var(--lp-purple-deep);
+  --color-lp-coral: var(--lp-coral);
+  --color-lp-coral-hover: var(--lp-coral-hover);
+  --color-lp-yellow: var(--lp-yellow);
+  --color-lp-blue: var(--lp-blue);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-heading);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+/* Browse nav tabs */
+.nav-tab {
+  font-family: var(--font-heading);
+  position: relative;
+}
+
+.nav-tab-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+}
+
+/* Mobile-first horizontal story rails */
+.mobile-rail {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 0.25rem;
+}
+
+.mobile-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-rail > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .mobile-rail.sm-static {
+    overflow-x: visible;
+    scroll-snap-type: none;
+    flex-wrap: wrap;
+  }
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.rail-fade-right {
+  mask-image: linear-gradient(to right, black 85%, transparent 100%);
+}
+
+.card-shadow {
+  box-shadow:
+    0 1px 2px rgba(42, 17, 75, 0.06),
+    0 8px 24px rgba(42, 17, 75, 0.08);
+}
+
+.card-shadow-hover {
+  box-shadow:
+    0 4px 8px rgba(42, 17, 75, 0.08),
+    0 16px 32px rgba(42, 17, 75, 0.12);
+}
+
+/* LP funnel */
+.lp-glass-card {
+  background: var(--lp-purple-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 1.5rem;
+}
+
+.lp-nav-pill {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 32px rgba(42, 17, 75, 0.12);
+  border-radius: 9999px;
+}
+
+.lp-pill-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0.9375rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: white;
+  background: var(--lp-coral);
+  box-shadow: 0 4px 16px rgba(255, 79, 163, 0.45);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  min-height: 3.25rem;
+  touch-action: manipulation;
+}
+
+.lp-pill-btn:hover {
+  background: var(--lp-coral-hover);
+  box-shadow: 0 6px 22px rgba(255, 79, 163, 0.55);
+}
+
+.lp-pill-btn:active {
+  transform: scale(0.98);
+}
+
+.lp-pill-btn-secondary {
+  background: var(--lp-yellow);
+  color: var(--lp-purple-deep);
+  box-shadow: 0 4px 16px rgba(255, 216, 77, 0.45);
+}
+
+.lp-pill-btn-secondary:hover {
+  background: var(--lp-yellow-dark);
+  box-shadow: 0 6px 22px rgba(255, 216, 77, 0.55);
+}
+
+.lp-pill-btn-compact {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  min-height: 2.75rem;
+}
+
+.lp-hero-curve {
+  border-bottom-left-radius: 50% 2rem;
+  border-bottom-right-radius: 50% 2rem;
+}
+
+@media (min-width: 640px) {
+  .lp-hero-curve {
+    border-bottom-left-radius: 50% 4rem;
+    border-bottom-right-radius: 50% 4rem;
+  }
+}
+
+.lp-trust-check {
+  color: var(--accent-lime);
+  font-weight: 800;
 }

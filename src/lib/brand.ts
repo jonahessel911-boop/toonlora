@@ -1,0 +1,64 @@
+import type { Category } from "@/types/story";
+
+export const BRAND_TAGLINE = "Read for free. Create with credits.";
+export const BRAND_HEADLINE = "Read or create the story of your dreams.";
+export const BRAND_SUBHEADLINE =
+  "Discover free cartoon stories from the community, or turn your own idea into a shareable episode in minutes.";
+export const CREATOR_CTA = "Create & share cartoon stories in minutes.";
+export const CREDIT_COPY =
+  "Your first story is free. Creating more episodes uses credits.";
+
+export const GENRE_COLORS: Record<
+  Category | "Spicy" | "default",
+  { bg: string; text: string; gradient: string }
+> = {
+  Romance: {
+    bg: "bg-genre-romance",
+    text: "text-white",
+    gradient: "from-[#FF4FA3] via-[#FF6BB5] to-[#FF8CC8]",
+  },
+  Anime: {
+    bg: "bg-genre-anime",
+    text: "text-white",
+    gradient: "from-[#8B5CF6] via-[#A78BFA] to-[#C4B5FD]",
+  },
+  Fantasy: {
+    bg: "bg-genre-fantasy",
+    text: "text-white",
+    gradient: "from-[#7C3AED] via-[#9333EA] to-[#A855F7]",
+  },
+  Adventure: {
+    bg: "bg-genre-adventure",
+    text: "text-primary-dark",
+    gradient: "from-[#22D3EE] via-[#38BDF8] to-[#60A5FA]",
+  },
+  Comedy: {
+    bg: "bg-genre-comedy",
+    text: "text-primary-dark",
+    gradient: "from-[#FFD84D] via-[#FBBF24] to-[#FDE68A]",
+  },
+  Drama: {
+    bg: "bg-genre-drama",
+    text: "text-white",
+    gradient: "from-[#FB7185] via-[#F472B6] to-[#EC4899]",
+  },
+  "Slice of Life": {
+    bg: "bg-genre-slice-of-life",
+    text: "text-white",
+    gradient: "from-[#34D399] via-[#4ADE80] to-[#86EFAC]",
+  },
+  Spicy: {
+    bg: "bg-accent-pink",
+    text: "text-white",
+    gradient: "from-[#FF4FA3] via-[#F43F5E] to-[#FB7185]",
+  },
+  default: {
+    bg: "bg-primary",
+    text: "text-white",
+    gradient: "from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA]",
+  },
+};
+
+export function getGenreColors(genre: string) {
+  return GENRE_COLORS[genre as Category] ?? GENRE_COLORS.default;
+}
