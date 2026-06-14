@@ -103,6 +103,69 @@ export interface Database {
           wants_recommendations?: boolean;
         };
       };
+      reading_progress: {
+        Row: {
+          id: string;
+          session_id: string;
+          profile_id: string | null;
+          series_id: string;
+          episode_number: number;
+          max_panel_reached: number;
+          total_panels: number;
+          completed_at: string | null;
+          first_opened_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          session_id: string;
+          profile_id?: string | null;
+          series_id: string;
+          episode_number?: number;
+          max_panel_reached?: number;
+          total_panels?: number;
+          completed_at?: string | null;
+        };
+        Update: {
+          profile_id?: string | null;
+          max_panel_reached?: number;
+          total_panels?: number;
+          completed_at?: string | null;
+        };
+      };
+      platform_sessions: {
+        Row: {
+          id: string;
+          session_id: string;
+          profile_id: string | null;
+          entry_path: string | null;
+          started_at: string;
+          last_active_at: string;
+          duration_seconds: number;
+        };
+        Insert: {
+          session_id: string;
+          profile_id?: string | null;
+          entry_path?: string | null;
+          duration_seconds?: number;
+        };
+        Update: {
+          profile_id?: string | null;
+          last_active_at?: string;
+          duration_seconds?: number;
+        };
+      };
+      login_events: {
+        Row: {
+          id: string;
+          profile_id: string;
+          logged_in_at: string;
+          method: string;
+        };
+        Insert: {
+          profile_id: string;
+          method?: string;
+        };
+      };
     };
   };
 }
@@ -111,3 +174,8 @@ export type SeriesRow = Database["public"]["Tables"]["series"]["Row"];
 export type EpisodeRow = Database["public"]["Tables"]["episodes"]["Row"];
 export type UserSessionRow = Database["public"]["Tables"]["user_sessions"]["Row"];
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+export type ReadingProgressRow =
+  Database["public"]["Tables"]["reading_progress"]["Row"];
+export type PlatformSessionRow =
+  Database["public"]["Tables"]["platform_sessions"]["Row"];
+export type LoginEventRow = Database["public"]["Tables"]["login_events"]["Row"];

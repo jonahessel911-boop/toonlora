@@ -9,11 +9,12 @@
 
 Open **SQL Editor** in Supabase and paste the contents of:
 
-Run both migration files in order:
+Run all migration files in order:
 
 ```
 supabase/migrations/001_initial_schema.sql
 supabase/migrations/002_profiles.sql
+supabase/migrations/003_analytics.sql
 ```
 
 This creates:
@@ -24,6 +25,9 @@ This creates:
 | `profiles` | Registered name + email linked to session |
 | `series` | Story Bible + series metadata |
 | `episodes` | Scripts, panels, overlays per episode |
+| `reading_progress` | Panel progress + episode completion |
+| `platform_sessions` | Time on platform per visit |
+| `login_events` | Login timestamps for retention metrics |
 
 ## 3. Configure env
 

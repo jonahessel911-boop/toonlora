@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/api/session";
 import { isServerDatabaseConfigured } from "@/lib/config";
 import { registerProfileInDb } from "@/lib/services/profile-repository";
+import { recordLoginEvent } from "@/lib/services/analytics-repository";
 
 export async function POST(request: Request) {
   try {
@@ -32,6 +33,8 @@ export async function POST(request: Request) {
       email,
       wantsRecommendations: body.wantsRecommendations !== false,
     });
+
+    await recordLoginEvent(profile.id, "signup");
 
     return NextResponse.json({ profile, source: "supabase" });
   } catch (err) {

@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import SignupWall from "@/components/lp/SignupWall";
 import ComicPanel from "@/components/reader/ComicPanel";
 import EpisodeCompleteCard from "@/components/reader/EpisodeCompleteCard";
 import ReaderProgress from "@/components/reader/ReaderProgress";
 import ReaderTopBar from "@/components/reader/ReaderTopBar";
+import { trackReadingProgress } from "@/components/analytics/AnalyticsProvider";
+import { useUserStore } from "@/store/useUserStore";
 import type { ReaderPanelData } from "@/lib/readerPanels";
 
 interface WebtoonReaderProps {
@@ -23,6 +26,8 @@ interface WebtoonReaderProps {
   isCatalog?: boolean;
 }
 
+const FLIP_MS = 520;
+
 export default function WebtoonReader({
   seriesId,
   seriesTitle,
@@ -38,64 +43,96 @@ export default function WebtoonReader({
   isCatalog = false,
 }: WebtoonReaderProps) {
   const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState<"next" | "prev" | null>(null);
+  const [isFlipping, setIsFlipping] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const panelRefs = useRef<(HTMLElement | null)[]>([]);
+  const [showEndCard, setShowEndCard] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const { email } = useUserStore();
+  const loggedIn = Boolean(email);
   const total = panels.length;
+  const isLastPanel = index >= total - 1;
+  const panel = panels[index];
 
-  const scrollToPanel = useCallback((i: number) => {
-    const el = panelRefs.current[i];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+  const shouldPromptSignup = isCatalog && !loggedIn;
+
+  const openSignupIfNeeded = useCallback(() => {
+    if (shouldPromptSignup) {
+      setSignupOpen(true);
+      return true;
     }
-    setIndex(i);
-  }, []);
+    if (showControls) setShowEndCard(true);
+    return false;
+  }, [shouldPromptSignup, showControls]);
+
+  const goTo = useCallback(
+    (nextIndex: number, dir: "next" | "prev") => {
+      if (isFlipping || nextIndex < 0 || nextIndex >= total) return;
+      setDirection(dir);
+      setIsFlipping(true);
+      setTimeout(() => {
+        setIndex(nextIndex);
+        setIsFlipping(false);
+        setDirection(null);
+      }, FLIP_MS);
+    },
+    [isFlipping, total]
+  );
 
   const goPrev = useCallback(() => {
-    scrollToPanel(Math.max(0, index - 1));
-  }, [index, scrollToPanel]);
+    if (showEndCard) {
+      setShowEndCard(false);
+      return;
+    }
+    if (index <= 0 || isFlipping) return;
+    goTo(index - 1, "prev");
+  }, [index, isFlipping, goTo, showEndCard]);
 
   const goNext = useCallback(() => {
-    if (index >= total - 1) {
-      if (isCatalog) setSignupOpen(true);
+    if (isFlipping) return;
+    if (showEndCard) return;
+
+    if (isLastPanel) {
+      openSignupIfNeeded();
       return;
     }
-    scrollToPanel(Math.min(total - 1, index + 1));
-  }, [index, total, isCatalog, scrollToPanel]);
+    goTo(index + 1, "next");
+  }, [isFlipping, isLastPanel, index, goTo, openSignupIfNeeded, showEndCard]);
 
-  const handleContinueReading = () => setSignupOpen(true);
+  const jumpToPanel = useCallback(
+    (i: number) => {
+      if (isFlipping || i === index) return;
+      if (i > index && isLastPanel && shouldPromptSignup) {
+        openSignupIfNeeded();
+        return;
+      }
+      goTo(i, i > index ? "next" : "prev");
+    },
+    [isFlipping, index, isLastPanel, shouldPromptSignup, goTo, openSignupIfNeeded]
+  );
 
-  const handleNextEpisode = () => {
-    if (isCatalog) {
-      setSignupOpen(true);
-      return;
-    }
-    onGenerateNext?.();
-  };
-
-  // Track visible panel on scroll
+  // Show signup when user finishes panel 10 (last panel)
   useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
+    if (!shouldPromptSignup || isFlipping || showEndCard) return;
+    if (index !== total - 1) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.4) {
-            const idx = panelRefs.current.indexOf(entry.target as HTMLElement);
-            if (idx >= 0) setIndex(idx);
-          }
-        }
-      },
-      { root: container, threshold: [0.4, 0.6] }
-    );
+    const timer = window.setTimeout(() => {
+      setSignupOpen(true);
+    }, 700);
 
-    panelRefs.current.forEach((el) => {
-      if (el) observer.observe(el);
+    return () => window.clearTimeout(timer);
+  }, [index, total, shouldPromptSignup, isFlipping, showEndCard]);
+
+  useEffect(() => {
+    trackReadingProgress({
+      seriesId,
+      episodeNumber,
+      panelIndex: index,
+      totalPanels: total,
     });
-
-    return () => observer.disconnect();
-  }, [panels.length]);
+  }, [seriesId, episodeNumber, index, total]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -106,25 +143,57 @@ export default function WebtoonReader({
     return () => window.removeEventListener("keydown", onKey);
   }, [goPrev, goNext]);
 
-  if (total === 0) return null;
+  useEffect(() => {
+    const onFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const el = rootRef.current;
+    if (!el) return;
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await el.requestFullscreen();
+    } catch {
+      /* unsupported */
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const diff = touchStart - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 48) {
+      if (diff > 0) goNext();
+      else goPrev();
+    }
+    setTouchStart(null);
+  };
+
+  const handleNextEpisode = () => {
+    if (isCatalog) {
+      setSignupOpen(true);
+      return;
+    }
+    onGenerateNext?.();
+  };
+
+  if (!panel || total === 0) return null;
 
   return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#FCFAFF]">
-      {/* Soft Toonlora ambient background */}
+    <div
+      ref={rootRef}
+      className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-[#12091F]"
+    >
+      {/* Focus glow */}
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#F3ECFF]/80 via-[#FCFAFF] to-[#E9D8FD]/30"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -left-20 top-32 h-64 w-64 rounded-full bg-[#5340FF]/8 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-16 top-1/2 h-72 w-72 rounded-full bg-[#FF4FA3]/6 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute bottom-32 left-1/3 h-48 w-48 rounded-full bg-[#22D3EE]/6 blur-3xl"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(83,64,255,0.22),transparent_55%)]"
         aria-hidden
       />
 
@@ -135,64 +204,119 @@ export default function WebtoonReader({
         episodeTitle={episodeTitle}
         onPrev={goPrev}
         onNext={goNext}
-        canPrev={index > 0}
+        canPrev={index > 0 || showEndCard}
         onShare={onShare}
+        onFullscreen={toggleFullscreen}
+        isFullscreen={isFullscreen}
+        dark
       />
 
       <main
-        ref={scrollRef}
-        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth pb-28"
+        className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-2 py-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-4 sm:pb-4"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
-        <div className="relative mx-auto w-full max-w-[720px] px-0 sm:px-4 sm:py-4">
-          <div className="overflow-hidden bg-white shadow-[0_24px_64px_rgba(83,64,255,0.14)] ring-1 ring-[#E7D8FF] sm:rounded-[18px]">
-            {panels.map((panel, i) => (
-              <div
-                key={i}
-                ref={(el) => {
-                  panelRefs.current[i] = el;
-                }}
-              >
-                <ComicPanel
-                  panel={panel}
-                  index={i}
-                  isActive={i === index}
-                  onClick={() => {
-                    if (i === index) goNext();
-                    else scrollToPanel(i);
-                  }}
-                />
-              </div>
-            ))}
+        {/* Tap zones */}
+        <button
+          type="button"
+          className="absolute inset-y-0 left-0 z-20 w-[28%] max-w-[140px] cursor-w-resize opacity-0"
+          onClick={goPrev}
+          aria-label="Previous page"
+        />
+        <button
+          type="button"
+          className="absolute inset-y-0 right-0 z-20 w-[28%] max-w-[140px] cursor-e-resize opacity-0"
+          onClick={goNext}
+          aria-label="Next page"
+        />
 
-            {showControls && (
-              <EpisodeCompleteCard
-                seriesTitle={seriesTitle}
-                episodeNumber={episodeNumber}
-                isCatalog={isCatalog}
-                credits={credits}
-                generating={generating}
-                onShare={onShare}
-                onNextEpisode={onGenerateNext ? handleNextEpisode : undefined}
-                onContinueReading={isCatalog ? handleContinueReading : undefined}
-                onCreateInspired={
-                  onCreateInspired ??
-                  (!isCatalog
-                    ? () => {
-                        window.location.href = "/create";
-                      }
-                    : undefined)
-                }
-              />
-            )}
+        {showEndCard && !shouldPromptSignup ? (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative z-10 w-full max-w-[520px] overflow-y-auto max-h-full"
+          >
+            <EpisodeCompleteCard
+              seriesTitle={seriesTitle}
+              episodeNumber={episodeNumber}
+              isCatalog={isCatalog}
+              credits={credits}
+              generating={generating}
+              onShare={onShare}
+              onNextEpisode={onGenerateNext ? handleNextEpisode : undefined}
+              onCreateInspired={
+                onCreateInspired ??
+                (!isCatalog ? () => { window.location.href = "/create"; } : undefined)
+              }
+            />
+          </motion.div>
+        ) : (
+          <div
+            className="relative z-10 h-full w-full max-w-[min(100%,520px)]"
+            style={{ perspective: "1400px" }}
+          >
+            <div className="relative mx-auto h-[min(100%,calc(100dvh-10rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)))] w-full max-w-[480px]">
+              <AnimatePresence mode="wait">
+                {!isFlipping && (
+                  <motion.div
+                    key={`panel-${index}`}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0 overflow-hidden rounded-2xl bg-white shadow-[0_32px_80px_rgba(0,0,0,0.55)] ring-1 ring-white/15 sm:rounded-[20px]"
+                  >
+                    <div className="absolute left-0 top-0 h-full w-2 bg-gradient-to-r from-black/10 to-transparent" />
+                    <ComicPanel
+                      panel={panel}
+                      index={index}
+                      variant="flipbook"
+                      onClick={goNext}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {isFlipping && direction === "next" && (
+                <motion.div
+                  className="absolute inset-0 origin-left overflow-hidden rounded-2xl bg-white shadow-[0_32px_80px_rgba(0,0,0,0.55)] ring-1 ring-white/15 sm:rounded-[20px]"
+                  style={{ transformStyle: "preserve-3d", backfaceVisibility: "hidden" }}
+                  initial={{ rotateY: 0 }}
+                  animate={{ rotateY: -180 }}
+                  transition={{ duration: FLIP_MS / 1000, ease: [0.4, 0, 0.2, 1] }}
+                >
+                  <ComicPanel panel={panels[index]} index={index} variant="flipbook" />
+                </motion.div>
+              )}
+
+              {isFlipping && direction === "prev" && index > 0 && (
+                <motion.div
+                  className="absolute inset-0 origin-right overflow-hidden rounded-2xl bg-white shadow-[0_32px_80px_rgba(0,0,0,0.55)] ring-1 ring-white/15 sm:rounded-[20px]"
+                  style={{ transformStyle: "preserve-3d", backfaceVisibility: "hidden" }}
+                  initial={{ rotateY: 180 }}
+                  animate={{ rotateY: 0 }}
+                  transition={{ duration: FLIP_MS / 1000, ease: [0.4, 0, 0.2, 1] }}
+                >
+                  <ComicPanel
+                    panel={panels[index - 1]}
+                    index={index - 1}
+                    variant="flipbook"
+                  />
+                </motion.div>
+              )}
+            </div>
+
+            <p className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-white/35 sm:hidden">
+              Swipe to turn the page
+            </p>
+            <p className="pointer-events-none absolute -bottom-1 left-1/2 hidden -translate-x-1/2 text-[11px] text-white/40 sm:block">
+              Tap sides or swipe to turn the page
+            </p>
           </div>
-        </div>
+        )}
       </main>
 
-      <ReaderProgress
-        current={index}
-        total={total}
-        onSelect={scrollToPanel}
-      />
+      <ReaderProgress current={index} total={total} onSelect={jumpToPanel} dark />
 
       <SignupWall
         storyName={seriesTitle}

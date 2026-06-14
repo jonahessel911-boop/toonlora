@@ -41,6 +41,7 @@ interface ComicPanelProps {
   index: number;
   isActive?: boolean;
   onClick?: () => void;
+  variant?: "stack" | "flipbook";
 }
 
 export default function ComicPanel({
@@ -48,8 +49,10 @@ export default function ComicPanel({
   index,
   isActive,
   onClick,
+  variant = "stack",
 }: ComicPanelProps) {
   const scene = SCENE_PRESETS[index % SCENE_PRESETS.length];
+  const isFlipbook = variant === "flipbook";
   const isTbc = panel.bubbles?.some((b) =>
     b.text.toLowerCase().includes("to be continued")
   );
@@ -58,12 +61,16 @@ export default function ComicPanel({
     <article
       id={`panel-${index}`}
       onClick={onClick}
-      className={`relative w-full overflow-hidden border-b border-[#E7D8FF]/40 last:border-b-0 ${
-        isActive ? "ring-2 ring-inset ring-[#7C3AED]/40" : ""
+      className={`relative overflow-hidden ${
+        isFlipbook
+          ? "h-full w-full"
+          : `w-full border-b border-[#E7D8FF]/40 last:border-b-0 ${
+              isActive ? "ring-2 ring-inset ring-[#7C3AED]/40" : ""
+            }`
       } ${onClick ? "cursor-pointer" : ""}`}
     >
       {panel.artUrl ? (
-        <div className="relative aspect-[3/4] w-full sm:aspect-[4/5]">
+        <div className={`relative w-full ${isFlipbook ? "h-full" : "aspect-[3/4] sm:aspect-[4/5]"}`}>
           <img
             src={panel.artUrl}
             alt={`Panel ${panel.panelNumber}`}
@@ -75,7 +82,9 @@ export default function ComicPanel({
         </div>
       ) : (
         <div
-          className={`relative min-h-[280px] w-full bg-gradient-to-br sm:min-h-[340px] ${scene.bg}`}
+          className={`relative w-full bg-gradient-to-br ${scene.bg} ${
+            isFlipbook ? "h-full min-h-0" : "min-h-[280px] sm:min-h-[340px]"
+          }`}
         >
           {/* Ambient glow */}
           <div
