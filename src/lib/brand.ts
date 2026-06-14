@@ -25,7 +25,7 @@ export const GENRE_COLORS: Record<
   Fantasy: {
     bg: "bg-genre-fantasy",
     text: "text-white",
-    gradient: "from-[#7C3AED] via-[#9333EA] to-[#A855F7]",
+    gradient: "from-[#5340FF] via-[#6D5BFF] to-[#8B7CFF]",
   },
   Adventure: {
     bg: "bg-genre-adventure",
@@ -55,7 +55,7 @@ export const GENRE_COLORS: Record<
   default: {
     bg: "bg-primary",
     text: "text-white",
-    gradient: "from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA]",
+    gradient: "from-[#5340FF] via-[#6D5BFF] to-[#8B7CFF]",
   },
 };
 

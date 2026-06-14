@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import StoryCard from "@/components/StoryCard";
 import EmptyState from "@/components/EmptyState";
 import PricingModal from "@/components/PricingModal";
@@ -18,10 +19,18 @@ const TABS = [
 
 type Tab = (typeof TABS)[number];
 
+function viewToTab(view: string | null): Tab {
+  if (view === "creations") return "My Stories";
+  if (view === "saved") return "Reading";
+  return "All";
+}
+
 export default function LibraryPageClient() {
+  const searchParams = useSearchParams();
+  const initialView = searchParams.get("view");
   const { stories, hydrate, hydrated } = useStoryStore();
   const { credits, freeUsed, hydrate: hydrateCredits } = useCreditsStore();
-  const [tab, setTab] = useState<Tab>("All");
+  const [tab, setTab] = useState<Tab>(() => viewToTab(initialView));
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("recent");
   const [pricingOpen, setPricingOpen] = useState(false);
@@ -30,6 +39,10 @@ export default function LibraryPageClient() {
     void hydrate();
     void hydrateCredits();
   }, [hydrate, hydrateCredits]);
+
+  useEffect(() => {
+    setTab(viewToTab(searchParams.get("view")));
+  }, [searchParams]);
 
   const filtered = stories
     .filter((s) => {
@@ -40,6 +53,8 @@ export default function LibraryPageClient() {
       if (tab === "My Stories" || tab === "All") return matchSearch;
       if (tab === "Drafts") return matchSearch;
       if (tab === "Published") return matchSearch;
+      if (tab === "Reading") return matchSearch;
+      if (tab === "Favorites") return matchSearch;
       return matchSearch;
     })
     .sort((a, b) => {
@@ -60,7 +75,8 @@ export default function LibraryPageClient() {
             My Library
           </h1>
           <p className="mt-2 text-gray-600">
-            Your stories, reading progress, and drafts — all in one place.
+            Your saved episodes, Loras, reading progress, and drafts — all in
+            one place.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

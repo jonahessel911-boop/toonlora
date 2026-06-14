@@ -65,7 +65,7 @@ export default function HorizontalCarousel({
           {/* Full-bleed rail on mobile */}
           <div
             ref={scrollRef}
-            className="mobile-rail px-4 sm:px-0 lg:snap-none"
+            className="mobile-rail desktop-grid px-4 sm:px-0"
           >
             {stories.map((story, i) => (
               <WebtoonStoryCard
@@ -81,7 +81,7 @@ export default function HorizontalCarousel({
           <button
             type="button"
             onClick={() => scroll("right")}
-            className="absolute -right-2 top-[28%] hidden h-10 w-10 items-center justify-center rounded-full border border-gs-border bg-white text-lg text-gs-text shadow-md transition hover:bg-gs-surface-mint md:flex"
+            className="absolute -right-2 top-[28%] hidden h-10 w-10 items-center justify-center rounded-full border border-gs-border bg-white text-lg text-gs-text shadow-md transition hover:bg-gs-surface-mint sm:flex md:hidden"
             aria-label="Scroll right"
           >
             ›

@@ -53,7 +53,7 @@ export default function WebtoonHome() {
                 onClick={() => setTrendTab("trending")}
                 className={`min-h-[40px] flex-1 rounded-full px-4 py-2 text-sm font-bold transition touch-manipulation sm:flex-none sm:px-5 ${
                   trendTab === "trending"
-                    ? "bg-gs-primary-dark text-white shadow-sm"
+                    ? "bg-lp-purple text-white shadow-sm"
                     : "text-gs-muted"
                 }`}
               >
@@ -64,7 +64,7 @@ export default function WebtoonHome() {
                 onClick={() => setTrendTab("popular")}
                 className={`min-h-[40px] flex-1 rounded-full px-4 py-2 text-sm font-bold transition touch-manipulation sm:flex-none sm:px-5 ${
                   trendTab === "popular"
-                    ? "bg-gs-primary-dark text-white shadow-sm"
+                    ? "bg-lp-purple text-white shadow-sm"
                     : "text-gs-muted"
                 }`}
               >
@@ -134,7 +134,7 @@ export default function WebtoonHome() {
             )}
           </div>
           <div className="mx-auto mt-8 max-w-xs overflow-hidden rounded-xl shadow-sm">
-            <div className="flex items-center justify-center bg-gs-primary py-4">
+            <div className="flex items-center justify-center bg-lp-purple py-4">
               <span className="font-heading text-base font-bold tracking-wide text-white">
                 TOONLORA
               </span>
@@ -147,7 +147,7 @@ export default function WebtoonHome() {
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gs-border bg-white/95 px-4 py-3 backdrop-blur-md safe-bottom sm:hidden">
         <Link
           href="/create"
-          className="flex min-h-[48px] w-full items-center justify-center rounded-full bg-gs-primary-dark text-sm font-bold text-white shadow-md active:scale-[0.98]"
+          className="btn-coral flex min-h-[48px] w-full items-center justify-center text-sm active:scale-[0.98]"
         >
           Create a story
         </Link>

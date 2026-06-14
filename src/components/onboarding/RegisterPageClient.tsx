@@ -1,85 +1,161 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import SignupLogo, {
-  SignupHeroIllustration,
-  SignupStepIndicator,
-  SignupPrimaryButton,
+  SignupAvatar,
+  SignupBackButton,
   SignupFooterLink,
+  SignupInput,
+  SignupPageBackground,
+  SignupStepIndicator,
+  SignupSubmitButton,
 } from "@/components/signup/SignupScreen";
+import { apiFetch } from "@/lib/session";
+import { useUserStore } from "@/store/useUserStore";
 
 export default function RegisterPageClient() {
   const router = useRouter();
+  const { setProfile } = useUserStore();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleContinue = (e: React.FormEvent) => {
+  const canSubmit =
+    fullName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    !submitting;
+
+  const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !email.trim() || password.length < 8) return;
-    router.push("/create");
+    if (!canSubmit) return;
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const res = await apiFetch("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          email: email.trim(),
+        }),
+      });
+      const data = await res.json();
+
+      if (res.status === 503) {
+        throw new Error(
+          data.error ??
+            "Database not configured. Create .env.local and visit /api/health/db to test."
+        );
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not save account to database.");
+      }
+
+      setProfile({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        onboarded: true,
+        agreedToTerms: true,
+      });
+      router.push("/library");
+    } catch (err) {
+      if (err instanceof TypeError && err.message.includes("fetch")) {
+        setError("Could not reach the server. Is npm run dev running?");
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Registration failed. Try again."
+        );
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 pb-8 pt-6">
-      <Link
-        href="/signup"
-        className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-gray-100 text-gray-600"
-      >
-        ←
-      </Link>
+    <SignupPageBackground>
+      <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 pb-8 pt-6 sm:px-8">
+        <SignupBackButton />
 
-      <h1 className="text-center text-lg font-bold text-gray-800">
-        Create account
-      </h1>
-
-      <div className="mt-6 flex justify-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-purple-600 text-3xl shadow-lg">
-          👩‍🎨
+        <div className="mt-2 flex justify-center">
+          <SignupLogo />
         </div>
+
+        <div className="mt-6 overflow-hidden rounded-[28px] border border-[#E7D8FF] bg-white p-6 shadow-[0_20px_60px_rgba(83,64,255,0.08)] sm:p-7">
+          <h1 className="font-heading text-center text-xl font-extrabold text-[#2A114B] sm:text-2xl">
+            Create account
+          </h1>
+          <p className="mt-1 text-center text-sm text-[#667085]">
+            Save episodes, follow stories, and pick up where you left off.
+          </p>
+
+          <div className="mt-6">
+            <SignupAvatar />
+          </div>
+
+          <form onSubmit={handleContinue} className="mt-6 space-y-4">
+            <SignupInput
+              type="text"
+              label="Full name"
+              placeholder="Your name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              autoComplete="name"
+            />
+            <SignupInput
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+            <SignupInput
+              type="password"
+              label="Password"
+              placeholder="8+ characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+
+            {error && (
+              <p className="rounded-xl bg-[#FFF1F0] px-3 py-2 text-sm text-[#B42318] ring-1 ring-[#FECDCA]">
+                {error}
+              </p>
+            )}
+
+            <div className="pt-2">
+              <SignupStepIndicator step={2} total={2} />
+            </div>
+
+            <SignupSubmitButton disabled={!canSubmit}>
+              {submitting ? "Creating account…" : "Create account"}
+            </SignupSubmitButton>
+          </form>
+        </div>
+
+        <div className="mt-6">
+          <SignupFooterLink />
+        </div>
+
+        <p className="mt-4 text-center text-xs text-[#667085]">
+          Test your database:{" "}
+          <a
+            href="/api/health/db"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[#5340FF] hover:underline"
+          >
+            /api/health/db
+          </a>
+        </p>
       </div>
-
-      <form onSubmit={handleContinue} className="mt-8 flex-1 space-y-4">
-        <input
-          type="text"
-          placeholder="Full name"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          className="w-full rounded-2xl border-2 border-border px-4 py-3.5 text-sm outline-none focus:border-groen-primary"
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-2xl border-2 border-border px-4 py-3.5 text-sm outline-none focus:border-groen-primary"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-2xl border-2 border-border px-4 py-3.5 text-sm outline-none focus:border-groen-primary"
-        />
-
-        <div className="pt-4">
-          <SignupStepIndicator step={2} total={6} />
-        </div>
-
-        <button
-          type="submit"
-          className="mt-4 flex w-full items-center justify-between rounded-full bg-groen-primary py-4 pl-7 pr-2 font-bold text-white shadow-lg"
-        >
-          Continue
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-groen-primary">
-            →
-          </span>
-        </button>
-      </form>
-
-      <SignupFooterLink />
-    </div>
+    </SignupPageBackground>
   );
 }

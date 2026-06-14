@@ -81,6 +81,28 @@ export interface Database {
           text_overlay: Record<string, unknown>;
         };
       };
+      profiles: {
+        Row: {
+          id: string;
+          session_id: string;
+          email: string;
+          full_name: string;
+          wants_recommendations: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          session_id: string;
+          email: string;
+          full_name: string;
+          wants_recommendations?: boolean;
+        };
+        Update: {
+          session_id?: string;
+          full_name?: string;
+          wants_recommendations?: boolean;
+        };
+      };
     };
   };
 }
@@ -88,3 +110,4 @@ export interface Database {
 export type SeriesRow = Database["public"]["Tables"]["series"]["Row"];
 export type EpisodeRow = Database["public"]["Tables"]["episodes"]["Row"];
 export type UserSessionRow = Database["public"]["Tables"]["user_sessions"]["Row"];
+export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];

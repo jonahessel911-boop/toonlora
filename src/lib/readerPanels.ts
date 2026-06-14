@@ -10,6 +10,19 @@ export interface ReaderPanelData {
   artUrl?: string;
 }
 
+const PANEL_GRADIENTS = [
+  "from-[#2A114B] via-[#4C1D95] to-[#1E0A35]",
+  "from-[#5340FF] via-[#7C3AED] to-[#FF4FA3]",
+  "from-[#0E7490] via-[#22D3EE] to-[#5340FF]",
+  "from-[#FF6847] via-[#FF4FA3] to-[#5340FF]",
+  "from-[#F3ECFF] via-[#E9D8FD] to-[#C4B5FD]",
+  "from-[#2A114B] via-[#5340FF] to-[#22D3EE]",
+  "from-[#7C3AED] via-[#FF4FA3] to-[#FFE033]",
+  "from-[#1E0A35] via-[#5340FF] to-[#2A114B]",
+  "from-[#FF4FA3] via-[#5340FF] to-[#22D3EE]",
+  "from-[#2A114B] via-[#3B1A68] to-[#5340FF]",
+];
+
 const MOCK_LINES: { sfx?: string; speaker?: string; text?: string }[] = [
   { sfx: "BAM" },
   { speaker: "Mira", text: "Wait — did you hear that?" },
@@ -55,7 +68,7 @@ export function buildMockReaderPanels(series: SeriesDetail): ReaderPanelData[] {
 
     return {
       panelNumber: i + 1,
-      gradient: series.coverGradient,
+      gradient: PANEL_GRADIENTS[i % PANEL_GRADIENTS.length],
       emoji: emojis[i % emojis.length],
       sfx: line.sfx,
       bubbles,
@@ -75,7 +88,9 @@ export function episodeToReaderPanels(
 
     return {
       panelNumber: panel.panel_number,
-      gradient: episode.comicPage.artGradient || coverGradient,
+      gradient:
+        PANEL_GRADIENTS[(panel.panel_number - 1) % PANEL_GRADIENTS.length] ||
+        coverGradient,
       bubbles: overlay.length
         ? overlay
         : panel.dialogue[0]

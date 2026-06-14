@@ -2,34 +2,38 @@
 @import "tailwindcss";
 
 :root {
-  /* Toonlora base */
-  --background: #fcfaff;
+  /* Toonlora base — Looping-inspired vibrant purple */
+  --background: #ffffff;
   --surface: #ffffff;
-  --surface-soft: #f3ecff;
+  --surface-soft: #eeebff;
   --foreground: #101828;
 
-  /* Brand */
-  --primary: #7c3aed;
-  --primary-dark: #2a114b;
-  --primary-soft: #e9d8fd;
+  /* Brand — Looping royal blue-purple (#5340FF family) */
+  --primary: #5340ff;
+  --primary-dark: #2e1fa8;
+  --primary-soft: #e8e4ff;
+  --hero-purple: #5340ff;
+  --hero-purple-dark: #4330e8;
 
   /* Text */
   --text: #101828;
   --muted: #667085;
-  --border: #e7d8ff;
+  --border: #e4deff;
 
-  /* Accents */
+  /* Accents — Looping coral + yellow CTAs */
+  --accent-coral: #ff6847;
+  --accent-coral-hover: #ff5230;
   --accent-pink: #ff4fa3;
   --accent-cyan: #22d3ee;
-  --accent-yellow: #ffd84d;
-  --accent-lime: #a3ff6f;
+  --accent-yellow: #ffe033;
+  --accent-lime: #34d399;
 
   /* Genre colors */
   --genre-romance: #ff4fa3;
-  --genre-anime: #8b5cf6;
-  --genre-fantasy: #7c3aed;
+  --genre-anime: #6d5bff;
+  --genre-fantasy: #5340ff;
   --genre-adventure: #22d3ee;
-  --genre-comedy: #ffd84d;
+  --genre-comedy: #ffe033;
   --genre-drama: #fb7185;
   --genre-slice-of-life: #34d399;
   --genre-action: #60a5fa;
@@ -38,14 +42,14 @@
   --font-heading: "Fredoka", sans-serif;
   --font-body: "Inter", sans-serif;
 
-  /* Legacy aliases — map old class names to Toonlora tokens */
+  /* Legacy aliases */
   --gs-bg: var(--background);
   --gs-surface: var(--surface);
   --gs-surface-mint: var(--surface-soft);
   --gs-primary: var(--primary);
   --gs-primary-dark: var(--primary-dark);
   --gs-primary-soft: var(--primary-soft);
-  --gs-accent: var(--accent-pink);
+  --gs-accent: var(--accent-coral);
   --gs-text: var(--text);
   --gs-muted: var(--muted);
   --gs-border: var(--border);
@@ -54,15 +58,15 @@
   --groen-deep: var(--primary-dark);
   --groen-mint: var(--surface-soft);
 
-  /* LP funnel (aligned with Toonlora purple) */
-  --lp-purple: #7c3aed;
-  --lp-purple-dark: #6d28d9;
-  --lp-purple-deep: #2a114b;
+  /* LP / Looping tokens */
+  --lp-purple: #5340ff;
+  --lp-purple-dark: #4330e8;
+  --lp-purple-deep: #2e1fa8;
   --lp-purple-glass: rgba(255, 255, 255, 0.14);
-  --lp-coral: #ff4fa3;
-  --lp-coral-hover: #e63d8f;
-  --lp-yellow: #ffd84d;
-  --lp-yellow-dark: #f5c800;
+  --lp-coral: #ff6847;
+  --lp-coral-hover: #ff5230;
+  --lp-yellow: #ffe033;
+  --lp-yellow-dark: #f5d000;
   --lp-blue: #22d3ee;
 }
 
@@ -74,9 +78,11 @@
   --color-primary: var(--primary);
   --color-primary-dark: var(--primary-dark);
   --color-primary-soft: var(--primary-soft);
+  --color-hero-purple: var(--hero-purple);
   --color-text: var(--text);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  --color-accent-coral: var(--accent-coral);
   --color-accent-pink: var(--accent-pink);
   --color-accent-cyan: var(--accent-cyan);
   --color-accent-yellow: var(--accent-yellow);
@@ -114,21 +120,59 @@
   --font-heading: var(--font-heading);
 }
 
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+  width: 100%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;
+  overflow-x: clip;
+  width: 100%;
+  min-height: 100dvh;
 }
 
 .font-heading {
   font-family: var(--font-heading);
 }
 
+/* Looping-style primary CTA */
+.btn-coral {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--lp-coral);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(255, 104, 71, 0.45);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.btn-coral:hover {
+  background: var(--lp-coral-hover);
+}
+
+.btn-coral:active {
+  transform: scale(0.98);
+}
+
 /* Browse nav tabs */
 .nav-tab {
   font-family: var(--font-heading);
   position: relative;
+}
+
+/* Homepage section anchors — clear sticky navbar */
+#originals,
+#categories,
+#rankings,
+#community {
+  scroll-margin-top: 7.5rem;
 }
 
 .nav-tab-active::after {
@@ -139,10 +183,9 @@ body {
   bottom: 0;
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--primary-dark), var(--primary));
+  background: var(--lp-purple);
 }
 
-/* Mobile-first horizontal story rails */
 .mobile-rail {
   display: flex;
   gap: 0.75rem;
@@ -171,6 +214,16 @@ body {
   }
 }
 
+@media (min-width: 768px) {
+  .mobile-rail.desktop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+    gap: 1rem;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+}
+
 @supports (padding: env(safe-area-inset-bottom)) {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
@@ -186,27 +239,12 @@ body {
   display: none;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-.rail-fade-right {
-  mask-image: linear-gradient(to right, black 85%, transparent 100%);
-}
-
 .card-shadow {
   box-shadow:
-    0 1px 2px rgba(42, 17, 75, 0.06),
-    0 8px 24px rgba(42, 17, 75, 0.08);
+    0 1px 2px rgba(46, 31, 168, 0.06),
+    0 8px 24px rgba(83, 64, 255, 0.1);
 }
 
-.card-shadow-hover {
-  box-shadow:
-    0 4px 8px rgba(42, 17, 75, 0.08),
-    0 16px 32px rgba(42, 17, 75, 0.12);
-}
-
-/* LP funnel */
 .lp-glass-card {
   background: var(--lp-purple-glass);
   backdrop-filter: blur(16px);
@@ -216,9 +254,113 @@ html {
 }
 
 .lp-nav-pill {
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 32px rgba(42, 17, 75, 0.12);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border-radius: 9999px;
+}
+
+/* Premium app navbar */
+.tl-nav-shell {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(231, 216, 255, 0.85);
+  box-shadow:
+    0 1px 2px rgba(42, 17, 75, 0.04),
+    0 8px 28px rgba(42, 17, 75, 0.08);
+}
+
+.tl-nav-link {
+  position: relative;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #667085;
+  border-radius: 9999px;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.tl-nav-link:hover {
+  color: #5340ff;
+  background: rgba(243, 236, 255, 0.65);
+}
+
+.tl-nav-link-active {
+  color: #2a114b;
+  font-weight: 700;
+  background: #f3ecff;
+}
+
+.tl-nav-login {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #667085;
+  transition: color 0.15s ease;
+}
+
+.tl-nav-login:hover {
+  color: #5340ff;
+}
+
+.tl-nav-create {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 3rem;
+  padding: 0 1.75rem;
+  border-radius: 9999px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: white;
+  background: #ff6847;
+  box-shadow: 0 8px 20px rgba(255, 104, 71, 0.25);
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.tl-nav-create:hover {
+  background: #ff5633;
+}
+
+.tl-nav-create:active {
+  transform: scale(0.98);
+}
+
+.tl-nav-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 1px solid rgba(42, 17, 75, 0.12);
+  background: white;
+  color: #2a114b;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.tl-nav-icon-btn:hover {
+  background: #f3ecff;
+  border-color: rgba(83, 64, 255, 0.18);
+}
+
+.tl-nav-credits {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: #f3ecff;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2a114b;
 }
 
 .lp-pill-btn {
@@ -232,15 +374,14 @@ html {
   font-weight: 800;
   color: white;
   background: var(--lp-coral);
-  box-shadow: 0 4px 16px rgba(255, 79, 163, 0.45);
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 16px rgba(255, 104, 71, 0.5);
+  transition: transform 0.15s ease, background 0.15s ease;
   min-height: 3.25rem;
   touch-action: manipulation;
 }
 
 .lp-pill-btn:hover {
   background: var(--lp-coral-hover);
-  box-shadow: 0 6px 22px rgba(255, 79, 163, 0.55);
 }
 
 .lp-pill-btn:active {
@@ -250,18 +391,7 @@ html {
 .lp-pill-btn-secondary {
   background: var(--lp-yellow);
   color: var(--lp-purple-deep);
-  box-shadow: 0 4px 16px rgba(255, 216, 77, 0.45);
-}
-
-.lp-pill-btn-secondary:hover {
-  background: var(--lp-yellow-dark);
-  box-shadow: 0 6px 22px rgba(255, 216, 77, 0.55);
-}
-
-.lp-pill-btn-compact {
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  min-height: 2.75rem;
+  box-shadow: 0 4px 16px rgba(255, 224, 51, 0.45);
 }
 
 .lp-hero-curve {

@@ -14,6 +14,7 @@ interface UserProfile {
 interface UserStore extends UserProfile {
   setProfile: (data: Partial<UserProfile>) => void;
   completeOnboarding: () => void;
+  logout: () => void;
 }
 
 export const useUserStore = create<UserStore>()(
@@ -26,6 +27,14 @@ export const useUserStore = create<UserStore>()(
       onboarded: false,
       setProfile: (data) => set((s) => ({ ...s, ...data })),
       completeOnboarding: () => set({ onboarded: true }),
+      logout: () =>
+        set({
+          fullName: "",
+          email: "",
+          wantsRecommendations: true,
+          agreedToTerms: false,
+          onboarded: false,
+        }),
     }),
     { name: "toonlora-user" }
   )

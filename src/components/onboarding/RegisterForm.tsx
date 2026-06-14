@@ -21,7 +21,7 @@ export default function RegisterForm() {
 
   const handleContinue = () => {
     setProfile({ onboarded: true });
-    router.push("/create");
+    router.push("/library");
   };
 
   return (
@@ -126,9 +126,9 @@ export default function RegisterForm() {
       </div>
 
       <div className="mt-6 space-y-4">
-        <OnboardingStepper step={2} />
+        <OnboardingStepper step={2} total={2} />
         <PrimaryButton onClick={handleContinue} disabled={!canContinue}>
-          Continue
+          Create account
         </PrimaryButton>
         <p className="text-center text-sm text-gray-500">
           Already have an account?{" "}

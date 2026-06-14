@@ -43,7 +43,7 @@ export default function RootLayout({
         } as React.CSSProperties
       }
     >
-      <body className="min-h-full bg-background font-sans antialiased">
+      <body className="min-h-[100dvh] bg-background font-sans antialiased">
         <AppShell>{children}</AppShell>
       </body>
     </html>

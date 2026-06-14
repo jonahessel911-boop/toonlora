@@ -9,15 +9,19 @@
 
 Open **SQL Editor** in Supabase and paste the contents of:
 
+Run both migration files in order:
+
 ```
 supabase/migrations/001_initial_schema.sql
+supabase/migrations/002_profiles.sql
 ```
 
-Run the script. This creates:
+This creates:
 
 | Table | Purpose |
 |-------|---------|
 | `user_sessions` | Anonymous credits (until Auth) |
+| `profiles` | Registered name + email linked to session |
 | `series` | Story Bible + series metadata |
 | `episodes` | Scripts, panels, overlays per episode |
 
@@ -35,7 +39,23 @@ OPENAI_API_KEY=sk-...
 
 > **Important:** `SUPABASE_SERVICE_ROLE_KEY` is server-only. Never expose it in client code.
 
-## 4. Restart dev server
+## 4. Test the connection
+
+With the dev server running, open:
+
+```
+http://localhost:3000/api/health/db
+```
+
+You should see `"ok": true` when everything is wired up. If not, the JSON lists what's missing (env vars, migrations, bad URL).
+
+Or from terminal:
+
+```bash
+curl -s http://localhost:3000/api/health/db | python3 -m json.tool
+```
+
+## 6. Restart dev server
 
 ```bash
 npm run dev

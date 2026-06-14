@@ -120,15 +120,15 @@ export default function StoryReaderClient({
 
   if (!hydrated) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#1b1b1b]">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-white" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#FCFAFF]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#E9D8FD] border-t-[#5340FF]" />
       </div>
     );
   }
 
   if (generating) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-white px-4">
+      <div className="flex h-[100dvh] flex-col overflow-hidden bg-[#FCFAFF]">
         <GenerationLoading />
       </div>
     );
@@ -153,12 +153,11 @@ export default function StoryReaderClient({
 
   if (!story) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-white px-4 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Story not found</h1>
-        <Link
-          href="/"
-          className="mt-6 rounded-full bg-gray-900 px-6 py-3 text-sm font-bold text-white"
-        >
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#FCFAFF] px-4 text-center">
+        <h1 className="font-heading text-2xl font-bold text-[#2A114B]">
+          Story not found
+        </h1>
+        <Link href="/" className="btn-coral mt-6 rounded-full px-6 py-3 text-sm">
           Back to home
         </Link>
       </div>

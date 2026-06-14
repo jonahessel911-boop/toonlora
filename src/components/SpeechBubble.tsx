@@ -27,7 +27,7 @@ export default function SpeechBubble({ bubble }: SpeechBubbleProps) {
   if (type === "narration") {
     return (
       <div
-        className="absolute rounded-lg border border-border/60 bg-white/85 px-3 py-2 text-center shadow-sm backdrop-blur-sm"
+        className="absolute rounded-xl border border-[#E7D8FF]/60 bg-[#F3ECFF]/95 px-3 py-2 text-center shadow-sm backdrop-blur-sm"
         style={{
           left: `${position.x}%`,
           top: `${position.y}%`,
@@ -35,7 +35,7 @@ export default function SpeechBubble({ bubble }: SpeechBubbleProps) {
           transform: "translate(-50%, 0)",
         }}
       >
-        <p className="font-serif text-xs italic leading-relaxed text-gray-700 sm:text-sm">
+        <p className="text-xs italic leading-relaxed text-[#2A114B]/80 sm:text-sm">
           {text}
         </p>
       </div>
@@ -52,17 +52,17 @@ export default function SpeechBubble({ bubble }: SpeechBubbleProps) {
         transform: "translate(-50%, 0)",
       }}
     >
-      <div className="relative rounded-2xl border-2 border-gray-900 bg-white px-3 py-2 shadow-md">
+      <div className="relative rounded-2xl border-2 border-[#2A114B]/15 bg-white px-3 py-2 shadow-[0_8px_24px_rgba(42,17,75,0.12)]">
         {speaker && (
-          <p className="mb-0.5 text-[10px] font-black uppercase tracking-wide text-groen-deep sm:text-xs">
+          <p className="mb-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#7C3AED] sm:text-xs">
             {speaker}
           </p>
         )}
-        <p className="text-xs font-bold leading-snug text-gray-900 sm:text-sm">
+        <p className="text-xs font-semibold leading-snug text-[#101828] sm:text-sm">
           {text}
         </p>
         <div
-          className={`absolute -bottom-2 h-3 w-3 rotate-45 border-b-2 border-r-2 border-gray-900 bg-white ${
+          className={`absolute -bottom-2 h-3 w-3 rotate-45 border-b-2 border-r-2 border-[#2A114B]/15 bg-white ${
             bubble.tail_direction === "bottom-right"
               ? "right-4"
               : bubble.tail_direction === "top-left"
