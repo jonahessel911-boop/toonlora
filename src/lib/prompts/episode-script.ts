@@ -1,19 +1,32 @@
 import type { StoryBible } from "@/types/pipeline";
+import { VERTICAL_WEBTOON_LAYOUT_RULES } from "@/lib/promptHints";
 
 export function buildEpisodeScriptPrompt(
   storyBible: StoryBible,
   episodeNumber: number,
   previousEpisodeSummary: string,
   episodePrompt: string,
-  language: string
+  language: string,
+  panelCount = 6
 ): string {
   return `You are a professional vertical webtoon episode writer.
 
 Create one episode script based on the Story Bible.
 
-The episode must work as a vertical scroll comic with strong visual moments, short dialogue, clear emotions, and a cliffhanger.
+GENRE: ${storyBible.genre} — story beats, tone, and visuals must fit this category.
 
-Keep the story original. Do not copy existing IP, characters, brands, anime, comics, movies, or copyrighted scenes.
+${VERTICAL_WEBTOON_LAYOUT_RULES}
+
+The episode is ONE vertically scrolling page: ${panelCount} panel strips read top to bottom.
+
+Keep the story original. Do not copy existing IP.
+
+TEXT RULES (rendered inside comic art, not as HTML):
+- Each panel strip = one clear moment.
+- Dialogue: 1–2 short sentences per line, max 4 lines per panel.
+- Narration: max 1 short sentence per panel for scene-setting.
+- SFX: small sound effects only (e.g. "Tap", "Whoosh") near the action.
+- Prioritize readable storytelling — minimal clutter.
 
 STORY BIBLE:
 ${JSON.stringify(storyBible, null, 2)}
@@ -29,6 +42,10 @@ ${episodePrompt}
 
 LANGUAGE:
 ${language}
+
+PANEL COUNT:
+Create exactly ${panelCount} panels, numbered 1 through ${panelCount}, for a single vertical column.
+The final panel should end on a cliffhanger when possible.
 
 OUTPUT JSON ONLY:
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { AdminReportingMetrics } from "@/lib/services/analytics-repository";
+import AdminComicsPanel from "@/components/admin/AdminComicsPanel";
 
 function MetricTile({
   label,
@@ -58,6 +59,9 @@ function MetricCard({
 }
 
 export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState<"reporting" | "content">(
+    "reporting"
+  );
   const [metrics, setMetrics] = useState<AdminReportingMetrics | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -162,15 +166,24 @@ export default function AdminDashboard() {
         </div>
 
         <nav className="flex gap-1 overflow-x-auto border-t border-white/15 px-3 py-2 md:hidden">
-          <span className="shrink-0 rounded bg-white/20 px-3 py-1 text-[11px] font-semibold">
-            User reporting
-          </span>
-          <span className="shrink-0 rounded px-3 py-1 text-[11px] text-white/60">
-            Content
-          </span>
-          <span className="shrink-0 rounded px-3 py-1 text-[11px] text-white/60">
-            Settings
-          </span>
+          <button
+            type="button"
+            onClick={() => setActiveTab("reporting")}
+            className={`shrink-0 rounded px-3 py-1 text-[11px] font-semibold ${
+              activeTab === "reporting" ? "bg-white/20" : "text-white/60"
+            }`}
+          >
+            Reporting
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("content")}
+            className={`shrink-0 rounded px-3 py-1 text-[11px] font-semibold ${
+              activeTab === "content" ? "bg-white/20" : "text-white/60"
+            }`}
+          >
+            Comics
+          </button>
         </nav>
       </header>
 
@@ -180,21 +193,30 @@ export default function AdminDashboard() {
             <p className="px-4 pb-2 text-[11px] font-semibold uppercase tracking-wide text-[#605E5C]">
               Monitor
             </p>
-            <a
-              href="#"
-              className="flex items-center gap-2 border-l-2 border-[#0078D4] bg-white px-4 py-2 text-sm font-semibold text-[#0078D4]"
+            <button
+              type="button"
+              onClick={() => setActiveTab("reporting")}
+              className={`flex w-full items-center gap-2 border-l-2 px-4 py-2 text-sm ${
+                activeTab === "reporting"
+                  ? "border-[#0078D4] bg-white font-semibold text-[#0078D4]"
+                  : "border-transparent text-[#323130] hover:bg-white/60"
+              }`}
             >
               <span aria-hidden>📊</span>
               User reporting
-            </a>
-            <span className="flex items-center gap-2 px-4 py-2 text-sm text-[#A19F9D]">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("content")}
+              className={`flex w-full items-center gap-2 border-l-2 px-4 py-2 text-sm ${
+                activeTab === "content"
+                  ? "border-[#0078D4] bg-white font-semibold text-[#0078D4]"
+                  : "border-transparent text-[#323130] hover:bg-white/60"
+              }`}
+            >
               <span aria-hidden>📁</span>
-              Content (soon)
-            </span>
-            <span className="flex items-center gap-2 px-4 py-2 text-sm text-[#A19F9D]">
-              <span aria-hidden>⚙️</span>
-              Settings (soon)
-            </span>
+              Comics &amp; publish
+            </button>
           </nav>
         </aside>
 
@@ -205,9 +227,11 @@ export default function AdminDashboard() {
               <span className="text-[#323130]">User engagement</span>
             </p>
             <h1 className="text-lg font-semibold text-[#323130] sm:mt-1 sm:text-xl">
-              User engagement report
+              {activeTab === "reporting"
+                ? "User engagement report"
+                : "Comics & publishing"}
             </h1>
-            {metrics ? (
+            {activeTab === "reporting" && metrics ? (
               <p className="mt-1 text-[11px] text-[#605E5C] sm:text-xs">
                 Updated {new Date(metrics.generatedAt).toLocaleString()}
               </p>
@@ -215,6 +239,10 @@ export default function AdminDashboard() {
           </div>
 
           <div className="space-y-4 p-3 sm:space-y-5 sm:p-6">
+            {activeTab === "content" ? (
+              <AdminComicsPanel />
+            ) : (
+              <>
             {error ? (
               <div className="border border-[#F1BBBC] bg-[#FDE7E9] px-3 py-2.5 text-sm text-[#A4262C] sm:px-4 sm:py-3">
                 {error}
@@ -381,6 +409,8 @@ export default function AdminDashboard() {
                 </section>
               </>
             ) : null}
+              </>
+            )}
           </div>
         </main>
       </div>

@@ -4,20 +4,22 @@ import {
   buildStoryBiblePrompt,
   buildEpisodeScriptPrompt,
   buildPanelBreakdownPrompt,
-  buildImagePromptGeneratorPrompt,
-  buildTextOverlayPrompt,
   buildContinuityMemoryPrompt,
   buildModerationInput,
 } from "@/lib/prompts";
+import {
+  buildFinalImagePrompt,
+  buildPanelImagePromptInputs,
+} from "@/lib/prompts/image-prompt";
+import { resolvePanelCount } from "@/lib/panelCount";
+import { resolveArtStyleHint } from "@/lib/promptHints";
 import {
   mockModeration,
   mockStoryBible,
   mockEpisodeScript,
   mockPanelBreakdown,
-  mockImagePrompt,
   mockComicPage,
   mockImageQA,
-  mockTextOverlay,
   mockContinuityMemory,
 } from "@/lib/engine/mock-generators";
 import {
@@ -74,6 +76,8 @@ export interface PipelineOptions {
   episodePrompt?: string;
   existingStoryBible?: import("@/types/pipeline").StoryBible;
   onStepUpdate?: (steps: PipelineStepStatus[]) => void;
+  /** When true, refuse to run without OPENAI_API_KEY (no mock fallback). */
+  requireAI?: boolean;
 }
 
 /**
@@ -90,7 +94,17 @@ export async function runStoryToWebtoonPipeline(
     episodePrompt = input.story_idea,
     existingStoryBible,
     onStepUpdate,
+    requireAI = false,
   } = options;
+
+  if (requireAI && !hasOpenAIKey()) {
+    throw new Error(
+      "OPENAI_API_KEY is not configured. Add your OpenAI API key to .env.local and restart the dev server."
+    );
+  }
+
+  const useAI = hasOpenAIKey();
+  const panelCount = resolvePanelCount(input);
 
   let steps = createSteps();
   const notify = () => onStepUpdate?.([...steps]);
@@ -101,7 +115,7 @@ export async function runStoryToWebtoonPipeline(
   ): Promise<T> => {
     steps = updateStep(steps, id, "running");
     notify();
-    await delay(hasOpenAIKey() ? 200 : 400);
+    await delay(useAI ? 200 : 400);
     try {
       const result = await fn();
       steps = updateStep(steps, id, "done");
@@ -122,7 +136,7 @@ export async function runStoryToWebtoonPipeline(
   // Step 0: Moderation
   await runStep("moderation", async () => {
     const modInput = buildModerationInput(input);
-    if (hasOpenAIKey()) {
+    if (useAI) {
       const passed = await callOpenAIModeration(modInput);
       if (!passed) throw new Error("Content flagged by moderation");
     } else {
@@ -134,7 +148,7 @@ export async function runStoryToWebtoonPipeline(
   // Step 1: Story Bible
   const storyBible = await runStep("story_bible", async () => {
     if (existingStoryBible) return existingStoryBible;
-    if (hasOpenAIKey()) {
+    if (useAI) {
       const prompt = buildStoryBiblePrompt(input);
       const raw = await callOpenAIChat({
         model: PIPELINE_MODELS.story_bible,
@@ -148,13 +162,14 @@ export async function runStoryToWebtoonPipeline(
 
   // Step 2: Episode Script
   const episodeScript = await runStep("episode_script", async () => {
-    if (hasOpenAIKey()) {
+    if (useAI) {
       const prompt = buildEpisodeScriptPrompt(
         storyBible,
         episodeNumber,
         previousEpisodeSummary,
         episodePrompt,
-        input.language
+        input.language,
+        panelCount
       );
       const raw = await callOpenAIChat({
         model: PIPELINE_MODELS.episode_script,
@@ -168,7 +183,7 @@ export async function runStoryToWebtoonPipeline(
 
   // Step 3: Panel Breakdown
   const panelBreakdown = await runStep("panel_breakdown", async () => {
-    if (hasOpenAIKey()) {
+    if (useAI) {
       const prompt = buildPanelBreakdownPrompt(storyBible, episodeScript);
       const raw = await callOpenAIChat({
         model: PIPELINE_MODELS.panel_breakdown,
@@ -182,69 +197,64 @@ export async function runStoryToWebtoonPipeline(
 
   // Step 4: Image Prompt
   const imagePrompt = await runStep("image_prompt", async () => {
-    if (hasOpenAIKey()) {
-      const directorPrompt = buildImagePromptGeneratorPrompt(
-        storyBible,
-        episodeScript,
-        input.style,
-        input.language
-      );
-      const raw = await callOpenAIChat({
-        model: PIPELINE_MODELS.image_prompt,
-        prompt: directorPrompt,
-      });
-      return {
-        prompt: raw,
-        art_style: input.style,
-        panel_count: panelBreakdown.panel_count,
-      };
-    }
-    return mockImagePrompt(storyBible, episodeScript, panelBreakdown);
+    const characterBible = storyBible.main_characters
+      .map(
+        (c) =>
+          `${c.name}: ${c.visual_design}. Outfit: ${c.signature_outfit}.`
+      )
+      .join("\n");
+
+    const artStyleHint = resolveArtStyleHint(input.style);
+
+    const prompt = buildFinalImagePrompt({
+      episodeNumber: episodeScript.episode_number,
+      seriesTitle: storyBible.series_title,
+      genre: input.genre || storyBible.genre,
+      tone: input.tone || storyBible.tone,
+      artStyleHint,
+      characterBible,
+      episodeSummary: episodeScript.episode_summary,
+      panels: buildPanelImagePromptInputs(episodeScript, panelBreakdown),
+      cliffhanger: episodeScript.cliffhanger,
+    });
+
+    return {
+      prompt,
+      art_style: input.style,
+      panel_count: panelBreakdown.panel_count,
+    };
   });
 
-  // Step 5: Comic Image (art only, no text)
+  // Step 5: Comic Image (vertical webtoon with baked-in bubbles)
   const comicPage = await runStep("comic_image", async () => {
     const page = mockComicPage(episodeScript, imagePrompt);
-    if (hasOpenAIKey()) {
-      const artUrl = await callOpenAIImage(
+    if (useAI) {
+      page.artUrl = await callOpenAIImage(
         imagePrompt.prompt,
+        episodeScript.episode_number,
         PIPELINE_MODELS.comic_image
       );
-      if (artUrl) page.artUrl = artUrl;
     }
     return page;
   });
 
   // Step 6: Image QA
   await runStep("image_qa", async () => {
-    if (hasOpenAIKey()) {
-      // Future: vision model check
-      return mockImageQA(comicPage);
-    }
     return mockImageQA(comicPage);
   });
 
-  // Step 7: Text Overlay
-  const textOverlay = await runStep("text_overlay", async () => {
-    if (hasOpenAIKey()) {
-      const prompt = buildTextOverlayPrompt(
-        storyBible,
-        episodeScript,
-        panelBreakdown
-      );
-      const raw = await callOpenAIChat({
-        model: PIPELINE_MODELS.text_overlay,
-        prompt,
-        json: true,
-      });
-      return parseJSON<TextOverlay>(raw);
-    }
-    return mockTextOverlay(episodeScript, panelBreakdown);
-  });
+  // Step 7: Text overlay metadata (empty — text is baked into comic art)
+  const textOverlay = await runStep("text_overlay", async () => ({
+    episode_number: episodeScript.episode_number,
+    panels: episodeScript.panels.map((p) => ({
+      panel_number: p.panel_number,
+      bubbles: [],
+    })),
+  } satisfies TextOverlay));
 
   // Step 8: Continuity Memory
   const continuityMemory = await runStep("continuity", async () => {
-    if (hasOpenAIKey()) {
+    if (useAI) {
       const prompt = buildContinuityMemoryPrompt(storyBible, episodeScript);
       const raw = await callOpenAIChat({
         model: PIPELINE_MODELS.continuity,

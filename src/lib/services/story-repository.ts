@@ -2,6 +2,15 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { EpisodeRow, SeriesRow } from "@/lib/supabase/types";
 import type { Story, StoryEpisode } from "@/types/story";
 
+export interface SaveStoryOptions {
+  source?: "admin" | "creator";
+  status?: "draft" | "published";
+  isPublic?: boolean;
+  synopsis?: string;
+  creatorDisplayName?: string;
+  featuredRank?: number | null;
+}
+
 function rowToStory(series: SeriesRow, episodeRows: EpisodeRow[]): Story {
   const episodes: StoryEpisode[] = episodeRows
     .sort((a, b) => a.episode_number - b.episode_number)
@@ -32,6 +41,15 @@ function rowToStory(series: SeriesRow, episodeRows: EpisodeRow[]): Story {
     continuityMemory: series.continuity_memory as unknown as Story["continuityMemory"],
     pipelineResult: series.pipeline_result as unknown as Story["pipelineResult"],
     episodes,
+    source: series.source === "admin" ? "admin" : "creator",
+    status: series.status === "published" ? "published" : "draft",
+    publishedAt: series.published_at,
+    synopsis: series.synopsis ?? undefined,
+    creatorDisplayName: series.creator_display_name ?? undefined,
+    featuredRank: series.featured_rank,
+    viewsCount: series.views_count,
+    likesCount: series.likes_count,
+    isPublic: series.is_public,
   };
 }
 
@@ -74,12 +92,18 @@ export async function ensureSession(sessionId: string): Promise<void> {
 
 export async function saveStoryToDb(
   story: Story,
-  sessionId: string
+  sessionId: string,
+  options: SaveStoryOptions = {}
 ): Promise<Story> {
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("Database not configured");
 
   await ensureSession(sessionId);
+
+  const source = options.source ?? story.source ?? "creator";
+  const status = options.status ?? story.status ?? "draft";
+  const isPublic =
+    options.isPublic ?? (status === "published" ? true : false);
 
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -108,7 +132,25 @@ export async function saveStoryToDb(
       chapters: story.chapters,
       pages: story.pages,
     },
-    is_public: true,
+    is_public: isPublic,
+    source,
+    status,
+    published_at:
+      status === "published"
+        ? story.publishedAt ?? new Date().toISOString()
+        : null,
+    synopsis:
+      options.synopsis ??
+      story.synopsis ??
+      story.storyBible?.logline ??
+      story.prompt ??
+      null,
+    creator_display_name:
+      options.creatorDisplayName ??
+      story.creatorDisplayName ??
+      story.mainCharacter ??
+      null,
+    featured_rank: options.featuredRank ?? story.featuredRank ?? null,
   };
 
   let seriesId = story.id;

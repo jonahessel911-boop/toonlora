@@ -19,7 +19,7 @@ const PILLARS = [
     icon: "✨",
     title: "Everyone is a creator",
     body: "Turn your idea into a cartoon episode in minutes. No studio required — just your imagination, our tools, and a little Toonlora magic.",
-    gradient: "from-[#FF6847] to-[#FF4FA3]",
+    gradient: "from-[#6D4CFF] to-[#5340FF]",
   },
   {
     icon: "🌍",
@@ -66,13 +66,13 @@ export default function AboutPage() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/#rankings"
-              className="inline-flex h-14 min-w-[180px] items-center justify-center rounded-full bg-[#FF6847] px-8 text-base font-extrabold text-white shadow-[0_10px_28px_rgba(255,104,71,0.35)]"
+              className="btn-coral h-14 min-w-[180px] px-8 text-base font-extrabold"
             >
               Start reading
             </Link>
             <Link
               href="/create"
-              className="inline-flex h-14 min-w-[180px] items-center justify-center rounded-full bg-[#FFE033] px-8 text-base font-extrabold text-[#2A114B] shadow-[0_10px_28px_rgba(255,224,51,0.3)]"
+              className="inline-flex h-14 min-w-[180px] items-center justify-center rounded-full border-2 border-white/40 bg-white/10 px-8 text-base font-extrabold text-white backdrop-blur-sm transition hover:bg-white/20"
             >
               Create a story
             </Link>

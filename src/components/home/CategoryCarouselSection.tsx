@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import WebtoonStoryCard from "@/components/home/WebtoonStoryCard";
-import { getGenreColors } from "@/lib/brand";
-import { CATEGORY_STORIES } from "@/lib/sampleStories";
+import { useCatalog } from "@/hooks/useCatalog";
 import type { Category } from "@/types/story";
 
 const WEBTOON_CATEGORIES: Category[] = [
@@ -19,7 +18,11 @@ const WEBTOON_CATEGORIES: Category[] = [
 
 export default function CategoryCarouselSection() {
   const [active, setActive] = useState<Category>("Drama");
-  const stories = CATEGORY_STORIES[active]?.slice(0, 8) ?? [];
+  const { series: stories, loading } = useCatalog({
+    genre: active,
+    sort: "featured",
+    limit: 8,
+  });
 
   return (
     <section id="categories" className="border-b border-gs-border bg-white py-5 sm:py-9">
@@ -38,37 +41,44 @@ export default function CategoryCarouselSection() {
 
         <div className="mobile-rail sm-static mb-5 px-4 sm:mb-6 sm:gap-2 sm:px-0">
           {WEBTOON_CATEGORIES.map((cat) => {
-            const colors = getGenreColors(cat);
             const isActive = active === cat;
             return (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActive(cat)}
-              className={`min-h-[44px] snap-start rounded-full border px-4 py-2.5 text-sm font-bold transition touch-manipulation sm:min-h-0 ${
-                isActive
-                  ? `${colors.bg} border-transparent text-white shadow-sm`
-                  : "border-gs-border bg-white text-gs-muted active:bg-gs-surface-mint"
-              }`}
-            >
-              {cat}
-            </button>
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActive(cat)}
+                className={`min-h-[44px] snap-start rounded-full border px-4 py-2.5 text-sm font-bold transition touch-manipulation sm:min-h-0 ${
+                  isActive
+                    ? "border-transparent bg-lp-purple text-white shadow-sm"
+                    : "border-gs-border bg-white text-gs-muted active:bg-gs-surface-mint"
+                }`}
+              >
+                {cat}
+              </button>
             );
           })}
         </div>
 
-        {/* Mobile: horizontal rail · Desktop: grid */}
-        <div className="mobile-rail px-4 sm:hidden">
-          {stories.slice(0, 6).map((story) => (
-            <WebtoonStoryCard key={story.id} story={story} variant="ranked" />
-          ))}
-        </div>
-
-        <div className="hidden grid-cols-3 gap-4 sm:grid lg:grid-cols-4 lg:gap-5">
-          {stories.slice(0, 8).map((story) => (
-            <WebtoonStoryCard key={story.id} story={story} variant="grid" />
-          ))}
-        </div>
+        {loading ? (
+          <p className="px-4 text-sm text-gs-muted">Loading…</p>
+        ) : stories.length === 0 ? (
+          <p className="px-4 text-sm text-gs-muted sm:px-0">
+            No published {active} series yet.
+          </p>
+        ) : (
+          <>
+            <div className="mobile-rail px-4 sm:hidden">
+              {stories.slice(0, 6).map((story) => (
+                <WebtoonStoryCard key={story.id} story={story} variant="ranked" />
+              ))}
+            </div>
+            <div className="hidden grid-cols-3 gap-4 sm:grid lg:grid-cols-4 lg:gap-5">
+              {stories.slice(0, 8).map((story) => (
+                <WebtoonStoryCard key={story.id} story={story} variant="grid" />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </section>
   );

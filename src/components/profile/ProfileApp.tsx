@@ -22,7 +22,7 @@ export default function ProfileApp() {
         </p>
         <Link
           href="/signin"
-          className="mt-6 inline-flex rounded-full bg-[#FF6847] px-8 py-3 text-sm font-extrabold text-white"
+          className="btn-coral mt-6 px-8 py-3 text-sm font-extrabold"
         >
           Log in
         </Link>

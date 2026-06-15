@@ -1,78 +1,25 @@
 import type { TextBubble } from "@/types/pipeline";
+import ComicBubble from "@/components/reader/ComicBubble";
+import { normalizePanelBubbles } from "@/lib/comicTextLayout";
 
 interface SpeechBubbleProps {
   bubble: TextBubble;
+  panelIndex?: number;
 }
 
-export default function SpeechBubble({ bubble }: SpeechBubbleProps) {
-  const { type, speaker, text, position } = bubble;
+/** Single-bubble overlay — uses zone layout, not raw x/y coordinates. */
+export default function SpeechBubble({
+  bubble,
+  panelIndex = 0,
+}: SpeechBubbleProps) {
+  const { speech } = normalizePanelBubbles([bubble], panelIndex);
+  const item = speech[0] ?? bubble;
+  const align =
+    item.tail_direction === "bottom-right"
+      ? "right"
+      : item.tail_direction === "bottom-left"
+        ? "left"
+        : "center";
 
-  if (type === "sfx") {
-    return (
-      <div
-        className="absolute font-black uppercase tracking-wider text-gray-900"
-        style={{
-          left: `${position.x}%`,
-          top: `${position.y}%`,
-          transform: "translate(-50%, -50%)",
-          fontSize: "clamp(14px, 4vw, 22px)",
-          textShadow: "2px 2px 0 white, -1px -1px 0 white",
-        }}
-      >
-        {text}
-      </div>
-    );
-  }
-
-  if (type === "narration") {
-    return (
-      <div
-        className="absolute rounded-xl border border-[#E7D8FF]/60 bg-[#F3ECFF]/95 px-3 py-2 text-center shadow-sm backdrop-blur-sm"
-        style={{
-          left: `${position.x}%`,
-          top: `${position.y}%`,
-          width: `${position.width}%`,
-          transform: "translate(-50%, 0)",
-        }}
-      >
-        <p className="text-xs italic leading-relaxed text-[#2A114B]/80 sm:text-sm">
-          {text}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="absolute"
-      style={{
-        left: `${position.x}%`,
-        top: `${position.y}%`,
-        width: `${position.width}%`,
-        transform: "translate(-50%, 0)",
-      }}
-    >
-      <div className="relative rounded-2xl border-2 border-[#2A114B]/15 bg-white px-3 py-2 shadow-[0_8px_24px_rgba(42,17,75,0.12)]">
-        {speaker && (
-          <p className="mb-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#7C3AED] sm:text-xs">
-            {speaker}
-          </p>
-        )}
-        <p className="text-xs font-semibold leading-snug text-[#101828] sm:text-sm">
-          {text}
-        </p>
-        <div
-          className={`absolute -bottom-2 h-3 w-3 rotate-45 border-b-2 border-r-2 border-[#2A114B]/15 bg-white ${
-            bubble.tail_direction === "bottom-right"
-              ? "right-4"
-              : bubble.tail_direction === "top-left"
-                ? "left-4 top-0 -translate-y-full"
-                : bubble.tail_direction === "top-right"
-                  ? "right-4 top-0 -translate-y-full"
-                  : "left-4"
-          }`}
-        />
-      </div>
-    </div>
-  );
+  return <ComicBubble bubble={item} align={align} />;
 }

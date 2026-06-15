@@ -1,26 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import SignupWall from "@/components/lp/SignupWall";
-import ComicPanel from "@/components/reader/ComicPanel";
 import EpisodeCompleteCard from "@/components/reader/EpisodeCompleteCard";
-import ReaderWebtoonFooter from "@/components/reader/ReaderWebtoonFooter";
-import ReaderWebtoonHeader from "@/components/reader/ReaderWebtoonHeader";
+import PanelBlock from "@/components/reader/PanelBlock";
+import ReaderBackButton from "@/components/reader/ReaderBackButton";
 import { trackReadingProgress } from "@/components/analytics/AnalyticsProvider";
-import { isDatabaseEnabled } from "@/lib/config";
-import {
-  listCommentsFromClient,
-} from "@/lib/services/comments-repository";
-import { apiFetch } from "@/lib/session";
+import { saveReadingProgress } from "@/lib/readingHistory";
 import { useUserStore } from "@/store/useUserStore";
 import type { ReaderPanelData } from "@/lib/readerPanels";
-
-interface EpisodeThumb {
-  number: number;
-  title: string;
-  coverGradient: string;
-}
 
 interface WebtoonReaderProps {
   seriesId: string;
@@ -29,8 +17,10 @@ interface WebtoonReaderProps {
   episodeTitle: string;
   panels: ReaderPanelData[];
   genre?: string;
-  episodes?: EpisodeThumb[];
-  commentCount?: number;
+  coverGradient?: string;
+  coverArtUrl?: string;
+  creatorDisplayName?: string;
+  episodes?: Array<{ number: number; title: string; coverGradient: string }>;
   showControls?: boolean;
   onShare?: () => void;
   onGenerateNext?: () => void;
@@ -44,11 +34,11 @@ export default function WebtoonReader({
   seriesId,
   seriesTitle,
   episodeNumber,
-  episodeTitle,
   panels,
   genre = "Romance",
-  episodes = [],
-  commentCount: commentCountProp,
+  coverGradient = "from-[#5340FF] via-[#7C3AED] to-[#8B5CF6]",
+  coverArtUrl,
+  creatorDisplayName,
   showControls = true,
   onShare,
   onGenerateNext,
@@ -61,22 +51,15 @@ export default function WebtoonReader({
   const [signupOpen, setSignupOpen] = useState(false);
   const [signupShown, setSignupShown] = useState(false);
   const [showEndCard, setShowEndCard] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [commentCount, setCommentCount] = useState(commentCountProp ?? 0);
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const lastPanelRef = useRef<HTMLElement | null>(null);
+  const stripRef = useRef<HTMLDivElement | null>(null);
   const { email } = useUserStore();
   const loggedIn = Boolean(email);
   const total = panels.length;
   const shouldPromptSignup = isCatalog && !loggedIn;
 
-  const scrollToComments = () => {
-    document.getElementById("episode-comments")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
+  const stripUrl = panels.find((p) => p.imageUrl)?.imageUrl;
 
   const openSignupIfNeeded = useCallback(() => {
     if (shouldPromptSignup && !signupShown) {
@@ -89,6 +72,8 @@ export default function WebtoonReader({
   }, [shouldPromptSignup, showControls, signupShown]);
 
   useEffect(() => {
+    if (stripUrl) return;
+
     const observers: IntersectionObserver[] = [];
 
     panelRefs.current.forEach((el, i) => {
@@ -99,35 +84,58 @@ export default function WebtoonReader({
             setMaxPanelIndex((prev) => Math.max(prev, i));
           }
         },
-        { threshold: 0.35, rootMargin: "-48px 0px -120px 0px" }
+        { threshold: 0.25, rootMargin: "0px" }
       );
       observer.observe(el);
       observers.push(observer);
     });
 
     return () => observers.forEach((o) => o.disconnect());
-  }, [panels.length]);
+  }, [panels.length, stripUrl]);
 
   useEffect(() => {
-    const loadCount = async () => {
-      try {
-        if (isDatabaseEnabled()) {
-          const res = await apiFetch(
-            `/api/comments?seriesId=${encodeURIComponent(seriesId)}&episodeNumber=${episodeNumber}`
-          );
-          const data = await res.json();
-          if (res.ok) setCommentCount(data.count ?? 0);
-        } else {
-          setCommentCount(
-            listCommentsFromClient(seriesId, episodeNumber).length
-          );
-        }
-      } catch {
-        /* ignore */
-      }
+    if (!stripUrl) return;
+
+    const el = stripRef.current;
+    if (!el || total === 0) return;
+
+    const onScroll = () => {
+      const rect = el.getBoundingClientRect();
+      const visibleTop = Math.max(0, rect.top);
+      const visibleBottom = Math.min(window.innerHeight, rect.bottom);
+      const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+      const ratio = visibleHeight / rect.height;
+      const scrolled = Math.max(0, -rect.top) / Math.max(1, rect.height - window.innerHeight);
+      const progress = Math.min(1, Math.max(ratio * 0.5, scrolled));
+      const index = Math.min(total - 1, Math.floor(progress * total));
+      setMaxPanelIndex(index);
     };
-    void loadCount();
-  }, [seriesId, episodeNumber]);
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [stripUrl, total]);
+
+  useEffect(() => {
+    saveReadingProgress({
+      seriesId,
+      title: seriesTitle,
+      genre,
+      coverArtUrl,
+      coverGradient,
+      creatorDisplayName,
+      episodeNumber,
+      href: `/story/${seriesId}/read${episodeNumber > 1 ? `?ep=${episodeNumber}` : ""}`,
+    });
+  }, [
+    seriesId,
+    seriesTitle,
+    genre,
+    coverArtUrl,
+    coverGradient,
+    creatorDisplayName,
+    episodeNumber,
+  ]);
 
   useEffect(() => {
     const el = lastPanelRef.current;
@@ -136,21 +144,21 @@ export default function WebtoonReader({
     let timer: ReturnType<typeof setTimeout> | undefined;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.4) {
           timer = setTimeout(() => {
             setSignupOpen(true);
             setSignupShown(true);
           }, 600);
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.4 }
     );
     observer.observe(el);
     return () => {
       observer.disconnect();
       if (timer) clearTimeout(timer);
     };
-  }, [shouldPromptSignup, signupShown, panels.length]);
+  }, [shouldPromptSignup, signupShown, panels.length, stripUrl]);
 
   useEffect(() => {
     trackReadingProgress({
@@ -169,138 +177,84 @@ export default function WebtoonReader({
     onGenerateNext?.();
   };
 
-  const episodeList =
-    episodes.length > 0
-      ? episodes
-      : [{ number: episodeNumber, title: episodeTitle, coverGradient: "#5340FF" }];
+  const setPanelRef = (index: number, el: HTMLElement | null) => {
+    panelRefs.current[index] = el;
+    if (index === total - 1) lastPanelRef.current = el;
+  };
 
   if (total === 0) return null;
 
+  const panelsWithGenre = panels.map((p) => ({ ...p, genre: p.genre ?? genre }));
+
   return (
-    <div className="relative bg-black">
-      <ReaderWebtoonHeader
-        seriesId={seriesId}
-        episodeNumber={episodeNumber}
-        episodeTitle={episodeTitle}
-        onShare={onShare}
-        onMenu={() => setMenuOpen((v) => !v)}
-      />
+    <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#08040F]">
+      <ReaderBackButton seriesId={seriesId} />
 
-      {menuOpen && (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setMenuOpen(false)}
-            aria-label="Close menu"
-          />
-          <nav className="fixed left-0 top-0 z-50 h-full w-[min(100%,280px)] overflow-y-auto bg-[#1a1a1a] pt-[calc(env(safe-area-inset-top)+3rem)] shadow-2xl">
-            <p className="px-4 pb-2 text-xs font-bold uppercase tracking-wide text-white/50">
-              {seriesTitle}
-            </p>
-            <ul>
-              {episodeList.map((ep) => (
-                <li key={ep.number}>
-                  <Link
-                    href={`/story/${seriesId}/read${ep.number > 1 ? `?ep=${ep.number}` : ""}`}
-                    onClick={() => setMenuOpen(false)}
-                    className={`block border-b border-white/10 px-4 py-3 text-sm ${
-                      ep.number === episodeNumber
-                        ? "bg-white/10 font-semibold text-white"
-                        : "text-white/75"
-                    }`}
-                  >
-                    Ep. {ep.number} — {ep.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href={`/story/${seriesId}`}
-              className="mt-4 block px-4 py-2 text-sm text-white/60"
-              onClick={() => setMenuOpen(false)}
-            >
-              ← Series info
-            </Link>
-          </nav>
-        </>
-      )}
-
-      <main className="mx-auto w-full max-w-[720px] bg-black">
+      <main className="mx-auto w-full max-w-[720px] pt-12">
         <div className="flex flex-col">
-          {panels.map((panel, index) => (
-            <ComicPanel
-              key={`panel-${index}`}
+          {stripUrl ? (
+            <div
               ref={(el) => {
-                panelRefs.current[index] = el;
-                if (index === total - 1) lastPanelRef.current = el;
+                stripRef.current = el;
+                lastPanelRef.current = el;
               }}
-              panel={panel}
-              index={index}
-              variant="scroll"
-            />
-          ))}
+              className="relative w-full overflow-hidden"
+            >
+              <img
+                src={stripUrl}
+                alt={`${seriesTitle} — episode ${episodeNumber}`}
+                className="block h-auto w-full"
+                draggable={false}
+              />
+            </div>
+          ) : (
+            panelsWithGenre.map((panel, index) => (
+              <PanelBlock
+                key={panel.id}
+                ref={(el) => setPanelRef(index, el)}
+                panel={panel}
+                panelIndex={index}
+              />
+            ))
+          )}
         </div>
 
         {showEndCard && !shouldPromptSignup && showControls && (
-          <div className="bg-white px-4 py-8">
-            <EpisodeCompleteCard
-              seriesTitle={seriesTitle}
-              episodeNumber={episodeNumber}
-              isCatalog={isCatalog}
-              credits={credits}
-              generating={generating}
-              onShare={onShare}
-              onNextEpisode={onGenerateNext ? handleNextEpisode : undefined}
-              onCreateInspired={
-                onCreateInspired ??
-                (!isCatalog
-                  ? () => {
-                      window.location.href = "/create";
-                    }
-                  : undefined)
-              }
-            />
-          </div>
+          <EpisodeCompleteCard
+            seriesTitle={seriesTitle}
+            episodeNumber={episodeNumber}
+            isCatalog={isCatalog}
+            credits={credits}
+            generating={generating}
+            onShare={onShare}
+            onNextEpisode={onGenerateNext ? handleNextEpisode : undefined}
+            onCreateInspired={
+              onCreateInspired ??
+              (!isCatalog ? () => { window.location.href = "/create"; } : undefined)
+            }
+          />
         )}
 
         {!showEndCard && maxPanelIndex >= total - 1 && showControls && !shouldPromptSignup && (
-          <div className="bg-white px-4 py-6 text-center">
-            <button
-              type="button"
-              onClick={() => setShowEndCard(true)}
-              className="text-sm font-semibold text-[#5340FF]"
-            >
-              Episode complete — see what&apos;s next
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowEndCard(true)}
+            className="w-full bg-gradient-to-b from-[#08040F] to-[#2A114B] px-4 py-8 text-center text-sm font-semibold text-white/80 transition hover:text-white"
+          >
+            Episode complete — see what&apos;s next
+          </button>
         )}
 
         {!showEndCard && maxPanelIndex >= total - 1 && shouldPromptSignup && (
-          <div className="bg-[#1a1a1a] px-4 py-6 text-center">
-            <button
-              type="button"
-              onClick={() => openSignupIfNeeded()}
-              className="text-sm font-semibold text-white"
-            >
-              Continue reading — create a free account
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => openSignupIfNeeded()}
+            className="w-full bg-[#12081F] px-4 py-8 text-center text-sm font-semibold text-white/90"
+          >
+            Continue reading — create a free account
+          </button>
         )}
-
-        <div className="h-28 bg-black sm:h-24" aria-hidden />
       </main>
-
-      <ReaderWebtoonFooter
-        seriesId={seriesId}
-        episodeNumber={episodeNumber}
-        episodes={episodeList}
-        genre={genre}
-        commentCount={commentCount}
-        liked={liked}
-        onLike={() => setLiked((v) => !v)}
-        onComments={scrollToComments}
-      />
 
       <SignupWall
         storyName={seriesTitle}

@@ -56,6 +56,24 @@ export default function CoverArt({
         <div className="absolute right-[8%] top-[40%] h-px w-[30%] rotate-[10deg] bg-white" />
       </div>
 
+      {/* Stylized title monogram */}
+      {title ? (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          aria-hidden
+        >
+          <span
+            className="font-heading font-extrabold text-white/[0.12]"
+            style={{ fontSize: "clamp(3.5rem, 28vw, 7rem)" }}
+          >
+            {title.trim()[0]?.toUpperCase() ?? "T"}
+          </span>
+        </div>
+      ) : null}
+
+      {/* Inner comic frame */}
+      <div className="pointer-events-none absolute inset-2 rounded-[12px] border border-white/20 sm:inset-2.5" />
+
       {/* Character silhouettes */}
       <div className="absolute bottom-[8%] left-1/2 flex -translate-x-1/2 items-end gap-1">
         <div

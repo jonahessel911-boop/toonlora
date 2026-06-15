@@ -78,8 +78,20 @@ export interface Story {
   episodes?: StoryEpisode[];
   continuityMemory?: ContinuityMemory;
   pipelineResult?: PipelineResult;
+
+  /** Publishing metadata (from Supabase) */
+  source?: "admin" | "creator";
+  status?: "draft" | "published";
+  publishedAt?: string | null;
+  synopsis?: string;
+  creatorDisplayName?: string;
+  featuredRank?: number | null;
+  viewsCount?: number;
+  likesCount?: number;
+  isPublic?: boolean;
 }
 
+/** @deprecated Use CatalogSeries from @/types/catalog */
 export interface SampleStory {
   id: string;
   title: string;

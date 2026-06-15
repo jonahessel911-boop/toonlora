@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
@@ -20,7 +20,7 @@
   --muted: #667085;
   --border: #e4deff;
 
-  /* Accents — Looping coral + yellow CTAs */
+  /* Accents — genre & decorative (CTAs use --primary purple) */
   --accent-coral: #ff6847;
   --accent-coral-hover: #ff5230;
   --accent-pink: #ff4fa3;
@@ -49,7 +49,7 @@
   --gs-primary: var(--primary);
   --gs-primary-dark: var(--primary-dark);
   --gs-primary-soft: var(--primary-soft);
-  --gs-accent: var(--accent-coral);
+  --gs-accent: var(--primary);
   --gs-text: var(--text);
   --gs-muted: var(--muted);
   --gs-border: var(--border);
@@ -140,24 +140,27 @@ body {
   font-family: var(--font-heading);
 }
 
-/* Looping-style primary CTA */
-.btn-coral {
+/* Primary CTA — brand purple */
+.btn-coral,
+.btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  background: var(--lp-coral);
+  background: var(--lp-purple);
   color: white;
   font-weight: 700;
-  box-shadow: 0 4px 16px rgba(255, 104, 71, 0.45);
+  box-shadow: 0 4px 16px rgba(83, 64, 255, 0.35);
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
-.btn-coral:hover {
-  background: var(--lp-coral-hover);
+.btn-coral:hover,
+.btn-primary:hover {
+  background: var(--lp-purple-dark);
 }
 
-.btn-coral:active {
+.btn-coral:active,
+.btn-primary:active {
   transform: scale(0.98);
 }
 
@@ -169,9 +172,11 @@ body {
 
 /* Homepage section anchors — clear sticky navbar */
 #originals,
+#trending,
 #categories,
-#rankings,
-#community {
+#community,
+#continue,
+#rankings {
   scroll-margin-top: 7.5rem;
 }
 
@@ -181,9 +186,14 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 3px;
+  height: 2px;
   border-radius: 999px;
   background: var(--lp-purple);
+  opacity: 0.85;
+}
+
+.nav-tab-active {
+  color: var(--lp-purple);
 }
 
 .mobile-rail {
@@ -316,15 +326,15 @@ body {
   font-size: 0.9375rem;
   font-weight: 700;
   color: white;
-  background: #ff6847;
-  box-shadow: 0 8px 20px rgba(255, 104, 71, 0.25);
+  background: var(--lp-purple);
+  box-shadow: 0 8px 20px rgba(83, 64, 255, 0.25);
   transition:
     background 0.15s ease,
     transform 0.15s ease;
 }
 
 .tl-nav-create:hover {
-  background: #ff5633;
+  background: var(--lp-purple-dark);
 }
 
 .tl-nav-create:active {
@@ -373,15 +383,15 @@ body {
   font-size: 1rem;
   font-weight: 800;
   color: white;
-  background: var(--lp-coral);
-  box-shadow: 0 4px 16px rgba(255, 104, 71, 0.5);
+  background: var(--lp-purple);
+  box-shadow: 0 4px 16px rgba(83, 64, 255, 0.35);
   transition: transform 0.15s ease, background 0.15s ease;
   min-height: 3.25rem;
   touch-action: manipulation;
 }
 
 .lp-pill-btn:hover {
-  background: var(--lp-coral-hover);
+  background: var(--lp-purple-dark);
 }
 
 .lp-pill-btn:active {
@@ -389,9 +399,14 @@ body {
 }
 
 .lp-pill-btn-secondary {
-  background: var(--lp-yellow);
-  color: var(--lp-purple-deep);
-  box-shadow: 0 4px 16px rgba(255, 224, 51, 0.45);
+  background: white;
+  color: var(--lp-purple);
+  border: 2px solid var(--lp-purple);
+  box-shadow: 0 4px 16px rgba(83, 64, 255, 0.12);
+}
+
+.lp-pill-btn-secondary:hover {
+  background: var(--primary-soft);
 }
 
 .lp-hero-curve {

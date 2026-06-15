@@ -12,7 +12,7 @@ import {
   type EpisodeComment,
 } from "@/lib/services/comments-repository";
 import type { SeriesDetail, SeriesEpisodeListing } from "@/lib/seriesCatalog";
-import { TRENDING_STORIES } from "@/lib/sampleStories";
+import { useCatalog } from "@/hooks/useCatalog";
 import { apiFetch } from "@/lib/session";
 import { useUserStore } from "@/store/useUserStore";
 
@@ -84,7 +84,7 @@ function EpisodeCarousel({
 }
 
 function TrendingSidebar() {
-  const items = TRENDING_STORIES.slice(0, 5);
+  const { series: items } = useCatalog({ sort: "popular", limit: 5 });
 
   return (
     <aside className="hidden w-full shrink-0 lg:block lg:w-[300px] xl:w-[320px]">
@@ -116,7 +116,9 @@ function TrendingSidebar() {
                     <p className="truncate text-sm font-bold text-[#222]">
                       {story.title}
                     </p>
-                    <p className="truncate text-xs text-[#666]">{story.creator}</p>
+                    <p className="truncate text-xs text-[#666]">
+                      {story.creatorDisplayName}
+                    </p>
                   </div>
                 </Link>
               </li>

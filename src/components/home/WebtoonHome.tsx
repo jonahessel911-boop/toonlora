@@ -6,104 +6,151 @@ import HomeHero from "@/components/home/HomeHero";
 import HorizontalCarousel from "@/components/home/HorizontalCarousel";
 import CategoryCarouselSection from "@/components/home/CategoryCarouselSection";
 import CreatorCTACard from "@/components/home/CreatorCTACard";
-import {
-  TRENDING_STORIES,
-  COMMUNITY_STORIES,
-} from "@/lib/sampleStories";
-import {
-  BRAND_TAGLINE,
-  CREDIT_COPY,
-} from "@/lib/brand";
+import { useCatalog } from "@/hooks/useCatalog";
+import { BRAND_TAGLINE, CREDIT_COPY } from "@/lib/brand";
 
 const RANK_CHANGES = [35, 2, -1, 5, 12];
-const POPULAR_STORIES = [...TRENDING_STORIES].reverse();
-const NEW_ORIGINALS = TRENDING_STORIES.slice(0, 6).map((s, i) => ({
-  ...s,
-  id: `new-${i}`,
-  isNew: true,
-}));
 
 export default function WebtoonHome() {
   const [trendTab, setTrendTab] = useState<"trending" | "popular">("trending");
+
+  const { series: featured, loading: loadingFeatured } = useCatalog({
+    sort: "featured",
+    limit: 12,
+  });
+  const { series: popular, loading: loadingPopular } = useCatalog({
+    sort: "popular",
+    limit: 12,
+  });
+  const { series: newest, loading: loadingNewest } = useCatalog({
+    sort: "newest",
+    limit: 6,
+  });
+  const { series: community, loading: loadingCommunity } = useCatalog({
+    source: "creator",
+    sort: "newest",
+    limit: 12,
+  });
+
   const rankedStories =
-    trendTab === "trending" ? TRENDING_STORIES : POPULAR_STORIES;
+    (trendTab === "trending" ? featured : popular).map((s, i) => ({
+      ...s,
+      rank: i + 1,
+    }));
+
+  const isEmpty =
+    !loadingFeatured &&
+    !loadingPopular &&
+    featured.length === 0 &&
+    popular.length === 0;
 
   return (
     <div className="bg-gs-bg pb-20 sm:pb-0">
       <HomeHero />
 
-      {/* Trending */}
-      <section
-        id="rankings"
-        className="border-b border-gs-border bg-gs-surface py-5 sm:py-9"
-      >
-        <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-          <div className="mb-4 space-y-3 px-4 sm:mb-5 sm:flex sm:items-center sm:justify-between sm:space-y-0 sm:px-0">
-            <div>
-              <h2 className="font-heading text-lg font-bold leading-tight text-gs-text sm:text-2xl">
-                Trending &amp; Popular Series
-              </h2>
-              <p className="mt-1 text-sm text-gs-muted">
-                Read free cartoon stories from the community
-              </p>
-            </div>
-            <div className="inline-flex w-full rounded-full border border-gs-border bg-gs-bg p-1 sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setTrendTab("trending")}
-                className={`min-h-[40px] flex-1 rounded-full px-4 py-2 text-sm font-bold transition touch-manipulation sm:flex-none sm:px-5 ${
-                  trendTab === "trending"
-                    ? "bg-lp-purple text-white shadow-sm"
-                    : "text-gs-muted"
-                }`}
-              >
-                Trending
-              </button>
-              <button
-                type="button"
-                onClick={() => setTrendTab("popular")}
-                className={`min-h-[40px] flex-1 rounded-full px-4 py-2 text-sm font-bold transition touch-manipulation sm:flex-none sm:px-5 ${
-                  trendTab === "popular"
-                    ? "bg-lp-purple text-white shadow-sm"
-                    : "text-gs-muted"
-                }`}
-              >
-                Popular
-              </button>
-            </div>
+      {isEmpty ? (
+        <section className="border-b border-gs-border bg-gs-surface py-12 text-center">
+          <div className="mx-auto max-w-lg px-4">
+            <h2 className="font-heading text-xl font-bold text-gs-text">
+              No published series yet
+            </h2>
+            <p className="mt-2 text-sm text-gs-muted">
+              Comics will appear here once they are published by Toonlora or
+              creators. Admins can publish from the admin content panel.
+            </p>
+            <Link
+              href="/create"
+              className="btn-coral mt-6 inline-flex rounded-full px-6 py-3 text-sm"
+            >
+              Create a story
+            </Link>
           </div>
+        </section>
+      ) : (
+        <>
+          <section
+            id="rankings"
+            className="border-b border-gs-border bg-gs-surface py-5 sm:py-9"
+          >
+            <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+              <div className="mb-4 space-y-3 px-4 sm:mb-5 sm:flex sm:items-center sm:justify-between sm:space-y-0 sm:px-0">
+                <div>
+                  <h2 className="font-heading text-lg font-bold leading-tight text-gs-text sm:text-2xl">
+                    Trending &amp; Popular Series
+                  </h2>
+                  <p className="mt-1 text-sm text-gs-muted">
+                    Published comics from Toonlora and creators
+                  </p>
+                </div>
+                <div className="inline-flex w-full rounded-full border border-gs-border bg-gs-bg p-1 sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setTrendTab("trending")}
+                    className={`min-h-[40px] flex-1 rounded-full px-4 py-2 text-sm font-bold transition touch-manipulation sm:flex-none sm:px-5 ${
+                      trendTab === "trending"
+                        ? "bg-lp-purple text-white shadow-sm"
+                        : "text-gs-muted"
+                    }`}
+                  >
+                    Trending
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTrendTab("popular")}
+                    className={`min-h-[40px] flex-1 rounded-full px-4 py-2 text-sm font-bold transition touch-manipulation sm:flex-none sm:px-5 ${
+                      trendTab === "popular"
+                        ? "bg-lp-purple text-white shadow-sm"
+                        : "text-gs-muted"
+                    }`}
+                  >
+                    Popular
+                  </button>
+                </div>
+              </div>
 
-          <HorizontalCarousel
-            title=""
-            stories={rankedStories.map((s, i) => ({ ...s, rank: i + 1 }))}
-            variant="ranked"
-            showRank
-            rankChanges={RANK_CHANGES}
-            hideHeader
-            noBorder
-          />
-        </div>
-      </section>
+              {!loadingFeatured && rankedStories.length > 0 ? (
+                <HorizontalCarousel
+                  title=""
+                  stories={rankedStories}
+                  variant="ranked"
+                  showRank
+                  rankChanges={RANK_CHANGES}
+                  hideHeader
+                  noBorder
+                />
+              ) : (
+                <p className="px-4 text-sm text-gs-muted sm:px-0">
+                  {loadingFeatured ? "Loading series…" : "No ranked series yet."}
+                </p>
+              )}
+            </div>
+          </section>
 
-      <CreatorCTACard />
-      <CategoryCarouselSection />
+          <CreatorCTACard />
+          <CategoryCarouselSection />
 
-      <HorizontalCarousel
-        id="originals"
-        title="Newly Released Originals"
-        stories={NEW_ORIGINALS}
-        variant="vertical"
-        viewAllHref="/library"
-        mintBg
-      />
+          {!loadingNewest && newest.length > 0 && (
+            <HorizontalCarousel
+              id="originals"
+              title="Newly Released Originals"
+              stories={newest.map((s) => ({ ...s, isNew: true }))}
+              variant="vertical"
+              viewAllHref="/library"
+              mintBg
+            />
+          )}
 
-      <HorizontalCarousel
-        id="community"
-        title="More stories from indie creators"
-        stories={COMMUNITY_STORIES}
-        variant="square"
-        viewAllHref="/lp/1"
-      />
+          {!loadingCommunity && community.length > 0 && (
+            <HorizontalCarousel
+              id="community"
+              title="More stories from indie creators"
+              stories={community}
+              variant="square"
+              viewAllHref="/lp/1"
+            />
+          )}
+        </>
+      )}
 
       <section className="border-y border-gs-border bg-gs-surface py-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -113,9 +160,6 @@ export default function WebtoonHome() {
               {CREDIT_COPY}
             </Link>
           </p>
-          <p className="mt-1 text-xs text-gs-muted sm:mt-0 sm:text-right">
-            Jun 14, 2026
-          </p>
         </div>
       </section>
 
@@ -124,26 +168,9 @@ export default function WebtoonHome() {
           <p className="text-center text-sm font-semibold text-gs-muted">
             {BRAND_TAGLINE}
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-4 text-sm text-gs-muted sm:gap-6">
-            {["About", "Feedback", "Help", "Terms", "Privacy", "Contact"].map(
-              (link) => (
-                <Link key={link} href="#" className="hover:text-gs-primary-dark">
-                  {link}
-                </Link>
-              )
-            )}
-          </div>
-          <div className="mx-auto mt-8 max-w-xs overflow-hidden rounded-xl shadow-sm">
-            <div className="flex items-center justify-center bg-lp-purple py-4">
-              <span className="font-heading text-base font-bold tracking-wide text-white">
-                TOONLORA
-              </span>
-            </div>
-          </div>
         </div>
       </footer>
 
-      {/* Mobile sticky create CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gs-border bg-white/95 px-4 py-3 backdrop-blur-md safe-bottom sm:hidden">
         <Link
           href="/create"

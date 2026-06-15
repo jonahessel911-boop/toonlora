@@ -1,4 +1,5 @@
 import type { EpisodeScript, StoryBible } from "@/types/pipeline";
+import { VERTICAL_WEBTOON_LAYOUT_RULES } from "@/lib/promptHints";
 
 export function buildPanelBreakdownPrompt(
   storyBible: StoryBible,
@@ -6,9 +7,18 @@ export function buildPanelBreakdownPrompt(
 ): string {
   return `You are a vertical webtoon panel layout director.
 
-Convert the episode script into a structured panel breakdown for a mobile-first vertical comic page.
+Convert the episode script into a structured panel breakdown for ONE mobile-first vertical scroll page.
 
-Use 5 to 7 panels maximum. Each panel needs clear visual hierarchy for overlay text later.
+${VERTICAL_WEBTOON_LAYOUT_RULES}
+
+GENRE: ${storyBible.genre} — visuals and mood must match this category.
+
+COMPOSITION RULES:
+- One clear moment per panel strip.
+- Each strip is full width; describe scenes that work in a wide horizontal band.
+- Leave room in sky/background corners for speech bubbles and narration baked into the art.
+- Show reactions through faces and poses.
+- Never describe side-by-side or grid arrangements.
 
 Do not copy existing IP. Keep characters consistent with the Story Bible.
 
@@ -26,7 +36,7 @@ OUTPUT JSON ONLY:
   "panels": [
     {
       "panel_number": 1,
-      "layout_zone": "top / upper-mid / mid / lower-mid / bottom",
+      "layout_zone": "top / upper / middle / lower / bottom",
       "visual": "",
       "emotion": "",
       "dialogue_text": "",

@@ -1,8 +1,8 @@
 "use client";
 
 import { forwardRef } from "react";
-import SpeechBubble from "@/components/SpeechBubble";
 import type { ReaderPanelData } from "@/lib/readerPanels";
+import PanelTextOverlayView from "@/components/reader/PanelTextOverlayView";
 
 const SCENE_PRESETS = [
   {
@@ -52,7 +52,7 @@ const ComicPanel = forwardRef<HTMLElement, ComicPanelProps>(function ComicPanel(
   const scene = SCENE_PRESETS[index % SCENE_PRESETS.length];
   const isFlipbook = variant === "flipbook";
   const isScroll = variant === "scroll";
-  const isTbc = panel.bubbles?.some((b) =>
+  const isTbc = panel.textOverlays?.some((b) =>
     b.text.toLowerCase().includes("to be continued")
   );
 
@@ -71,19 +71,25 @@ const ComicPanel = forwardRef<HTMLElement, ComicPanelProps>(function ComicPanel(
               }`
       } ${onClick ? "cursor-pointer" : ""}`}
     >
-      {panel.artUrl ? (
+      {panel.imageUrl ?? panel.artUrl ? (
         <div
           className={`relative w-full ${
-            isFlipbook ? "h-full" : "aspect-[3/4] sm:aspect-[4/5]"
+            isScroll
+              ? ""
+              : isFlipbook
+                ? "h-full"
+                : "aspect-[3/4] sm:aspect-[4/5]"
           }`}
         >
           <img
-            src={panel.artUrl}
+            src={panel.imageUrl ?? panel.artUrl}
             alt={`Panel ${panel.panelNumber}`}
-            className="block h-full w-full object-cover"
+            className={`block w-full ${
+              isScroll ? "h-auto" : "h-full object-cover"
+            }`}
           />
-          {panel.bubbles?.map((b, i) => (
-            <SpeechBubble key={i} bubble={b} />
+          {panel.textOverlays?.map((overlay) => (
+            <PanelTextOverlayView key={overlay.id} overlay={overlay} />
           ))}
         </div>
       ) : (
@@ -92,7 +98,7 @@ const ComicPanel = forwardRef<HTMLElement, ComicPanelProps>(function ComicPanel(
             isFlipbook
               ? "h-full min-h-0"
               : isScroll
-                ? "min-h-[min(100vw,720px)] sm:min-h-[720px]"
+                ? "min-h-[100dvh]"
                 : "min-h-[280px] sm:min-h-[340px]"
           }`}
         >
@@ -159,19 +165,9 @@ const ComicPanel = forwardRef<HTMLElement, ComicPanelProps>(function ComicPanel(
             aria-hidden
           />
 
-          {panel.sfx && (
-            <p className="absolute left-1/2 top-[18%] -translate-x-1/2 font-black uppercase tracking-[0.2em] text-white drop-shadow-[2px_2px_0_rgba(0,0,0,0.5)] sm:text-2xl">
-              {panel.sfx}
-            </p>
-          )}
-
-          <div className="absolute inset-x-0 bottom-0 space-y-2 p-4 sm:p-5">
-            {panel.bubbles
-              ?.filter((b) => b.type !== "sfx")
-              .map((b, i) => (
-                <InlineBubble key={i} bubble={b} />
-              ))}
-          </div>
+          {panel.textOverlays?.map((overlay) => (
+            <PanelTextOverlayView key={overlay.id} overlay={overlay} />
+          ))}
 
           {isTbc && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#5340FF]/90 via-[#7C3AED]/85 to-[#FF4FA3]/80 px-6">
@@ -196,34 +192,3 @@ const ComicPanel = forwardRef<HTMLElement, ComicPanelProps>(function ComicPanel(
 
 export default ComicPanel;
 
-function InlineBubble({
-  bubble,
-}: {
-  bubble: import("@/types/pipeline").TextBubble;
-}) {
-  if (bubble.type === "narration") {
-    return (
-      <div className="mx-auto max-w-[90%] rounded-xl border border-[#E7D8FF]/60 bg-[#F3ECFF]/95 px-4 py-3 text-center shadow-sm backdrop-blur-sm">
-        <p className="text-sm italic leading-relaxed text-[#2A114B]/80 sm:text-base">
-          {bubble.text}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-[92%]">
-      <div className="relative rounded-2xl border-2 border-[#2A114B]/15 bg-white px-4 py-3 shadow-[0_8px_24px_rgba(42,17,75,0.12)]">
-        {bubble.speaker && (
-          <p className="mb-1 text-[11px] font-extrabold uppercase tracking-wide text-[#7C3AED]">
-            {bubble.speaker}
-          </p>
-        )}
-        <p className="text-sm font-semibold leading-snug text-[#101828] sm:text-base">
-          {bubble.text}
-        </p>
-        <div className="absolute -bottom-2 left-6 h-3 w-3 rotate-45 border-b-2 border-r-2 border-[#2A114B]/15 bg-white" />
-      </div>
-    </div>
-  );
-}

@@ -13,6 +13,8 @@ export default function EpisodePreviewClient({ id }: { id: string }) {
   const { fetchStoryById, hydrated, hydrate } = useStoryStore();
   const { freeUsed, hydrate: hydrateCredits } = useCreditsStore();
   const [story, setStory] = useState<Story | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
 
   useEffect(() => {
     void hydrate();
@@ -23,6 +25,28 @@ export default function EpisodePreviewClient({ id }: { id: string }) {
     if (!hydrated) return;
     void fetchStoryById(id).then(setStory);
   }, [hydrated, id, fetchStoryById]);
+
+  async function handlePublish() {
+    setPublishing(true);
+    setPublishError("");
+    try {
+      const res = await fetch(`/api/stories/${id}/publish`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setPublishError(data.error ?? "Could not publish.");
+        return;
+      }
+      setStory((prev) =>
+        prev
+          ? { ...prev, status: "published", isPublic: true }
+          : prev
+      );
+    } catch {
+      setPublishError("Could not publish.");
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   if (!story) {
     return (
@@ -151,13 +175,29 @@ export default function EpisodePreviewClient({ id }: { id: string }) {
       {/* Sticky CTAs */}
       <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-white/95 px-4 py-4 backdrop-blur">
         <div className="mx-auto flex max-w-lg flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => router.push(`/story/${id}/read`)}
-            className="w-full rounded-full bg-groen-deep py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20"
-          >
-            Read now
-          </button>
+          {story.status === "draft" ? (
+            <>
+              <button
+                type="button"
+                disabled={publishing}
+                onClick={() => void handlePublish()}
+                className="w-full rounded-full bg-groen-deep py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 disabled:opacity-60"
+              >
+                {publishing ? "Publishing…" : "Publish to catalog"}
+              </button>
+              {publishError ? (
+                <p className="text-center text-xs text-red-600">{publishError}</p>
+              ) : null}
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => router.push(`/story/${id}/read`)}
+              className="w-full rounded-full bg-groen-deep py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20"
+            >
+              Read now
+            </button>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <Link
               href="/create"

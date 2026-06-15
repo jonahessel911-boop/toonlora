@@ -27,9 +27,13 @@ export const storyRepository = {
   saveLocal: (story: Story): void => saveStory(story),
 
   /** Server-side Supabase */
-  save: async (story: Story, sessionId: string): Promise<Story> => {
+  save: async (
+    story: Story,
+    sessionId: string,
+    options?: import("@/lib/services/story-repository").SaveStoryOptions
+  ): Promise<Story> => {
     if (isServerDatabaseConfigured()) {
-      return saveStoryToDb(story, sessionId);
+      return saveStoryToDb(story, sessionId, options);
     }
     return story;
   },

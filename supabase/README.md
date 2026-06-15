@@ -16,6 +16,8 @@ supabase/migrations/001_initial_schema.sql
 supabase/migrations/002_profiles.sql
 supabase/migrations/003_analytics.sql
 supabase/migrations/004_episode_comments.sql
+supabase/migrations/005_publishing.sql
+supabase/migrations/006_comic_art_storage.sql
 ```
 
 This creates:
@@ -24,7 +26,7 @@ This creates:
 |-------|---------|
 | `user_sessions` | Anonymous credits (until Auth) |
 | `profiles` | Registered name + email linked to session |
-| `series` | Story Bible + series metadata |
+| `series` | Story Bible + metadata + **publish fields** (`source`, `status`, `published_at`) |
 | `episodes` | Scripts, panels, overlays per episode |
 | `reading_progress` | Panel progress + episode completion |
 | `platform_sessions` | Time on platform per visit |

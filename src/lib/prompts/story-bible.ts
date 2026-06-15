@@ -5,7 +5,9 @@ export function buildStoryBiblePrompt(input: SeriesInput): string {
 
 Create a complete Story Bible based on the user's idea.
 
-The story must be original, emotionally engaging, suitable for a cartoon/webtoon format, and easy to continue in future episodes.
+The story must be original, emotionally engaging, suitable for a vertical scroll webtoon (single column of panels, NOT a grid comic page), and easy to continue in future episodes.
+
+The genre/category must strongly shape visual_style, world mood, and visual_keywords.
 
 Do not copy existing characters, brands, anime, comics, movies, or copyrighted stories.
 

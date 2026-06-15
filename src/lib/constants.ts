@@ -87,4 +87,5 @@ export const STORAGE_KEYS = {
   stories: "toonlora-stories",
   credits: "toonlora-credits",
   freeUsed: "toonlora-free-used",
+  readingHistory: "toonlora-reading-history",
 } as const;

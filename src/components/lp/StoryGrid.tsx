@@ -1,10 +1,10 @@
 "use client";
 
 import LPStoryCard from "@/components/lp/StoryCard";
-import type { SampleStory } from "@/lib/sampleStories";
+import type { CatalogSeries } from "@/types/catalog";
 
 interface StoryGridProps {
-  stories: SampleStory[];
+  stories: CatalogSeries[];
 }
 
 export default function StoryGrid({ stories }: StoryGridProps) {

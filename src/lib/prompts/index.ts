@@ -23,14 +23,14 @@ export function buildModerationInput(input: SeriesInput): string {
 /** Model config per pipeline step */
 export const PIPELINE_MODELS = {
   moderation: "omni-moderation-latest",
-  story_bible: "gpt-5.4-mini",
-  episode_script: "gpt-5.4-mini",
-  panel_breakdown: "gpt-5.4-mini",
-  image_prompt: "gpt-5.5",
-  comic_image: "gpt-image-2",
-  image_qa: "gpt-5.4-mini",
-  text_overlay: "gpt-5.4-mini",
-  continuity: "gpt-5.4-mini",
+  story_bible: process.env.OPENAI_CHAT_MODEL?.trim() || "gpt-4o-mini",
+  episode_script: process.env.OPENAI_CHAT_MODEL?.trim() || "gpt-4o-mini",
+  panel_breakdown: process.env.OPENAI_CHAT_MODEL?.trim() || "gpt-4o-mini",
+  image_prompt: process.env.OPENAI_CHAT_MODEL?.trim() || "gpt-4o-mini",
+  comic_image: process.env.OPENAI_IMAGE_MODEL?.trim() || "gpt-image-1",
+  image_qa: process.env.OPENAI_CHAT_MODEL?.trim() || "gpt-4o-mini",
+  text_overlay: process.env.OPENAI_CHAT_MODEL?.trim() || "gpt-4o-mini",
+  continuity: process.env.OPENAI_CHAT_MODEL?.trim() || "gpt-4o-mini",
 } as const;
 
 export const PIPELINE_STEP_LABELS: Record<
@@ -44,6 +44,6 @@ export const PIPELINE_STEP_LABELS: Record<
   image_prompt: "Crafting image prompt",
   comic_image: "Generating comic art",
   image_qa: "Reviewing art quality",
-  text_overlay: "Placing speech bubbles",
+  text_overlay: "Finalizing episode layout",
   continuity: "Saving continuity memory",
 };

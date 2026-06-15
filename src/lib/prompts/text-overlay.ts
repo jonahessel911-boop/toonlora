@@ -9,18 +9,38 @@ export function buildTextOverlayPrompt(
   episodeScript: EpisodeScript,
   panelBreakdown: PanelBreakdown
 ): string {
-  return `You are a webtoon UI designer.
+  return `You are a professional vertical webtoon text layout designer.
 
-Create speech bubble and text overlay placement JSON for a vertical comic page.
+Create speech bubble and narration placement JSON for a vertical comic page.
+The comic art has NO text — you place all dialogue, narration, and SFX as overlay metadata.
 
-The comic art has NO text — you place all dialogue, narration, and SFX as overlay elements.
+LAYOUT RULES (critical):
+- Vertical webtoon format with clear top-to-bottom reading flow.
+- Each panel must feel clean with intentional empty space for characters.
+- Do NOT place text in the center of a panel.
+- Do NOT overlay narration across faces, bodies, or key action.
+- Narration boxes: top or bottom of panel only (y 4–10 for top, y 88–94 for bottom). Max 1 narration per panel. Max 1 short sentence each.
+- Speech bubbles: upper-left or upper-right only (y 10–35). Near the speaking character. Max 4 speech bubbles per panel. Max 1–2 short sentences each.
+- SFX: small sound effects only, upper-right corner (x 80–92, y 8–14). Never large cinematic words in the center. Max 12 characters.
+- Avoid crossing bubbles. Alternate left/right for multiple speakers.
+- Use tail_direction so tails point toward the speaker below (bottom-left or bottom-right).
 
-Rules:
-- Short readable text only
-- Position bubbles using percentage x/y (0-100) relative to each panel
-- width is percentage of panel width
-- Mobile-first vertical layout
-- Keep speaker names only in speech bubbles, not narration
+DIALOGUE RULES:
+- type "speech" for character dialogue only.
+- Include speaker name in speech bubbles when multiple characters speak in one panel.
+- Keep text short, natural, and grammatically correct.
+
+NARRATION RULES:
+- type "narration" for scene-setting or emotional transitions only.
+- No speaker name on narration.
+- Never use semi-transparent or floating narration — the app renders solid boxes.
+
+TEXT HIERARCHY:
+1. Character art readability
+2. Clear emotion
+3. Minimal effective text — premium, not cluttered
+
+Position fields use percentage x/y (0–100) relative to each panel. width is % of panel width.
 
 STORY BIBLE:
 ${JSON.stringify(storyBible, null, 2)}
@@ -43,8 +63,8 @@ OUTPUT JSON ONLY:
           "type": "speech | narration | sfx",
           "speaker": "",
           "text": "",
-          "position": { "x": 50, "y": 20, "width": 40 },
-          "tail_direction": "bottom-left | bottom-right | top-left | top-right"
+          "position": { "x": 28, "y": 14, "width": 42 },
+          "tail_direction": "bottom-left | bottom-right"
         }
       ]
     }

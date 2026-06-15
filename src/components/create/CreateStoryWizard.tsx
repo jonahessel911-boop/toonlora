@@ -14,6 +14,16 @@ import { useCreditsStore } from "@/store/useCreditsStore";
 import type { SeriesInput } from "@/types/pipeline";
 import type { Story } from "@/types/story";
 
+const GENRE_TONES: Record<string, string> = {
+  Romance: "Warm, emotional, and romantic",
+  Anime: "Stylized, expressive, and dramatic",
+  Fantasy: "Epic, magical, and adventurous",
+  Comedy: "Light, playful, and funny",
+  Drama: "Tense, emotional, and cinematic",
+  Adventure: "Bold, exciting, and exploratory",
+  "Slice of Life": "Gentle, cozy, and heartfelt",
+};
+
 const STEPS = ["Genre", "Style", "Story", "Characters", "Length"] as const;
 
 const CTA_LABELS = [
@@ -125,7 +135,7 @@ export default function CreateStoryWizard() {
       story_idea: storyIdea,
       genre,
       style: style === "Webtoon" ? "Cartoon Webtoon" : style,
-      tone: "Dramatic and emotional",
+      tone: GENRE_TONES[genre] ?? "Dramatic and emotional",
       main_character: mainCharacter,
       love_interest: sideCharacter || "Milo",
       language: "English",
@@ -171,7 +181,7 @@ export default function CreateStoryWizard() {
           </div>
           <div className="flex shrink-0 gap-2">
             {!freeUsed && (
-              <span className="hidden rounded-full bg-[#FFE033] px-2.5 py-1 text-[10px] font-bold text-[#2A114B] sm:inline-flex">
+              <span className="hidden rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-bold text-lp-purple sm:inline-flex">
                 First story free
               </span>
             )}
@@ -373,7 +383,7 @@ export default function CreateStoryWizard() {
                 <button
                   type="button"
                   onClick={handleGenerate}
-                  className="btn-coral min-h-[48px] flex-1 rounded-full text-sm font-extrabold shadow-[0_8px_20px_rgba(255,104,71,0.3)] md:min-h-[52px] md:text-base"
+                  className="btn-coral min-h-[48px] flex-1 rounded-full text-sm font-extrabold shadow-[0_8px_20px_rgba(83,64,255,0.25)] md:min-h-[52px] md:text-base"
                 >
                   {CTA_LABELS[step]}
                 </button>

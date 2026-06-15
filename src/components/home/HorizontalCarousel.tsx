@@ -3,11 +3,11 @@
 import { useRef } from "react";
 import Link from "next/link";
 import WebtoonStoryCard from "@/components/home/WebtoonStoryCard";
-import type { SampleStory } from "@/lib/sampleStories";
+import type { CatalogSeries } from "@/types/catalog";
 
 interface HorizontalCarouselProps {
   title: string;
-  stories: SampleStory[];
+  stories: CatalogSeries[];
   variant?: "ranked" | "vertical" | "square" | "grid";
   showRank?: boolean;
   rankChanges?: number[];

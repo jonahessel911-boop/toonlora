@@ -274,7 +274,7 @@ export default function GenerationLoading({ progress = 0 }: { progress?: number 
               </div>
               <div className="h-3 overflow-hidden rounded-full bg-[#E7D8FF]/70 shadow-inner">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-[#5340FF] via-[#6D4CFF] to-[#FF6847]"
+                  className="h-full rounded-full bg-gradient-to-r from-[#5340FF] via-[#6D4CFF] to-[#7C3AED]"
                   animate={{ width: `${pct}%` }}
                   transition={{ duration: 0.7, ease: "easeOut" }}
                 />

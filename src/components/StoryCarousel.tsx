@@ -1,10 +1,10 @@
 import StoryCard from "@/components/StoryCard";
-import type { SampleStory } from "@/lib/sampleStories";
+import type { CatalogSeries } from "@/types/catalog";
 
 interface StoryCarouselProps {
   title: string;
   subtitle?: string;
-  stories: SampleStory[];
+  stories: CatalogSeries[];
   showRank?: boolean;
   id?: string;
 }
@@ -35,14 +35,13 @@ export default function StoryCarousel({
             title={story.title}
             genre={String(story.genre)}
             coverGradient={story.coverGradient}
-            coverEmoji={story.coverEmoji}
             rank={showRank ? story.rank : undefined}
-            episodes={story.episodes}
+            episodes={story.episodeCount}
             readers={story.readers}
             likes={story.likes}
-            creator={story.creator}
+            creator={story.creatorDisplayName}
             isNew={story.isNew}
-            href={story.href ?? "/create"}
+            href={story.href ?? `/story/${story.id}`}
             compact
           />
         ))}

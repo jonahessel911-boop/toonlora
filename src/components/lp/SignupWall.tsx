@@ -66,7 +66,7 @@ export default function SignupWall({
 
           <Link
             href="/signup/register"
-            className="flex h-14 w-full items-center justify-center rounded-full bg-[#FF6847] text-base font-extrabold text-white shadow-[0_8px_24px_rgba(255,104,71,0.3)] transition hover:brightness-105 active:scale-[0.98]"
+            className="btn-coral h-14 w-full text-base font-extrabold"
           >
             Create free account
           </Link>

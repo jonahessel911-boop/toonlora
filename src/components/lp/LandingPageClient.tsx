@@ -11,9 +11,10 @@ import StoryGrid from "@/components/lp/StoryGrid";
 import LPPillButton from "@/components/lp/LPPillButton";
 import {
   LP_CATEGORIES,
-  getLPStories,
+  lpCategoryToGenre,
   type LPCategory,
 } from "@/lib/lpStories";
+import { useCatalog } from "@/hooks/useCatalog";
 
 type FunnelStep = 1 | 2;
 
@@ -28,7 +29,11 @@ export default function LandingPageClient() {
   const [step, setStep] = useState<FunnelStep>(1);
   const [category, setCategory] = useState<LPCategory>("Trending");
 
-  const stories = getLPStories(category);
+  const { series: stories } = useCatalog({
+    genre: lpCategoryToGenre(category),
+    sort: "featured",
+    limit: 6,
+  });
   const progressStep = step === 1 ? 1 : 2;
 
   const goToRead = () => setStep(2);

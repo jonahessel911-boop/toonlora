@@ -8,15 +8,9 @@ import WebtoonReader from "@/components/WebtoonReader";
 import EpisodeReadLayout from "@/components/reader/EpisodeReadLayout";
 import EpisodeCommentsSection from "@/components/comments/EpisodeCommentsSection";
 import GenerationLoading from "@/components/create/GenerationLoading";
-import {
-  getCatalogSeries,
-  storyToSeriesDetail,
-  type SeriesDetail,
-} from "@/lib/seriesCatalog";
-import {
-  buildMockReaderPanels,
-  episodeToReaderPanels,
-} from "@/lib/readerPanels";
+import { storyToSeriesDetail, type SeriesDetail } from "@/lib/seriesCatalog";
+import { episodeToReaderPanels } from "@/lib/readerPanels";
+import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
 import { useStoryStore } from "@/store/useStoryStore";
 import { useCreditsStore } from "@/store/useCreditsStore";
 import type { Story } from "@/types/story";
@@ -38,11 +32,11 @@ export default function StoryReaderClient({
     Number(searchParams.get("ep") ?? 1) || 1
   );
 
-  const { hydrate, getStoryById, fetchStoryById, addStory, hydrated } =
-    useStoryStore();
+  const { hydrate, getStoryById, addStory, hydrated } = useStoryStore();
   const { canGenerate, consumeGeneration, credits, hydrate: hydrateCredits } =
     useCreditsStore();
   const [story, setStory] = useState<Story | undefined>();
+  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
@@ -51,23 +45,29 @@ export default function StoryReaderClient({
   }, [hydrate, hydrateCredits]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    let cancelled = false;
 
-    const load = async () => {
-      const local = getStoryById(id);
-      if (local) {
-        setStory(local);
-        return;
-      }
+    async function load() {
+      setLoading(true);
+      try {
+        const local = getStoryById(id);
+        if (local && (local.status === "published" || local.isPublic)) {
+          if (!cancelled) setStory(local);
+          return;
+        }
 
-      const fetched = await fetchStoryById(id);
-      if (fetched) {
-        setStory(fetched);
+        const fetched = await fetchPublishedStory(id);
+        if (!cancelled) setStory(fetched ?? undefined);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    };
+    }
 
     void load();
-  }, [hydrated, id, getStoryById, fetchStoryById]);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, getStoryById]);
 
   const handleShare = () => {
     const url = `${window.location.origin}/share/${id}`;
@@ -139,7 +139,7 @@ export default function StoryReaderClient({
     </EpisodeReadLayout>
   );
 
-  if (!hydrated) {
+  if (loading || !hydrated) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-black">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-white" />
@@ -155,44 +155,31 @@ export default function StoryReaderClient({
     );
   }
 
-  const catalog = getCatalogSeries(id);
-
-  if (!story && catalog) {
-    const ep =
-      catalog.episodes.find((e) => e.number === episodeFromUrl) ??
-      catalog.episodes.find((e) => e.number === 1) ??
-      catalog.episodes[0];
-
-    return wrapWithComments(
-      <WebtoonReader
-        seriesId={id}
-        seriesTitle={catalog.title}
-        episodeNumber={ep?.number ?? 1}
-        episodeTitle={ep?.title ?? "Episode 1"}
-        panels={buildMockReaderPanels(catalog)}
-        genre={catalog.genre}
-        episodes={catalog.episodes.map((e) => ({
-          number: e.number,
-          title: e.title,
-          coverGradient: e.coverGradient,
-        }))}
-        showControls={!isPublic}
-        onShare={handleShare}
-        isCatalog
-      />,
-      catalog,
-      ep?.number ?? 1
+  if (!story) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-4 text-center text-white">
+        <h1 className="font-heading text-2xl font-bold">Series not found</h1>
+        <p className="mt-2 text-sm text-white/60">
+          This episode may be unpublished or unavailable.
+        </p>
+        <Link href="/" className="btn-coral mt-6 rounded-full px-6 py-3 text-sm">
+          Back to home
+        </Link>
+      </div>
     );
   }
 
-  if (!story) {
+  const isReadable = story.status !== "draft";
+
+  if (!isReadable) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#FCFAFF] px-4 text-center">
-        <h1 className="font-heading text-2xl font-bold text-[#2A114B]">
-          Story not found
-        </h1>
-        <Link href="/" className="btn-coral mt-6 rounded-full px-6 py-3 text-sm">
-          Back to home
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-4 text-center text-white">
+        <h1 className="font-heading text-2xl font-bold">Not published yet</h1>
+        <p className="mt-2 text-sm text-white/60">
+          This series is still a draft.
+        </p>
+        <Link href="/library" className="btn-coral mt-6 rounded-full px-6 py-3 text-sm">
+          Go to library
         </Link>
       </div>
     );
@@ -210,8 +197,11 @@ export default function StoryReaderClient({
         seriesTitle={story.title}
         episodeNumber={episode.episodeNumber}
         episodeTitle={episode.title}
-        panels={episodeToReaderPanels(episode, story.coverGradient)}
+        panels={episodeToReaderPanels(episode, story.coverGradient, id)}
         genre={seriesDetail.genre}
+        coverGradient={story.coverGradient}
+        coverArtUrl={seriesDetail.coverArtUrl}
+        creatorDisplayName={seriesDetail.creators[0]}
         episodes={seriesDetail.episodes.map((e) => ({
           number: e.number,
           title: e.title,
@@ -223,6 +213,7 @@ export default function StoryReaderClient({
           !isPublic && story.continuityMemory ? handleNextEpisode : undefined
         }
         credits={credits}
+        isCatalog={story.status === "published"}
       />,
       seriesDetail,
       episode.episodeNumber

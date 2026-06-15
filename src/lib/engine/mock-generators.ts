@@ -9,7 +9,12 @@ import type {
   StoryBible,
   TextOverlay,
 } from "@/types/pipeline";
-import { buildFinalImagePrompt } from "@/lib/prompts/image-prompt";
+import {
+  buildFinalImagePrompt,
+  buildPanelImagePromptInputs,
+} from "@/lib/prompts/image-prompt";
+import { resolveArtStyleHint } from "@/lib/promptHints";
+import { resolvePanelCount } from "@/lib/panelCount";
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -23,12 +28,6 @@ const PANEL_TYPES = [
   "action",
   "cliffhanger",
 ] as const;
-
-const PANEL_COUNT: Record<SeriesInput["episode_length"], number> = {
-  Short: 5,
-  Normal: 6,
-  Long: 7,
-};
 
 export function mockModeration(_input: SeriesInput): { passed: true } {
   return { passed: true };
@@ -100,7 +99,7 @@ export function mockEpisodeScript(
 ): EpisodeScript {
   const mc = input.main_character;
   const li = input.love_interest;
-  const count = PANEL_COUNT[input.episode_length];
+  const count = resolvePanelCount(input);
 
   const panelTemplates = [
     {
@@ -179,10 +178,13 @@ export function mockEpisodeScript(
     },
   ];
 
-  const panels = panelTemplates.slice(0, count).map((p, i) => ({
-    panel_number: i + 1,
-    ...p,
-  }));
+  const panels = Array.from({ length: count }, (_, i) => {
+    const template = panelTemplates[i % panelTemplates.length];
+    return {
+      panel_number: i + 1,
+      ...template,
+    };
+  });
 
   return {
     episode_title: `Episode ${episodeNumber}: The Secret Under Moonlight`,
@@ -229,13 +231,12 @@ export function mockImagePrompt(
   const prompt = buildFinalImagePrompt({
     episodeNumber: script.episode_number,
     seriesTitle: bible.series_title,
+    genre: bible.genre,
+    tone: bible.tone,
+    artStyleHint: resolveArtStyleHint(bible.visual_style),
     characterBible,
     episodeSummary: script.episode_summary,
-    panels: breakdown.panels.map((p) => ({
-      visual: p.visual,
-      emotion: p.emotion,
-      text: p.dialogue_text || p.narration_text || p.sfx_text,
-    })),
+    panels: buildPanelImagePromptInputs(script, breakdown),
     cliffhanger: script.cliffhanger,
   });
 
@@ -256,7 +257,7 @@ export function mockComicPage(
     artGradient: pickRandom(IMAGE_GRADIENTS),
     width: 800,
     height: 2400,
-    noTextInImage: true,
+    noTextInImage: false,
   };
 }
 
@@ -269,65 +270,18 @@ export function mockImageQA(_comicPage: ComicPage): {
     notes: [
       "Character silhouettes consistent",
       "Panel layout readable",
-      "No text detected in image (correct)",
+      "Speech bubbles and narration rendered in image",
     ],
   };
 }
 
-export function mockTextOverlay(
-  script: EpisodeScript,
-  _breakdown: PanelBreakdown
-): TextOverlay {
-  const bubblePositions = [
-    { x: 55, y: 15, width: 42 },
-    { x: 20, y: 25, width: 45 },
-    { x: 50, y: 20, width: 40 },
-    { x: 30, y: 18, width: 50 },
-    { x: 60, y: 22, width: 38 },
-    { x: 25, y: 20, width: 48 },
-    { x: 45, y: 12, width: 44 },
-  ];
-
+export function mockTextOverlay(script: EpisodeScript): TextOverlay {
   return {
     episode_number: script.episode_number,
-    panels: script.panels.map((panel, i) => {
-      const bubbles: TextOverlay["panels"][0]["bubbles"] = [];
-      const pos = bubblePositions[i] ?? bubblePositions[0];
-
-      if (panel.narration) {
-        bubbles.push({
-          type: "narration",
-          speaker: "",
-          text: panel.narration,
-          position: { x: 50, y: 8, width: 85 },
-        });
-      }
-
-      panel.dialogue.forEach((d, di) => {
-        bubbles.push({
-          type: "speech",
-          speaker: d.speaker,
-          text: d.text,
-          position: {
-            x: pos.x + di * 5,
-            y: pos.y + di * 8,
-            width: pos.width,
-          },
-          tail_direction: di % 2 === 0 ? "bottom-left" : "bottom-right",
-        });
-      });
-
-      if (panel.sfx) {
-        bubbles.push({
-          type: "sfx",
-          speaker: "",
-          text: panel.sfx,
-          position: { x: 70, y: 40, width: 25 },
-        });
-      }
-
-      return { panel_number: panel.panel_number, bubbles };
-    }),
+    panels: script.panels.map((panel) => ({
+      panel_number: panel.panel_number,
+      bubbles: [],
+    })),
   };
 }
 

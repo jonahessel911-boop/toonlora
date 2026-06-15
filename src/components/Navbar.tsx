@@ -11,9 +11,9 @@ import { useUserStore } from "@/store/useUserStore";
 
 const browseNav = [
   { href: "/#originals", label: "Originals" },
-  { href: "/#categories", label: "Categories" },
-  { href: "/#rankings", label: "Rankings" },
-  { href: "/#community", label: "Canvas" },
+  { href: "/#trending", label: "Trending" },
+  { href: "/#categories", label: "Genres" },
+  { href: "/#community", label: "Community" },
   { href: "/about", label: "About" },
 ] as const;
 
@@ -117,7 +117,7 @@ export default function Navbar() {
     if (href === "/about") return pathname === "/about";
     if (pathname !== "/") return false;
     const target = href.includes("#") ? href.slice(href.indexOf("#")) : "";
-    if (!activeHash && target === "#rankings") return true;
+    if (!activeHash && target === "#originals") return true;
     return activeHash === target;
   };
 
@@ -148,7 +148,7 @@ export default function Navbar() {
           <ProfileMenu />
 
           <Link
-            href="/#rankings"
+            href="/#trending"
             className="hidden h-10 w-10 items-center justify-center rounded-full text-gs-text transition hover:bg-surface-soft sm:flex"
             aria-label="Search stories"
           >

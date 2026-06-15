@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       previousEpisodeSummary: body.previous_summary ?? "",
       episodePrompt: body.episode_prompt ?? body.story_idea,
       existingStoryBible: body.story_bible,
+      requireAI: true,
     });
 
     let story = pipelineResultToStory(pipelineResult);
@@ -64,7 +65,11 @@ export async function POST(request: Request) {
         story.id = body.series_id;
       }
 
-      story = await storyRepository.save(story, sessionId);
+      story = await storyRepository.save(story, sessionId, {
+        source: "creator",
+        status: "draft",
+        isPublic: false,
+      });
     }
 
     return NextResponse.json({

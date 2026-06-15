@@ -1,12 +1,13 @@
 import type { Category } from "@/types/story";
 
-export const BRAND_TAGLINE = "Read for free. Create with credits.";
-export const BRAND_HEADLINE = "Read or create the story of your dreams.";
+export const BRAND_TAGLINE = "Read for free. Create when you're ready.";
+export const BRAND_HEADLINE =
+  "Start reading cartoon stories for free. Create your own when you're ready.";
 export const BRAND_SUBHEADLINE =
-  "Discover free cartoon stories from the community, or turn your own idea into a shareable episode in minutes.";
-export const CREATOR_CTA = "Create & share cartoon stories in minutes.";
+  "Explore community-made episodes, follow your favorite stories, and turn your own ideas into cartoon episodes later.";
+export const CREATOR_CTA = "Create a story when inspiration hits.";
 export const CREDIT_COPY =
-  "Your first story is free. Creating more episodes uses credits.";
+  "Episode 1 is free. Creating stories uses credits.";
 
 export const GENRE_COLORS: Record<
   Category | "Spicy" | "default",

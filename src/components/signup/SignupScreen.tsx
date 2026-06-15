@@ -175,7 +175,7 @@ export function SignupPrimaryButton({ href, children }: SignupPrimaryButtonProps
   return (
     <Link
       href={href}
-      className="group flex w-full items-center justify-between rounded-full bg-[#FF6847] py-4 pl-7 pr-2 shadow-[0_10px_28px_rgba(255,104,71,0.3)] transition hover:brightness-105 active:scale-[0.99]"
+      className="btn-coral group flex w-full items-center justify-between py-4 pl-7 pr-2 transition active:scale-[0.99]"
     >
       <span className="text-base font-extrabold text-white">{children}</span>
       <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white/95 shadow-sm">
@@ -204,7 +204,7 @@ export function SignupSubmitButton({
     <button
       type="submit"
       disabled={disabled}
-      className="group flex w-full items-center justify-between rounded-full bg-[#FF6847] py-4 pl-7 pr-2 shadow-[0_10px_28px_rgba(255,104,71,0.3)] transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
+      className="btn-coral group flex w-full items-center justify-between py-4 pl-7 pr-2 transition active:scale-[0.99] disabled:opacity-50"
     >
       <span className="text-base font-extrabold text-white">{children}</span>
       <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white/95 shadow-sm">

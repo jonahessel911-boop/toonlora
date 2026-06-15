@@ -1,9 +1,3 @@
-import {
-  TRENDING_STORIES,
-  COMMUNITY_STORIES,
-  CATEGORY_STORIES,
-  type SampleStory,
-} from "@/lib/sampleStories";
 import type { Category } from "@/types/story";
 
 export type LPCategory =
@@ -44,16 +38,7 @@ export const LP_CATEGORY_META: Record<
   },
 };
 
-const STORIES_PER_CATEGORY = 6;
-
-export function getLPStories(category: LPCategory): SampleStory[] {
-  let pool: SampleStory[];
-
-  if (category === "Trending") {
-    pool = [...TRENDING_STORIES, ...COMMUNITY_STORIES];
-  } else {
-    pool = CATEGORY_STORIES[category as Category] ?? TRENDING_STORIES;
-  }
-
-  return pool.slice(0, STORIES_PER_CATEGORY);
+export function lpCategoryToGenre(category: LPCategory): string | undefined {
+  if (category === "Trending") return undefined;
+  return category as Category;
 }

@@ -1,5 +1,5 @@
-import WebtoonHome from "@/components/home/WebtoonHome";
+import BrowseHome from "@/components/home/BrowseHome";
 
 export default function HomePage() {
-  return <WebtoonHome />;
+  return <BrowseHome />;
 }

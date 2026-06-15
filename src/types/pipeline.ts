@@ -9,6 +9,8 @@ export interface SeriesInput {
   language: string;
   episode_length: "Short" | "Normal" | "Long";
   target_audience: string;
+  /** Override panel count per episode (4–14). Takes precedence over episode_length. */
+  panel_count?: number;
 }
 
 export interface StoryCharacter {
@@ -99,12 +101,12 @@ export interface ImagePromptResult {
 
 export interface ComicPage {
   episode_number: number;
-  /** Art without text — gradient placeholder until gpt-image-2 */
+  /** Vertical webtoon page with dialogue baked into the artwork */
   artUrl: string | null;
   artGradient: string;
   width: number;
   height: number;
-  noTextInImage: true;
+  noTextInImage: false;
 }
 
 export interface BubblePosition {

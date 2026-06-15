@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import CoverArt, { getCoverPreset } from "@/components/ui/CoverArt";
-import type { SampleStory } from "@/lib/sampleStories";
+import type { CatalogSeries } from "@/types/catalog";
 
 interface LPStoryCardProps {
-  story: SampleStory;
+  story: CatalogSeries;
 }
 
 export default function LPStoryCard({ story }: LPStoryCardProps) {
@@ -17,7 +17,7 @@ export default function LPStoryCard({ story }: LPStoryCardProps) {
         <div className="relative">
           <CoverArt
             gradient={story.coverGradient || preset.gradient}
-            emoji={story.coverEmoji ?? preset.emoji}
+            genre={String(story.genre)}
             className="aspect-[3/4] w-full"
           />
           <span className="absolute left-2 top-2 rounded-full bg-lp-blue px-2.5 py-0.5 text-[10px] font-bold text-white">
@@ -28,11 +28,13 @@ export default function LPStoryCard({ story }: LPStoryCardProps) {
           <h3 className="line-clamp-2 text-sm font-black leading-snug text-gray-900">
             {story.title}
           </h3>
-          {story.creator && (
-            <p className="mt-1 text-[11px] text-gray-400">by {story.creator}</p>
+          {story.creatorDisplayName && (
+            <p className="mt-1 text-[11px] text-gray-400">
+              by {story.creatorDisplayName}
+            </p>
           )}
           <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] text-gray-500">
-            <span>{story.episodes ?? 1} ep</span>
+            <span>{story.episodeCount} ep</span>
             {story.readers && <span>👁 {story.readers}</span>}
             {story.likes && <span>♥ {story.likes}</span>}
           </div>
