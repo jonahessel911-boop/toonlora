@@ -16,8 +16,8 @@ export default function EpisodeReadLayout({
   episodeNumber,
 }: EpisodeReadLayoutProps) {
   return (
-    <div className="bg-[#12091F]">
-      <div className="h-[100dvh] w-full">{children}</div>
+    <div className="min-h-[100dvh] bg-black">
+      {children}
       <EpisodeCommentsSection series={series} episodeNumber={episodeNumber} />
     </div>
   );

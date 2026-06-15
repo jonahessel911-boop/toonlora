@@ -141,8 +141,8 @@ export default function StoryReaderClient({
 
   if (!hydrated) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#FCFAFF]">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#E9D8FD] border-t-[#5340FF]" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-black">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-white" />
       </div>
     );
   }
@@ -170,6 +170,12 @@ export default function StoryReaderClient({
         episodeNumber={ep?.number ?? 1}
         episodeTitle={ep?.title ?? "Episode 1"}
         panels={buildMockReaderPanels(catalog)}
+        genre={catalog.genre}
+        episodes={catalog.episodes.map((e) => ({
+          number: e.number,
+          title: e.title,
+          coverGradient: e.coverGradient,
+        }))}
         showControls={!isPublic}
         onShare={handleShare}
         isCatalog
@@ -205,6 +211,12 @@ export default function StoryReaderClient({
         episodeNumber={episode.episodeNumber}
         episodeTitle={episode.title}
         panels={episodeToReaderPanels(episode, story.coverGradient)}
+        genre={seriesDetail.genre}
+        episodes={seriesDetail.episodes.map((e) => ({
+          number: e.number,
+          title: e.title,
+          coverGradient: e.coverGradient,
+        }))}
         showControls={!isPublic}
         onShare={handleShare}
         onGenerateNext={

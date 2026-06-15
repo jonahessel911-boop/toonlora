@@ -1,5 +1,6 @@
 "use client";
 
+import { forwardRef } from "react";
 import SpeechBubble from "@/components/SpeechBubble";
 import type { ReaderPanelData } from "@/lib/readerPanels";
 
@@ -41,40 +42,45 @@ interface ComicPanelProps {
   index: number;
   isActive?: boolean;
   onClick?: () => void;
-  variant?: "stack" | "flipbook";
+  variant?: "stack" | "flipbook" | "scroll";
 }
 
-export default function ComicPanel({
-  panel,
-  index,
-  isActive,
-  onClick,
-  variant = "stack",
-}: ComicPanelProps) {
+const ComicPanel = forwardRef<HTMLElement, ComicPanelProps>(function ComicPanel(
+  { panel, index, isActive, onClick, variant = "stack" },
+  ref
+) {
   const scene = SCENE_PRESETS[index % SCENE_PRESETS.length];
   const isFlipbook = variant === "flipbook";
+  const isScroll = variant === "scroll";
   const isTbc = panel.bubbles?.some((b) =>
     b.text.toLowerCase().includes("to be continued")
   );
 
   return (
     <article
+      ref={ref}
       id={`panel-${index}`}
       onClick={onClick}
-      className={`relative overflow-hidden ${
-        isFlipbook
-          ? "h-full w-full"
-          : `w-full border-b border-[#E7D8FF]/40 last:border-b-0 ${
-              isActive ? "ring-2 ring-inset ring-[#7C3AED]/40" : ""
-            }`
+      className={`relative block w-full overflow-hidden ${
+        isScroll
+          ? ""
+          : isFlipbook
+            ? "h-full w-full"
+            : `border-b border-[#E7D8FF]/40 last:border-b-0 ${
+                isActive ? "ring-2 ring-inset ring-[#7C3AED]/40" : ""
+              }`
       } ${onClick ? "cursor-pointer" : ""}`}
     >
       {panel.artUrl ? (
-        <div className={`relative w-full ${isFlipbook ? "h-full" : "aspect-[3/4] sm:aspect-[4/5]"}`}>
+        <div
+          className={`relative w-full ${
+            isFlipbook ? "h-full" : "aspect-[3/4] sm:aspect-[4/5]"
+          }`}
+        >
           <img
             src={panel.artUrl}
             alt={`Panel ${panel.panelNumber}`}
-            className="h-full w-full object-cover"
+            className="block h-full w-full object-cover"
           />
           {panel.bubbles?.map((b, i) => (
             <SpeechBubble key={i} bubble={b} />
@@ -83,10 +89,13 @@ export default function ComicPanel({
       ) : (
         <div
           className={`relative w-full bg-gradient-to-br ${scene.bg} ${
-            isFlipbook ? "h-full min-h-0" : "min-h-[280px] sm:min-h-[340px]"
+            isFlipbook
+              ? "h-full min-h-0"
+              : isScroll
+                ? "min-h-[min(100vw,720px)] sm:min-h-[720px]"
+                : "min-h-[280px] sm:min-h-[340px]"
           }`}
         >
-          {/* Ambient glow */}
           <div
             className="pointer-events-none absolute inset-0"
             style={{
@@ -95,7 +104,6 @@ export default function ComicPanel({
             aria-hidden
           />
 
-          {/* Moon / sun */}
           {scene.mood === "moonlit" && (
             <div
               className="absolute right-[12%] top-[10%] h-16 w-16 rounded-full bg-[#F3ECFF]/90 shadow-[0_0_40px_rgba(243,236,255,0.5)] sm:h-20 sm:w-20"
@@ -103,7 +111,6 @@ export default function ComicPanel({
             />
           )}
 
-          {/* Stars / sparkles */}
           <div className="pointer-events-none absolute inset-0 opacity-60" aria-hidden>
             {[...Array(6)].map((_, i) => (
               <span
@@ -119,10 +126,8 @@ export default function ComicPanel({
             ))}
           </div>
 
-          {/* Horizon */}
           <div className="absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
 
-          {/* Character silhouettes */}
           {!isTbc && (
             <div className="absolute bottom-[12%] left-1/2 flex -translate-x-1/2 items-end gap-2 sm:gap-3">
               <div
@@ -148,21 +153,18 @@ export default function ComicPanel({
             </div>
           )}
 
-          {/* Scene accent line */}
           <div
             className="absolute left-[8%] top-[35%] h-px w-[35%] rotate-[-8deg] opacity-30"
             style={{ backgroundColor: scene.accent }}
             aria-hidden
           />
 
-          {/* SFX overlay */}
           {panel.sfx && (
             <p className="absolute left-1/2 top-[18%] -translate-x-1/2 font-black uppercase tracking-[0.2em] text-white drop-shadow-[2px_2px_0_rgba(0,0,0,0.5)] sm:text-2xl">
               {panel.sfx}
             </p>
           )}
 
-          {/* Inline bubbles at bottom */}
           <div className="absolute inset-x-0 bottom-0 space-y-2 p-4 sm:p-5">
             {panel.bubbles
               ?.filter((b) => b.type !== "sfx")
@@ -171,56 +173,28 @@ export default function ComicPanel({
               ))}
           </div>
 
-          {/* TBC cliffhanger */}
           {isTbc && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#5340FF]/90 via-[#7C3AED]/85 to-[#FF4FA3]/80 px-6">
-              <div className="pointer-events-none absolute inset-0 opacity-40" aria-hidden>
-                {[...Array(8)].map((_, i) => (
-                  <span
-                    key={i}
-                    className="absolute text-white/80"
-                    style={{
-                      left: `${8 + i * 11}%`,
-                      top: `${6 + (i % 4) * 18}%`,
-                      fontSize: i % 2 === 0 ? "14px" : "10px",
-                    }}
-                  >
-                    ✦
-                  </span>
-                ))}
-              </div>
               <div className="relative w-full max-w-[320px] overflow-hidden rounded-[24px] border-2 border-white/40 bg-white/95 p-6 text-center shadow-[0_24px_60px_rgba(42,17,75,0.25)] sm:p-8">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#5340FF] to-[#FF4FA3] text-xl text-white shadow-lg">
-                  ✦
-                </div>
                 <p className="font-heading text-xl font-extrabold text-[#2A114B] sm:text-2xl">
                   To be continued…
                 </p>
-                <p className="mt-2 text-sm font-semibold text-[#5340FF]">
-                  Episode 1 · {panel.panelNumber} panels
-                </p>
-                <div className="mt-4 flex justify-center gap-1.5">
-                  {["#5340FF", "#FF6847", "#FFE033", "#22D3EE"].map((c) => (
-                    <span
-                      key={c}
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Panel number badge */}
-      <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-bold text-[#5340FF] shadow-sm ring-1 ring-[#E7D8FF] backdrop-blur-sm">
-        {panel.panelNumber}
-      </span>
+      {!isScroll && (
+        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-bold text-[#5340FF] shadow-sm ring-1 ring-[#E7D8FF] backdrop-blur-sm">
+          {panel.panelNumber}
+        </span>
+      )}
     </article>
   );
-}
+});
+
+export default ComicPanel;
 
 function InlineBubble({
   bubble,
