@@ -5,11 +5,12 @@ import { persist } from "zustand/middleware";
 import {
   COMMUNITY_CHARACTERS,
   INITIAL_CHARACTERS,
-  INITIAL_STORIES,
   MOCK_ANALYTICS,
   MOCK_CREATOR_ID,
   createEmptyStory,
+  filterUserStories,
   generatePanelsForEpisode,
+  ensureCharacter,
 } from "@/lib/creator/mockData";
 import type {
   StudioBubble,
@@ -18,6 +19,8 @@ import type {
   StudioSection,
   StudioStory,
   StudioVisibility,
+  ComicGenerationJob,
+  ComicGenerationPayload,
 } from "@/types/creator";
 
 const STORAGE_KEY = "toonlora-creator-studio";
@@ -33,11 +36,13 @@ interface CreatorStore {
   editorEpisodeId: string | null;
   editorPanelId: string | null;
   selectedBubbleId: string | null;
+  generationJobs: ComicGenerationJob[];
 
   setSection: (section: StudioSection) => void;
   getStory: (id: string) => StudioStory | undefined;
   getCharacter: (id: string) => StudioCharacter | undefined;
   getMyCharacters: () => StudioCharacter[];
+  getMyStories: () => StudioStory[];
   getPublicCharacters: () => StudioCharacter[];
 
   addStory: (story: StudioStory) => void;
@@ -45,6 +50,20 @@ interface CreatorStore {
   addCharacter: (character: StudioCharacter) => void;
   updateCharacter: (id: string, patch: Partial<StudioCharacter>) => void;
   duplicateCharacter: (id: string) => void;
+  deleteCharacter: (id: string) => void;
+
+  setEpisodePanels: (
+    storyId: string,
+    episodeId: string,
+    panels: StudioPanel[]
+  ) => void;
+  addPanelToEpisode: (
+    storyId: string,
+    episodeId: string,
+    panel: StudioPanel
+  ) => void;
+  duplicatePanel: (storyId: string, episodeId: string, panelId: string) => void;
+  deletePanel: (storyId: string, episodeId: string, panelId: string) => void;
 
   createStoryFromFlow: (data: {
     title: string;
@@ -63,10 +82,9 @@ interface CreatorStore {
       | "id"
       | "creatorId"
       | "creatorName"
-      | "referenceImages"
       | "usedInStories"
       | "portraitGradient"
-    > & { portraitGradient?: string }
+    >
   ) => string;
 
   setEditorContext: (
@@ -102,6 +120,14 @@ interface CreatorStore {
   ) => void;
   publishStory: (storyId: string) => void;
   importCommunityCharacter: (characterId: string) => void;
+
+  addGenerationJob: (job: ComicGenerationJob) => void;
+  updateGenerationJob: (
+    jobId: string,
+    patch: Partial<ComicGenerationJob>
+  ) => void;
+  dismissGenerationJob: (jobId: string) => void;
+  getActiveGenerationJobs: () => ComicGenerationJob[];
 }
 
 const GRADIENTS = [
@@ -115,7 +141,7 @@ export const useCreatorStore = create<CreatorStore>()(
     (set, get) => ({
       hydrated: false,
       activeSection: "overview",
-      stories: INITIAL_STORIES,
+      stories: [],
       characters: INITIAL_CHARACTERS,
       communityCharacters: COMMUNITY_CHARACTERS,
       analytics: MOCK_ANALYTICS,
@@ -123,6 +149,7 @@ export const useCreatorStore = create<CreatorStore>()(
       editorEpisodeId: null,
       editorPanelId: null,
       selectedBubbleId: null,
+      generationJobs: [],
 
       setSection: (section) => set({ activeSection: section }),
 
@@ -133,6 +160,8 @@ export const useCreatorStore = create<CreatorStore>()(
 
       getMyCharacters: () =>
         get().characters.filter((c) => c.creatorId === MOCK_CREATOR_ID),
+
+      getMyStories: () => filterUserStories(get().stories),
 
       getPublicCharacters: () =>
         get().characters.filter(
@@ -175,6 +204,80 @@ export const useCreatorStore = create<CreatorStore>()(
         get().addCharacter(copy);
       },
 
+      deleteCharacter: (id) => {
+        const owned = get().characters.find((c) => c.id === id);
+        if (!owned || owned.creatorId !== MOCK_CREATOR_ID) return;
+        set((s) => ({
+          characters: s.characters.filter((c) => c.id !== id),
+          stories: s.stories.map((story) => ({
+            ...story,
+            characterIds: story.characterIds.filter((cid) => cid !== id),
+          })),
+        }));
+      },
+
+      setEpisodePanels: (storyId, episodeId, panels) =>
+        set((s) => ({
+          stories: s.stories.map((story) => {
+            if (story.id !== storyId) return story;
+            return {
+              ...story,
+              updatedAt: new Date().toISOString(),
+              episodes: story.episodes.map((ep) =>
+                ep.id === episodeId ? { ...ep, panels } : ep
+              ),
+            };
+          }),
+        })),
+
+      addPanelToEpisode: (storyId, episodeId, panel) =>
+        set((s) => ({
+          stories: s.stories.map((story) => {
+            if (story.id !== storyId) return story;
+            return {
+              ...story,
+              updatedAt: new Date().toISOString(),
+              episodes: story.episodes.map((ep) =>
+                ep.id === episodeId
+                  ? { ...ep, panels: [...ep.panels, panel] }
+                  : ep
+              ),
+            };
+          }),
+        })),
+
+      duplicatePanel: (storyId, episodeId, panelId) => {
+        const story = get().getStory(storyId);
+        const ep = story?.episodes.find((e) => e.id === episodeId);
+        const original = ep?.panels.find((p) => p.id === panelId);
+        if (!original || !ep) return;
+        const newId = `${episodeId}-panel-${Date.now()}`;
+        const copy: StudioPanel = {
+          ...original,
+          id: newId,
+          order: ep.panels.length + 1,
+          overlays: original.overlays.map((b) => ({
+            ...b,
+            id: `bubble-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            panelId: newId,
+          })),
+        };
+        get().addPanelToEpisode(storyId, episodeId, copy);
+        get().setEditorContext(storyId, episodeId, copy.id);
+      },
+
+      deletePanel: (storyId, episodeId, panelId) => {
+        const story = get().getStory(storyId);
+        const ep = story?.episodes.find((e) => e.id === episodeId);
+        if (!ep || ep.panels.length <= 1) return;
+        const remaining = ep.panels
+          .filter((p) => p.id !== panelId)
+          .map((p, i) => ({ ...p, order: i + 1 }));
+        get().setEpisodePanels(storyId, episodeId, remaining);
+        const next = remaining[0];
+        if (next) get().setEditorContext(storyId, episodeId, next.id);
+      },
+
       createStoryFromFlow: (data) => {
         const story = createEmptyStory({
           title: data.title,
@@ -206,21 +309,15 @@ export const useCreatorStore = create<CreatorStore>()(
 
       createCharacterFromForm: (data) => {
         const id = `char-${Date.now()}`;
-        const character: StudioCharacter = {
+        const character: StudioCharacter = ensureCharacter({
           ...data,
           id,
           creatorId: MOCK_CREATOR_ID,
           creatorName: "You",
-          referenceImages: [
-            `placeholder-portrait-${id}`,
-            `placeholder-fullbody-${id}`,
-            `placeholder-expressions-${id}`,
-          ],
+          referenceImages: data.referenceImages ?? [],
           usedInStories: [],
-          portraitGradient:
-            data.portraitGradient ??
-            GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)],
-        };
+          portraitGradient: GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)],
+        });
         get().addCharacter(character);
         return id;
       },
@@ -359,16 +456,51 @@ export const useCreatorStore = create<CreatorStore>()(
         };
         get().addCharacter(imported);
       },
+
+      addGenerationJob: (job) =>
+        set((s) => ({ generationJobs: [job, ...s.generationJobs] })),
+
+      updateGenerationJob: (jobId, patch) =>
+        set((s) => ({
+          generationJobs: s.generationJobs.map((job) =>
+            job.id === jobId ? { ...job, ...patch } : job
+          ),
+        })),
+
+      dismissGenerationJob: (jobId) =>
+        set((s) => ({
+          generationJobs: s.generationJobs.filter((job) => job.id !== jobId),
+        })),
+
+      getActiveGenerationJobs: () =>
+        get().generationJobs.filter(
+          (job) => job.status === "running" || job.status === "completed"
+        ),
     }),
     {
       name: STORAGE_KEY,
       onRehydrateStorage: () => (state) => {
-        if (state) state.hydrated = true;
+        if (!state) return;
+        state.hydrated = true;
+        state.characters = state.characters.map(ensureCharacter);
+        state.stories = filterUserStories(state.stories);
+        const sections = ["overview", "stories", "characters", "settings"];
+        if (!sections.includes(state.activeSection)) {
+          state.activeSection = "overview";
+        }
+        state.generationJobs = (state.generationJobs ?? []).map((job) =>
+          job.status === "running"
+            ? { ...job, status: "failed" as const, error: "Generation was interrupted. Please try again." }
+            : job
+        );
       },
       partialize: (state) => ({
         stories: state.stories,
         characters: state.characters,
         analytics: state.analytics,
+        generationJobs: state.generationJobs.filter(
+          (j) => j.status === "running" || j.status === "completed"
+        ),
       }),
     }
   )

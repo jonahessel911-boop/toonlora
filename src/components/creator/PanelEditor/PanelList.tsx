@@ -5,17 +5,21 @@ import type { StudioPanel } from "@/types/creator";
 interface PanelListProps {
   panels: StudioPanel[];
   activePanelId: string | null;
+  loading?: boolean;
   onSelect: (panelId: string) => void;
   onDuplicate: (panelId: string) => void;
   onDelete: (panelId: string) => void;
+  onAddPanel: () => void;
 }
 
 export default function PanelList({
   panels,
   activePanelId,
+  loading,
   onSelect,
   onDuplicate,
   onDelete,
+  onAddPanel,
 }: PanelListProps) {
   return (
     <div className="flex h-full flex-col">
@@ -40,9 +44,24 @@ export default function PanelList({
               onClick={() => onSelect(panel.id)}
               className="w-full text-left"
             >
-              <div
-                className={`aspect-[4/3] rounded-xl bg-gradient-to-br ${panel.gradient}`}
-              />
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl">
+                {panel.imageUrl ? (
+                  <img
+                    src={panel.imageUrl}
+                    alt={`Panel ${panel.order}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className={`h-full w-full bg-gradient-to-br ${panel.gradient}`}
+                  />
+                )}
+                {panel.status === "generating" ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  </div>
+                ) : null}
+              </div>
               <p className="mt-2 text-xs font-bold text-[#2A114B]">
                 Panel {panel.order}
               </p>
@@ -60,8 +79,9 @@ export default function PanelList({
               </button>
               <button
                 type="button"
+                disabled={panels.length <= 1}
                 onClick={() => onDelete(panel.id)}
-                className="flex-1 rounded-lg bg-[#FFF0F0] py-1 text-[10px] font-bold text-[#A4262C]"
+                className="flex-1 rounded-lg bg-[#FFF0F0] py-1 text-[10px] font-bold text-[#A4262C] disabled:opacity-40"
               >
                 Del
               </button>
@@ -71,9 +91,11 @@ export default function PanelList({
       </div>
       <button
         type="button"
-        className="m-3 rounded-2xl border border-dashed border-[#5340FF] py-3 text-xs font-bold text-[#5340FF]"
+        disabled={loading}
+        onClick={onAddPanel}
+        className="m-3 rounded-2xl border border-dashed border-[#5340FF] py-3 text-xs font-bold text-[#5340FF] disabled:opacity-50"
       >
-        + Add panels with AI
+        {loading ? "Generating…" : "+ Add panel with AI"}
       </button>
     </div>
   );

@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CharacterCard from "@/components/creator/CharacterCard";
 import { useCreatorStore } from "@/store/useCreatorStore";
+import { useUserStore } from "@/store/useUserStore";
+import {
+  charactersToApiInput,
+  runComicGeneration,
+} from "@/lib/creator/generateStudioPanels";
 import {
   formatCreditCost,
   panelGenerationCost,
   type PanelEpisodeLength,
 } from "@/lib/creator/credits";
-import type { StudioVisibility } from "@/types/creator";
+import type { ComicGenerationPayload, StudioVisibility } from "@/types/creator";
 
 const GENRES = [
   "Romance",
@@ -33,16 +37,21 @@ interface CreateComicModalProps {
   open: boolean;
   onClose: () => void;
   onOpenCharacterModal: () => void;
+  activeJobId?: string | null;
 }
 
 export default function CreateComicModal({
   open,
   onClose,
   onOpenCharacterModal,
+  activeJobId,
 }: CreateComicModalProps) {
-  const router = useRouter();
+  const email = useUserStore((s) => s.email);
   const getMyCharacters = useCreatorStore((s) => s.getMyCharacters);
+  const getCharacter = useCreatorStore((s) => s.getCharacter);
   const createStoryFromFlow = useCreatorStore((s) => s.createStoryFromFlow);
+  const addGenerationJob = useCreatorStore((s) => s.addGenerationJob);
+  const generationJobs = useCreatorStore((s) => s.generationJobs);
   const communityCharacters = useCreatorStore((s) => s.communityCharacters);
 
   const [step, setStep] = useState(0);
@@ -54,7 +63,19 @@ export default function CreateComicModal({
   const [selectedChars, setSelectedChars] = useState<string[]>([]);
   const [episodePrompt, setEpisodePrompt] = useState("");
   const [panelCount, setPanelCount] = useState<PanelEpisodeLength>(8);
-  const [generating, setGenerating] = useState(false);
+  const [startedJobId, setStartedJobId] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
+  const notifyEmail = email.trim() || "your email";
+
+  const activeJob = useMemo(() => {
+    const id = activeJobId ?? startedJobId;
+    return id ? generationJobs.find((j) => j.id === id) : undefined;
+  }, [activeJobId, startedJobId, generationJobs]);
+
+  const generating = Boolean(
+    activeJob && (activeJob.status === "running" || startedJobId)
+  );
 
   const myCharacters = getMyCharacters();
   const usableCommunity = communityCharacters.filter((c) => c.allowOthersToUse);
@@ -65,22 +86,69 @@ export default function CreateComicModal({
     );
   };
 
-  const handleFinish = async () => {
-    setGenerating(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    const storyId = createStoryFromFlow({
-      title,
-      genre,
-      description,
-      audienceRating,
-      visibility,
-      characterIds: selectedChars,
-      episodePrompt,
-      panelCount,
-    });
-    setGenerating(false);
+  const handleFinish = () => {
+    setGenerateError(null);
+
+    try {
+      const storyId = createStoryFromFlow({
+        title,
+        genre,
+        description,
+        audienceRating,
+        visibility,
+        characterIds: selectedChars,
+        episodePrompt,
+        panelCount,
+      });
+
+      const story = useCreatorStore.getState().getStory(storyId);
+      const episode = story?.episodes[0];
+      if (!episode) throw new Error("Story was not created");
+
+      const payload: ComicGenerationPayload = {
+        storyId,
+        episodeId: episode.id,
+        title,
+        genre,
+        description,
+        episodePrompt,
+        panelCount,
+        characters: charactersToApiInput(selectedChars, getCharacter),
+        characterIds: selectedChars,
+        existingPanels: episode.panels.map((p) => ({
+          id: p.id,
+          order: p.order,
+        })),
+      };
+
+      const jobId = `job-${Date.now()}`;
+      addGenerationJob({
+        id: jobId,
+        storyId,
+        episodeId: episode.id,
+        title,
+        status: "running",
+        progress: 0,
+        message: "Starting…",
+        panelCount,
+        completedPanels: 0,
+        notifyEmail: email.trim(),
+        createdAt: new Date().toISOString(),
+        payload,
+      });
+
+      setStartedJobId(jobId);
+      runComicGeneration(jobId);
+    } catch (err) {
+      setGenerateError(
+        err instanceof Error ? err.message : "Could not start generation"
+      );
+    }
+  };
+
+  const handleCloseWhileGenerating = () => {
+    reset();
     onClose();
-    router.push(`/creator/editor/${storyId}`);
   };
 
   const canNext = () => {
@@ -96,7 +164,11 @@ export default function CreateComicModal({
     setDescription("");
     setSelectedChars([]);
     setEpisodePrompt("");
+    setGenerateError(null);
+    setStartedJobId(null);
   };
+
+  const showGenerating = generating && activeJob;
 
   return (
     <AnimatePresence>
@@ -107,6 +179,7 @@ export default function CreateComicModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => {
+            if (showGenerating) return;
             reset();
             onClose();
           }}
@@ -128,7 +201,51 @@ export default function CreateComicModal({
             </div>
 
             <div className="p-6">
-              {step === 0 ? (
+              {showGenerating ? (
+                <div className="flex flex-col items-center gap-4 py-10 text-center">
+                  <div className="relative h-16 w-16">
+                    <div className="absolute inset-0 rounded-full border-4 border-[#E7D8FF]" />
+                    <div
+                      className="absolute inset-0 rounded-full border-4 border-[#5340FF] border-t-transparent animate-spin"
+                      style={{
+                        clipPath: `polygon(0 0, 100% 0, 100% 100%, 0 100%)`,
+                      }}
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center font-heading text-sm font-extrabold text-[#5340FF]">
+                      {activeJob?.progress ?? 0}%
+                    </span>
+                  </div>
+
+                  <div className="w-full max-w-sm">
+                    <div className="h-3 overflow-hidden rounded-full bg-[#F3ECFF]">
+                      <div
+                        className="h-full rounded-full bg-[#5340FF] transition-all duration-500"
+                        style={{ width: `${activeJob?.progress ?? 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="font-heading text-lg font-extrabold text-[#2A114B]">
+                    {activeJob?.message ?? "Creating your Lora…"}
+                  </p>
+                  <p className="max-w-md text-sm text-[#667085]">
+                    You can close this window — creation continues in the
+                    background. We&apos;ll e-mail{" "}
+                    <span className="font-semibold text-[#2A114B]">
+                      {notifyEmail}
+                    </span>{" "}
+                    when your Lora is ready.
+                  </p>
+                  {activeJob?.panelCount ? (
+                    <p className="text-xs text-[#667085]">
+                      Panel {activeJob.completedPanels} of{" "}
+                      {activeJob.panelCount}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!showGenerating && step === 0 ? (
                 <div className="space-y-4">
                   <label className="block text-xs font-bold text-[#2A114B]">
                     Story title
@@ -195,11 +312,10 @@ export default function CreateComicModal({
                 </div>
               ) : null}
 
-              {step === 1 ? (
+              {!showGenerating && step === 1 ? (
                 <div className="space-y-4">
                   <p className="text-sm text-[#667085]">
-                    Choose characters before creating your story. They&apos;re
-                    reusable across every episode.
+                    Choose characters before creating your story.
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -240,7 +356,7 @@ export default function CreateComicModal({
                 </div>
               ) : null}
 
-              {step === 2 ? (
+              {!showGenerating && step === 2 ? (
                 <label className="block text-xs font-bold text-[#2A114B]">
                   What happens in this episode?
                   <textarea
@@ -253,7 +369,7 @@ export default function CreateComicModal({
                 </label>
               ) : null}
 
-              {step === 3 ? (
+              {!showGenerating && step === 3 ? (
                 <div className="space-y-3">
                   {PANEL_OPTIONS.map((opt) => (
                     <button
@@ -277,62 +393,80 @@ export default function CreateComicModal({
                 </div>
               ) : null}
 
-              {step === 4 ? (
-                <div className="rounded-2xl bg-[#F3ECFF] p-5 text-center">
-                  <p className="font-heading text-lg font-extrabold text-[#2A114B]">
-                    Ready to generate
-                  </p>
-                  <p className="mt-2 text-sm text-[#667085]">
-                    {title} · {panelCount} panels ·{" "}
-                    {formatCreditCost(panelGenerationCost(panelCount))}
-                  </p>
-                  <p className="mt-4 text-xs text-[#667085]">
-                    You&apos;ll open the panel editor to refine speech bubbles
-                    after generation.
-                  </p>
+              {!showGenerating && step === 4 ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl bg-[#F3ECFF] p-5 text-center">
+                    <p className="font-heading text-lg font-extrabold text-[#2A114B]">
+                      Ready to generate
+                    </p>
+                    <p className="mt-2 text-sm text-[#667085]">
+                      {title} · {panelCount} panels ·{" "}
+                      {formatCreditCost(panelGenerationCost(panelCount))}
+                    </p>
+                    <p className="mt-4 text-xs text-[#667085]">
+                      Runs in the background — you can browse the studio or
+                      switch apps. We&apos;ll e-mail {notifyEmail} when ready.
+                    </p>
+                  </div>
+                  {generateError ? (
+                    <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {generateError}
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
             </div>
 
             <div className="flex gap-3 border-t border-[#E7D8FF] px-6 py-4">
-              {step > 0 ? (
+              {showGenerating ? (
                 <button
                   type="button"
-                  onClick={() => setStep((s) => s - 1)}
-                  className="rounded-2xl border border-[#E7D8FF] px-5 py-2.5 text-sm font-bold text-[#667085]"
+                  onClick={handleCloseWhileGenerating}
+                  className="ml-auto rounded-2xl bg-[#5340FF] px-6 py-2.5 text-sm font-bold text-white"
                 >
-                  Back
+                  Close — keep creating in background
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    reset();
-                    onClose();
-                  }}
-                  className="rounded-2xl border border-[#E7D8FF] px-5 py-2.5 text-sm font-bold text-[#667085]"
-                >
-                  Cancel
-                </button>
-              )}
-              {step < 4 ? (
-                <button
-                  type="button"
-                  disabled={!canNext()}
-                  onClick={() => setStep((s) => s + 1)}
-                  className="ml-auto rounded-2xl bg-[#5340FF] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40"
-                >
-                  Continue
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={generating}
-                  onClick={() => void handleFinish()}
-                  className="ml-auto rounded-2xl bg-[#FF6847] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
-                >
-                  {generating ? "Generating panels…" : "Open panel editor"}
-                </button>
+                <>
+                  {step > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setStep((s) => s - 1)}
+                      className="rounded-2xl border border-[#E7D8FF] px-5 py-2.5 text-sm font-bold text-[#667085]"
+                    >
+                      Back
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        reset();
+                        onClose();
+                      }}
+                      className="rounded-2xl border border-[#E7D8FF] px-5 py-2.5 text-sm font-bold text-[#667085]"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  {step < 4 ? (
+                    <button
+                      type="button"
+                      disabled={!canNext()}
+                      onClick={() => setStep((s) => s + 1)}
+                      className="ml-auto rounded-2xl bg-[#5340FF] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+                    >
+                      Continue
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleFinish}
+                      className="ml-auto rounded-2xl bg-[#FF6847] px-5 py-2.5 text-sm font-bold text-white"
+                    >
+                      Start creating
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </motion.div>

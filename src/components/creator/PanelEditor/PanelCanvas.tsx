@@ -31,6 +31,11 @@ export default function PanelCanvas({
             alt={`Panel ${panel.order}`}
             className="absolute inset-0 h-full w-full object-cover"
           />
+        ) : panel.status === "generating" ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/20">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/30 border-t-white" />
+            <p className="text-sm font-bold text-white">Generating panel art…</p>
+          </div>
         ) : (
           <div className="absolute inset-0 flex items-end p-4">
             <p className="rounded-xl bg-black/30 px-3 py-2 text-xs text-white/90 backdrop-blur">

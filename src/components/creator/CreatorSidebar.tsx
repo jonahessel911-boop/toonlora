@@ -9,11 +9,6 @@ const NAV: { id: StudioSection; label: string; icon: string }[] = [
   { id: "overview", label: "Overview", icon: "◆" },
   { id: "stories", label: "Stories", icon: "▤" },
   { id: "characters", label: "Characters", icon: "◎" },
-  { id: "editor", label: "Panel editor", icon: "▣" },
-  { id: "covers", label: "Covers", icon: "▦" },
-  { id: "published", label: "Published", icon: "✦" },
-  { id: "community", label: "Community characters", icon: "☆" },
-  { id: "analytics", label: "Analytics", icon: "↗" },
   { id: "settings", label: "Settings", icon: "⚙" },
 ];
 

@@ -14,8 +14,6 @@ interface StoryStudioCardProps {
   onEdit: () => void;
   onPreview: () => void;
   onPublish: () => void;
-  onAddEpisode: () => void;
-  onChangeCover: () => void;
 }
 
 export default function StoryStudioCard({
@@ -23,8 +21,6 @@ export default function StoryStudioCard({
   onEdit,
   onPreview,
   onPublish,
-  onAddEpisode,
-  onChangeCover,
 }: StoryStudioCardProps) {
   const getCharacter = useCreatorStore((s) => s.getCharacter);
   const updated = new Date(story.updatedAt).toLocaleDateString();
@@ -101,20 +97,6 @@ export default function StoryStudioCard({
             className="rounded-xl bg-[#5340FF] px-3 py-1.5 text-xs font-bold text-white"
           >
             Edit
-          </button>
-          <button
-            type="button"
-            onClick={onAddEpisode}
-            className="rounded-xl border border-[#E7D8FF] px-3 py-1.5 text-xs font-bold text-[#5340FF]"
-          >
-            Add episode
-          </button>
-          <button
-            type="button"
-            onClick={onChangeCover}
-            className="rounded-xl border border-[#E7D8FF] px-3 py-1.5 text-xs font-bold text-[#667085]"
-          >
-            Cover
           </button>
           {story.status !== "published" ? (
             <button

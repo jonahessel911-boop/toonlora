@@ -1,6 +1,10 @@
 export type StudioVisibility = "private" | "public" | "unlisted";
 export type StoryStatus = "draft" | "published" | "private";
 export type CharacterVisibility = "private" | "public";
+export type CharacterGender = "woman" | "man";
+
+export type BodyType = "slim" | "athletic" | "curvy" | "broad";
+
 export type CharacterRole =
   | "main character"
   | "love interest"
@@ -8,7 +12,6 @@ export type CharacterRole =
   | "friend"
   | "side character"
   | "mentor";
-
 export type BubbleType = "speech" | "thought" | "narration" | "sfx";
 export type BubbleTail =
   | "left"
@@ -73,12 +76,16 @@ export interface StudioStory {
   likes: number;
 }
 
+import type { CharacterAppearance } from "@/lib/creator/characterAppearance";
+
 export interface StudioCharacter {
   id: string;
   name: string;
   creatorId: string;
   creatorName: string;
   visibility: CharacterVisibility;
+  gender: CharacterGender;
+  appearance: CharacterAppearance;
   role: CharacterRole;
   personality: string;
   visualDescription: string;
@@ -87,6 +94,7 @@ export interface StudioCharacter {
   styleTheme: string;
   consistencyPrompt: string;
   referenceImages: string[];
+  portraitUrl?: string;
   usedInStories: string[];
   allowOthersToUse: boolean;
   attributionRequired: boolean;
@@ -110,11 +118,6 @@ export type StudioSection =
   | "overview"
   | "stories"
   | "characters"
-  | "editor"
-  | "covers"
-  | "published"
-  | "community"
-  | "analytics"
   | "settings";
 
 export interface PublishSettings {
@@ -123,4 +126,35 @@ export interface PublishSettings {
   allowPublicCharacterUse: boolean;
   requireAttribution: boolean;
   allowComments: boolean;
+}
+
+export type ComicGenerationStatus = "running" | "completed" | "failed";
+
+export interface ComicGenerationJob {
+  id: string;
+  storyId: string;
+  episodeId: string;
+  title: string;
+  status: ComicGenerationStatus;
+  progress: number;
+  message: string;
+  panelCount: number;
+  completedPanels: number;
+  notifyEmail: string;
+  error?: string;
+  createdAt: string;
+  payload: ComicGenerationPayload;
+}
+
+export interface ComicGenerationPayload {
+  storyId: string;
+  episodeId: string;
+  title: string;
+  genre: string;
+  description?: string;
+  episodePrompt: string;
+  panelCount: number;
+  characters: import("@/lib/creator/studioPanelPrompt").CreatorCharacterInput[];
+  characterIds: string[];
+  existingPanels: Array<{ id: string; order: number }>;
 }

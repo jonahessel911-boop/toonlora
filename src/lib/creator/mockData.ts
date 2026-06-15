@@ -1,4 +1,5 @@
 import type {
+  CharacterGender,
   CreatorAnalytics,
   StudioBubble,
   StudioCharacter,
@@ -6,6 +7,10 @@ import type {
   StudioPanel,
   StudioStory,
 } from "@/types/creator";
+import {
+  defaultAppearance,
+  type CharacterAppearance,
+} from "@/lib/creator/characterAppearance";
 
 const NOW = new Date().toISOString();
 const DAYS_AGO = (d: number) =>
@@ -13,6 +18,27 @@ const DAYS_AGO = (d: number) =>
 
 export const MOCK_CREATOR_ID = "creator-local";
 export const MOCK_CREATOR_NAME = "You";
+
+function seedCharacter(
+  gender: CharacterGender,
+  appearance: Partial<CharacterAppearance> | undefined,
+  base: Omit<StudioCharacter, "gender" | "appearance">
+): StudioCharacter {
+  return {
+    ...base,
+    gender,
+    appearance: { ...defaultAppearance(gender), ...appearance },
+  };
+}
+
+export function ensureCharacter(c: StudioCharacter): StudioCharacter {
+  const gender = c.gender ?? "woman";
+  return {
+    ...c,
+    gender,
+    appearance: c.appearance ?? defaultAppearance(gender),
+  };
+}
 
 const GRADIENTS = [
   "from-[#5340FF] via-[#7C3AED] to-[#FF4FA3]",
@@ -201,7 +227,7 @@ function makePanels(
 }
 
 export const INITIAL_CHARACTERS: StudioCharacter[] = [
-  {
+  seedCharacter("man", { topColor: "#667085", hairId: "messy", accessoryId: "backpack" }, {
     id: "char-jona",
     name: "Jona",
     creatorId: MOCK_CREATOR_ID,
@@ -221,8 +247,8 @@ export const INITIAL_CHARACTERS: StudioCharacter[] = [
     shortDescription: "A curious dreamer who stumbles into the supernatural",
     ageRange: "18-22",
     portraitGradient: GRADIENTS[0],
-  },
-  {
+  }),
+  seedCharacter("woman", { topId: "dress", bottomId: "skirt", hairId: "long-wavy", topColor: "#2A114B", hairColor: "#5340FF", skinTone: "#E8E8FF" }, {
     id: "char-griezel",
     name: "Griezel",
     creatorId: MOCK_CREATOR_ID,
@@ -242,8 +268,8 @@ export const INITIAL_CHARACTERS: StudioCharacter[] = [
     shortDescription: "A gentle spirit trapped between worlds",
     ageRange: "ageless",
     portraitGradient: GRADIENTS[1],
-  },
-  {
+  }),
+  seedCharacter("man", { accessoryId: "glasses", topColor: "#34D399", topId: "jacket" }, {
     id: "char-milo",
     name: "Milo",
     creatorId: MOCK_CREATOR_ID,
@@ -263,8 +289,8 @@ export const INITIAL_CHARACTERS: StudioCharacter[] = [
     shortDescription: "The best friend who always has a snack",
     ageRange: "20-24",
     portraitGradient: GRADIENTS[2],
-  },
-  {
+  }),
+  seedCharacter("woman", { hairColor: "#5340FF", topId: "blazer", hairId: "bob" }, {
     id: "char-luna",
     name: "Luna",
     creatorId: MOCK_CREATOR_ID,
@@ -284,8 +310,8 @@ export const INITIAL_CHARACTERS: StudioCharacter[] = [
     shortDescription: "An artist who paints her dreams into reality",
     ageRange: "22-26",
     portraitGradient: GRADIENTS[3],
-  },
-  {
+  }),
+  seedCharacter("man", { topId: "blazer", topColor: "#2A114B", accessoryId: "crown", faceId: "sharp" }, {
     id: "char-vex",
     name: "Vex",
     creatorId: MOCK_CREATOR_ID,
@@ -305,11 +331,11 @@ export const INITIAL_CHARACTERS: StudioCharacter[] = [
     shortDescription: "A masked trickster who trades in secrets",
     ageRange: "30+",
     portraitGradient: GRADIENTS[4],
-  },
+  }),
 ];
 
 export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
-  {
+  seedCharacter("woman", { hairColor: "#FF4FA3", hairId: "ponytail", topColor: "#5340FF" }, {
     id: "comm-sakura",
     name: "Sakura",
     creatorId: "creator-yuki",
@@ -329,8 +355,8 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     shortDescription: "A cheerful student who sees magic in everyday life",
     ageRange: "16-18",
     portraitGradient: "from-[#FF4FA3] via-[#F472B6] to-[#FBCFE8]",
-  },
-  {
+  }),
+  seedCharacter("man", { hairColor: "#22D3EE", hairId: "spiky", topId: "jacket", topColor: "#101828" }, {
     id: "comm-kai",
     name: "Kai",
     creatorId: "creator-neon",
@@ -350,8 +376,8 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     shortDescription: "A street racer from the neon district",
     ageRange: "19-23",
     portraitGradient: "from-[#22D3EE] via-[#5340FF] to-[#2A114B]",
-  },
-  {
+  }),
+  seedCharacter("woman", { hairColor: "#FFE033", hairId: "long-wavy", topId: "dress", accessoryId: "crown" }, {
     id: "comm-elara",
     name: "Elara",
     creatorId: "creator-myth",
@@ -371,8 +397,8 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     shortDescription: "An ancient mage who guides lost heroes",
     ageRange: "ageless",
     portraitGradient: "from-[#FFE033] via-[#E9D8FD] to-[#5340FF]",
-  },
-  {
+  }),
+  seedCharacter("woman", { topColor: "#FF6847", accessoryId: "scarf", faceId: "cute" }, {
     id: "comm-pip",
     name: "Pip",
     creatorId: "creator-toon",
@@ -392,8 +418,8 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     shortDescription: "A tiny winged companion who never stops talking",
     ageRange: "n/a",
     portraitGradient: "from-[#FF6847] via-[#FFE033] to-[#FF4FA3]",
-  },
-  {
+  }),
+  seedCharacter("woman", { hairColor: "#5340FF", topId: "dress", hairId: "long-wavy" }, {
     id: "comm-nova",
     name: "Nova",
     creatorId: "creator-star",
@@ -413,8 +439,8 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     shortDescription: "A girl who speaks in constellations",
     ageRange: "20-24",
     portraitGradient: "from-[#5340FF] via-[#7C3AED] to-[#22D3EE]",
-  },
-  {
+  }),
+  seedCharacter("man", { topId: "jacket", topColor: "#2A114B", accessoryId: "scarf", faceId: "sharp" }, {
     id: "comm-rex",
     name: "Rex",
     creatorId: "creator-action",
@@ -434,7 +460,7 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     shortDescription: "A rogue who fights for the underdog",
     ageRange: "25-30",
     portraitGradient: "from-[#FF6847] via-[#2A114B] to-[#101828]",
-  },
+  }),
 ];
 
 const activeEpisodeId = "ep-shadow-1";
@@ -526,6 +552,19 @@ export const INITIAL_STORIES: StudioStory[] = [
   },
 ];
 
+/** Built-in demo stories — excluded from the creator Stories list. */
+export const SEED_STORY_IDS = new Set(
+  INITIAL_STORIES.map((story) => story.id)
+);
+
+export function isSeedStory(storyId: string): boolean {
+  return SEED_STORY_IDS.has(storyId);
+}
+
+export function filterUserStories(stories: StudioStory[]): StudioStory[] {
+  return stories.filter((story) => !isSeedStory(story.id));
+}
+
 export const MOCK_ANALYTICS: CreatorAnalytics = {
   reads: 2847,
   likes: 196,
@@ -600,6 +639,6 @@ export function generatePanelsForEpisode(
         ]
       : [],
     order: i + 1,
-    status: "ready" as const,
+    status: "generating" as const,
   }));
 }

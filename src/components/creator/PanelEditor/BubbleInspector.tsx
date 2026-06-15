@@ -12,6 +12,9 @@ interface BubbleInspectorProps {
   bubble: StudioBubble | null;
   panel: StudioPanel | null;
   storyCharacters: StudioCharacter[];
+  panelActionLoading?: boolean;
+  onRegeneratePanel: () => void;
+  onAddPanel: () => void;
   onUpdateBubble: (patch: Partial<StudioBubble>) => void;
   onDeleteBubble: () => void;
   onAddBubble: (type: BubbleType) => void;
@@ -24,6 +27,9 @@ export default function BubbleInspector({
   bubble,
   panel,
   storyCharacters,
+  panelActionLoading,
+  onRegeneratePanel,
+  onAddPanel,
   onUpdateBubble,
   onDeleteBubble,
   onAddBubble,
@@ -191,9 +197,13 @@ export default function BubbleInspector({
             </label>
             <button
               type="button"
-              className="w-full rounded-xl bg-[#5340FF] py-2.5 text-xs font-bold text-white"
+              disabled={panelActionLoading || panel.status === "generating"}
+              onClick={onRegeneratePanel}
+              className="w-full rounded-xl bg-[#5340FF] py-2.5 text-xs font-bold text-white disabled:opacity-50"
             >
-              Regenerate panel ({formatCreditCost(STUDIO_CREDIT_COSTS.regeneratePanel)})
+              {panelActionLoading
+                ? "Generating…"
+                : `Regenerate panel (${formatCreditCost(STUDIO_CREDIT_COSTS.regeneratePanel)})`}
             </button>
             <button
               type="button"
@@ -228,14 +238,18 @@ export default function BubbleInspector({
 
         {tab === "ai" ? (
           <div className="space-y-2">
+            <button
+              type="button"
+              disabled={panelActionLoading}
+              onClick={onAddPanel}
+              className="w-full rounded-xl bg-[#FF6847] px-3 py-2.5 text-left text-xs font-bold text-white disabled:opacity-50"
+            >
+              {panelActionLoading ? "Generating…" : "+ Add next panel with AI"}
+            </button>
             {[
-              "Add more panels",
               "Rewrite dialogue",
               "Make scene more dramatic",
-              "Generate alternate ending",
               "Improve panel composition",
-              "Regenerate art only",
-              "Keep same characters",
             ].map((label) => (
               <button
                 key={label}

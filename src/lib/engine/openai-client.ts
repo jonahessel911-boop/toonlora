@@ -2,7 +2,7 @@
  * OpenAI client — story generation requires OPENAI_API_KEY in .env.local
  */
 
-import { persistComicArt } from "@/lib/services/comic-art-storage";
+import { persistComicArt, persistCharacterPortrait, persistStudioPanelArt } from "@/lib/services/comic-art-storage";
 
 export function hasOpenAIKey(): boolean {
   return Boolean(process.env.OPENAI_API_KEY?.trim());
@@ -30,7 +30,11 @@ function isGptImageModel(model: string): boolean {
   return model.startsWith("gpt-image");
 }
 
-function buildImageRequestBody(prompt: string, model: string): Record<string, unknown> {
+function buildImageRequestBody(
+  prompt: string,
+  model: string,
+  options?: { transparent?: boolean }
+): Record<string, unknown> {
   if (isGptImageModel(model)) {
     return {
       model,
@@ -38,6 +42,7 @@ function buildImageRequestBody(prompt: string, model: string): Record<string, un
       size: "1024x1536",
       quality: "high",
       output_format: "png",
+      ...(options?.transparent && { background: "transparent" }),
       n: 1,
     };
   }
@@ -76,7 +81,8 @@ function isUnknownImageModelError(errText: string): boolean {
 
 async function requestOpenAIImage(
   prompt: string,
-  model: string
+  model: string,
+  options?: { transparent?: boolean }
 ): Promise<{ b64?: string; url?: string }> {
   const response = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
@@ -84,7 +90,7 @@ async function requestOpenAIImage(
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(buildImageRequestBody(prompt, model)),
+    body: JSON.stringify(buildImageRequestBody(prompt, model, options)),
   });
 
   if (!response.ok) {
@@ -193,4 +199,75 @@ export async function callOpenAIImage(
   }
 
   throw new Error(`OpenAI image generation failed: ${lastError}`);
+}
+
+export async function callOpenAICharacterPortrait(
+  prompt: string,
+  characterId: string,
+  model = getOpenAIImageModel()
+): Promise<string> {
+  requireOpenAIKey();
+
+  let lastError = "OpenAI character portrait generation failed";
+  const models = imageModelsToTry(model);
+
+  for (const candidate of models) {
+    try {
+      const transparent = isGptImageModel(candidate);
+      const { b64, url } = await requestOpenAIImage(prompt, candidate, {
+        transparent,
+      });
+      if (!b64 && !url) {
+        lastError = "OpenAI image generation returned no image data";
+        continue;
+      }
+      return persistCharacterPortrait(
+        b64 ? `data:image/png;base64,${b64}` : url!,
+        characterId
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      lastError = message;
+      if (!isUnknownImageModelError(message)) {
+        throw new Error(`OpenAI character portrait failed: ${message}`);
+      }
+    }
+  }
+
+  throw new Error(`OpenAI character portrait failed: ${lastError}`);
+}
+
+export async function callOpenAIStudioPanel(
+  prompt: string,
+  storyId: string,
+  panelId: string,
+  model = getOpenAIImageModel()
+): Promise<string> {
+  requireOpenAIKey();
+
+  let lastError = "OpenAI studio panel generation failed";
+  const models = imageModelsToTry(model);
+
+  for (const candidate of models) {
+    try {
+      const { b64, url } = await requestOpenAIImage(prompt, candidate);
+      if (!b64 && !url) {
+        lastError = "OpenAI image generation returned no image data";
+        continue;
+      }
+      return persistStudioPanelArt(
+        b64 ? `data:image/png;base64,${b64}` : url!,
+        storyId,
+        panelId
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      lastError = message;
+      if (!isUnknownImageModelError(message)) {
+        throw new Error(`OpenAI studio panel failed: ${message}`);
+      }
+    }
+  }
+
+  throw new Error(`OpenAI studio panel failed: ${lastError}`);
 }
