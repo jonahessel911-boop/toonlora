@@ -43,7 +43,7 @@ export default function ToonloraLogo({
         width={480}
         height={144}
         priority
-        className={`h-[34px] w-[108px] object-contain object-left sm:h-[38px] sm:w-[120px] md:h-[42px] md:w-[136px] ${className}`}
+        className={`h-11 w-auto max-w-[148px] object-contain object-left sm:h-12 sm:max-w-[168px] md:h-14 md:max-w-[196px] ${className}`}
       />
     );
   }

@@ -129,7 +129,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-white/95 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between gap-3 px-4 md:px-6">
+      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-3 px-4 md:px-6">
         <Link href="/" className="flex shrink-0 items-center">
           <ToonloraLogo variant="nav" />
         </Link>

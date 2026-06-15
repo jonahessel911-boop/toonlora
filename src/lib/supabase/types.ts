@@ -166,6 +166,36 @@ export interface Database {
           method?: string;
         };
       };
+      episode_comments: {
+        Row: {
+          id: string;
+          series_id: string;
+          episode_number: number;
+          profile_id: string | null;
+          session_id: string | null;
+          author_name: string;
+          author_email: string | null;
+          body: string;
+          likes: number;
+          dislikes: number;
+          is_spoiler: boolean;
+          created_at: string;
+        };
+        Insert: {
+          series_id: string;
+          episode_number?: number;
+          profile_id?: string | null;
+          session_id?: string | null;
+          author_name: string;
+          author_email?: string | null;
+          body: string;
+          is_spoiler?: boolean;
+        };
+        Update: {
+          likes?: number;
+          dislikes?: number;
+        };
+      };
     };
   };
 }
@@ -179,3 +209,5 @@ export type ReadingProgressRow =
 export type PlatformSessionRow =
   Database["public"]["Tables"]["platform_sessions"]["Row"];
 export type LoginEventRow = Database["public"]["Tables"]["login_events"]["Row"];
+export type EpisodeCommentRow =
+  Database["public"]["Tables"]["episode_comments"]["Row"];

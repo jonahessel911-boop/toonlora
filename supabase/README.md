@@ -15,6 +15,7 @@ Run all migration files in order:
 supabase/migrations/001_initial_schema.sql
 supabase/migrations/002_profiles.sql
 supabase/migrations/003_analytics.sql
+supabase/migrations/004_episode_comments.sql
 ```
 
 This creates:
@@ -28,6 +29,7 @@ This creates:
 | `reading_progress` | Panel progress + episode completion |
 | `platform_sessions` | Time on platform per visit |
 | `login_events` | Login timestamps for retention metrics |
+| `episode_comments` | User comments per episode |
 
 ## 3. Configure env
 

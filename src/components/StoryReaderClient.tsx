@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import FlipBookReader from "@/components/FlipBookReader";
 import WebtoonReader from "@/components/WebtoonReader";
+import EpisodeReadLayout from "@/components/reader/EpisodeReadLayout";
+import EpisodeCommentsSection from "@/components/comments/EpisodeCommentsSection";
 import GenerationLoading from "@/components/create/GenerationLoading";
 import {
   getCatalogSeries,
+  storyToSeriesDetail,
+  type SeriesDetail,
 } from "@/lib/seriesCatalog";
 import {
   buildMockReaderPanels,
@@ -27,6 +32,12 @@ export default function StoryReaderClient({
   id,
   isPublic = false,
 }: StoryReaderClientProps) {
+  const searchParams = useSearchParams();
+  const episodeFromUrl = Math.max(
+    1,
+    Number(searchParams.get("ep") ?? 1) || 1
+  );
+
   const { hydrate, getStoryById, fetchStoryById, addStory, hydrated } =
     useStoryStore();
   const { canGenerate, consumeGeneration, credits, hydrate: hydrateCredits } =
@@ -118,6 +129,16 @@ export default function StoryReaderClient({
     }
   };
 
+  const wrapWithComments = (
+    reader: React.ReactNode,
+    series: SeriesDetail,
+    episodeNumber: number
+  ) => (
+    <EpisodeReadLayout series={series} episodeNumber={episodeNumber}>
+      {reader}
+    </EpisodeReadLayout>
+  );
+
   if (!hydrated) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center bg-[#FCFAFF]">
@@ -137,17 +158,24 @@ export default function StoryReaderClient({
   const catalog = getCatalogSeries(id);
 
   if (!story && catalog) {
-    return (
+    const ep =
+      catalog.episodes.find((e) => e.number === episodeFromUrl) ??
+      catalog.episodes.find((e) => e.number === 1) ??
+      catalog.episodes[0];
+
+    return wrapWithComments(
       <WebtoonReader
         seriesId={id}
         seriesTitle={catalog.title}
-        episodeNumber={1}
-        episodeTitle="Episode 1"
+        episodeNumber={ep?.number ?? 1}
+        episodeTitle={ep?.title ?? "Episode 1"}
         panels={buildMockReaderPanels(catalog)}
         showControls={!isPublic}
         onShare={handleShare}
         isCatalog
-      />
+      />,
+      catalog,
+      ep?.number ?? 1
     );
   }
 
@@ -164,10 +192,13 @@ export default function StoryReaderClient({
     );
   }
 
-  const episode = story.episodes?.[0];
+  const seriesDetail = storyToSeriesDetail(story);
+  const episode =
+    story.episodes?.find((e) => e.episodeNumber === episodeFromUrl) ??
+    story.episodes?.[0];
 
   if (episode) {
-    return (
+    return wrapWithComments(
       <WebtoonReader
         seriesId={id}
         seriesTitle={story.title}
@@ -180,18 +211,23 @@ export default function StoryReaderClient({
           !isPublic && story.continuityMemory ? handleNextEpisode : undefined
         }
         credits={credits}
-      />
+      />,
+      seriesDetail,
+      episode.episodeNumber
     );
   }
 
   return (
-    <div className="bg-white">
-      <FlipBookReader
-        pages={story.pages}
-        showShare={!isPublic}
-        showLibraryLink={!isPublic}
-        onShare={handleShare}
-      />
+    <div>
+      <div className="bg-white">
+        <FlipBookReader
+          pages={story.pages}
+          showShare={!isPublic}
+          showLibraryLink={!isPublic}
+          onShare={handleShare}
+        />
+      </div>
+      <EpisodeCommentsSection series={seriesDetail} episodeNumber={1} />
     </div>
   );
 }
