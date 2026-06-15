@@ -322,6 +322,13 @@ function MobileDrawer({
                       ⚙️ Settings & profile
                     </Link>
                     <Link
+                      href="/creator"
+                      onClick={onClose}
+                      className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
+                    >
+                      🎨 Toonlora Studio
+                    </Link>
+                    <Link
                       href="/create"
                       onClick={onClose}
                       className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"

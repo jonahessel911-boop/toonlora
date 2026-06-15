@@ -2,9 +2,7 @@
 
 import { useEffect } from "react";
 import BrowseByGenre from "@/components/home/BrowseByGenre";
-import BrowseHero from "@/components/home/BrowseHero";
 import ContinueReadingSection from "@/components/home/ContinueReadingSection";
-import CreatorCTACard from "@/components/home/CreatorCTACard";
 import HomeSection from "@/components/home/HomeSection";
 import StoryRail from "@/components/home/StoryRail";
 import { prioritizeCoverArt } from "@/components/home/StoryCard";
@@ -88,8 +86,7 @@ export default function BrowseHome() {
   }
 
   return (
-    <div className="bg-[#FCFAFF] pb-16">
-      {!loggedIn ? <BrowseHero /> : null}
+    <div className="bg-[#FCFAFF] pb-16 pt-6 md:pt-8">
       {loggedIn ? <ContinueReadingSection /> : null}
 
       {featuredStories.length > 0 || loadingFeatured ? (
@@ -137,14 +134,6 @@ export default function BrowseHome() {
         >
           <StoryRail stories={community} size="standard" />
         </HomeSection>
-      ) : null}
-
-      {!loggedIn ? (
-        <div className="bg-white py-12 md:py-[72px]">
-          <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
-            <CreatorCTACard embedded />
-          </div>
-        </div>
       ) : null}
     </div>
   );

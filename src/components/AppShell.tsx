@@ -17,7 +17,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isMinimal = MINIMAL_ROUTES.some((route) => pathname.startsWith(route));
   const isReader = isReaderRoute(pathname);
   const isCreate = pathname.startsWith("/create");
-  const hideNav = isAuth || isMinimal || isReader;
+  const isCreator = pathname.startsWith("/creator");
+  const hideNav = isAuth || isMinimal || isReader || isCreator;
 
   return (
     <AnalyticsProvider>
