@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AdminReportingMetrics } from "@/lib/services/analytics-repository";
 import AdminComicsPanel from "@/components/admin/AdminComicsPanel";
+import AdminEngagementCharts from "@/components/admin/AdminEngagementCharts";
 
 function MetricTile({
   label,
@@ -31,29 +32,6 @@ function MetricTile({
           </p>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function MetricCard({
-  metric,
-  value,
-  rate,
-  notes,
-}: {
-  metric: string;
-  value: string;
-  rate: string;
-  notes: string;
-}) {
-  return (
-    <div className="border border-[#EDEBE9] bg-white p-3 sm:hidden">
-      <p className="text-xs font-semibold text-[#323130]">{metric}</p>
-      <div className="mt-2 flex items-baseline justify-between gap-2">
-        <span className="text-lg font-semibold text-[#323130]">{value}</span>
-        <span className="text-sm font-semibold text-[#0078D4]">{rate}</span>
-      </div>
-      <p className="mt-1 text-[11px] text-[#605E5C]">{notes}</p>
     </div>
   );
 }
@@ -88,52 +66,9 @@ export default function AdminDashboard() {
     void loadMetrics();
   }, [loadMetrics]);
 
-  const rows = metrics
-    ? [
-        {
-          metric: "Total registered users",
-          value: metrics.totalUsers.toLocaleString(),
-          rate: "—",
-          notes: "Profiles in Supabase",
-        },
-        {
-          metric: "Total unique visitors",
-          value: metrics.totalVisitors.toLocaleString(),
-          rate: "—",
-          notes: "Sessions with platform activity",
-        },
-        {
-          metric: "Finished episode 1 (10 pages)",
-          value: metrics.episodeCompletedCount.toLocaleString(),
-          rate: `${metrics.episodeCompletionRate}%`,
-          notes: `${metrics.readersCount} users opened a story`,
-        },
-        {
-          metric: "No story interaction",
-          value: metrics.noStoryInteractionCount.toLocaleString(),
-          rate: `${metrics.noStoryInteractionRate}%`,
-          notes: "Visited platform, never opened a reader",
-        },
-        {
-          metric: "Reached first 3 pages",
-          value: metrics.firstThreePagesCount.toLocaleString(),
-          rate: `${metrics.firstThreePagesRate}%`,
-          notes: "Of users who opened a story",
-        },
-        {
-          metric: "Re-sign rate (2+ logins in week 1)",
-          value: metrics.resignCount.toLocaleString(),
-          rate: `${metrics.resignRate}%`,
-          notes: `${metrics.signupCount} total signups`,
-        },
-        {
-          metric: "Average time on platform",
-          value: metrics.avgTimeOnPlatformFormatted,
-          rate: `${metrics.avgTimeOnPlatformSeconds}s`,
-          notes: "Per platform session",
-        },
-      ]
-    : [];
+  const readerRate = metrics?.totalVisitors
+    ? Math.round((metrics.readersCount / metrics.totalVisitors) * 1000) / 10
+    : 0;
 
   return (
     <div
@@ -259,154 +194,31 @@ export default function AdminDashboard() {
               <>
                 <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
                   <MetricTile
-                    label="Registered users"
-                    value={metrics.totalUsers.toLocaleString()}
-                    sub="Total accounts created"
+                    label="Visitors"
+                    value={metrics.totalVisitors.toLocaleString()}
+                    sub={`${metrics.totalUsers} registered`}
                   />
                   <MetricTile
-                    label="Episode 1 completion"
-                    value={`${metrics.episodeCompletionRate}%`}
-                    sub={`${metrics.episodeCompletedCount} finished all 10 pages`}
-                    accent="#107C10"
-                  />
-                  <MetricTile
-                    label="Re-sign rate"
-                    value={`${metrics.resignRate}%`}
-                    sub={`${metrics.resignCount} users logged in 2+ times in week 1`}
+                    label="Story readers"
+                    value={metrics.readersCount.toLocaleString()}
+                    sub={`${readerRate}% of visitors`}
                     accent="#8764B8"
                   />
                   <MetricTile
-                    label="Avg. time on platform"
+                    label="Episode 1 finished"
+                    value={metrics.episodeCompletedCount.toLocaleString()}
+                    sub={`${metrics.firstThreePagesCount} reached page 3+`}
+                    accent="#107C10"
+                  />
+                  <MetricTile
+                    label="Avg. session time"
                     value={metrics.avgTimeOnPlatformFormatted}
-                    sub={`${metrics.avgTimeOnPlatformSeconds}s per session`}
+                    sub={`${metrics.resignRate}% week-1 re-sign`}
                     accent="#CA5010"
                   />
                 </div>
 
-                <section className="border border-[#EDEBE9] bg-white shadow-[0_1.6px_3.6px_rgba(0,0,0,0.13)]">
-                  <div className="border-b border-[#EDEBE9] px-3 py-2.5 sm:px-4 sm:py-3">
-                    <h2 className="text-sm font-semibold text-[#323130]">
-                      Detailed metrics
-                    </h2>
-                  </div>
-
-                  <div className="divide-y divide-[#EDEBE9] sm:hidden">
-                    {rows.map((row) => (
-                      <MetricCard key={row.metric} {...row} />
-                    ))}
-                  </div>
-
-                  <div className="hidden overflow-x-auto sm:block">
-                    <table className="min-w-full text-left text-sm">
-                      <thead className="bg-[#FAF9F8] text-xs uppercase tracking-wide text-[#605E5C]">
-                        <tr>
-                          <th className="border-b border-[#EDEBE9] px-4 py-2 font-semibold">
-                            Metric
-                          </th>
-                          <th className="border-b border-[#EDEBE9] px-4 py-2 font-semibold">
-                            Count / Value
-                          </th>
-                          <th className="border-b border-[#EDEBE9] px-4 py-2 font-semibold">
-                            Rate
-                          </th>
-                          <th className="border-b border-[#EDEBE9] px-4 py-2 font-semibold">
-                            Notes
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((row, i) => (
-                          <tr
-                            key={row.metric}
-                            className={i % 2 === 0 ? "bg-white" : "bg-[#FAF9F8]"}
-                          >
-                            <td className="border-b border-[#EDEBE9] px-4 py-3 font-medium text-[#323130]">
-                              {row.metric}
-                            </td>
-                            <td className="border-b border-[#EDEBE9] px-4 py-3 text-[#323130]">
-                              {row.value}
-                            </td>
-                            <td className="border-b border-[#EDEBE9] px-4 py-3 font-semibold text-[#0078D4]">
-                              {row.rate}
-                            </td>
-                            <td className="border-b border-[#EDEBE9] px-4 py-3 text-[#605E5C]">
-                              {row.notes}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-
-                <section className="grid gap-3 md:grid-cols-2">
-                  <div className="border border-[#EDEBE9] bg-white p-3 shadow-[0_1.6px_3.6px_rgba(0,0,0,0.13)] sm:p-4">
-                    <h3 className="text-sm font-semibold text-[#323130]">
-                      Reading funnel
-                    </h3>
-                    <ul className="mt-3 space-y-2 text-sm">
-                      <li className="flex justify-between gap-2 border-b border-[#EDEBE9] pb-2">
-                        <span>Visitors</span>
-                        <span className="shrink-0 font-semibold">
-                          {metrics.totalVisitors.toLocaleString()}
-                        </span>
-                      </li>
-                      <li className="flex justify-between gap-2 border-b border-[#EDEBE9] pb-2">
-                        <span>Opened a story</span>
-                        <span className="shrink-0 text-right font-semibold text-[#0078D4]">
-                          {metrics.readersCount.toLocaleString()} (
-                          {metrics.totalVisitors
-                            ? Math.round(
-                                (metrics.readersCount / metrics.totalVisitors) * 1000
-                              ) / 10
-                            : 0}
-                          %)
-                        </span>
-                      </li>
-                      <li className="flex justify-between gap-2 border-b border-[#EDEBE9] pb-2">
-                        <span>Reached page 3+</span>
-                        <span className="shrink-0 font-semibold text-[#8764B8]">
-                          {metrics.firstThreePagesCount.toLocaleString()} (
-                          {metrics.firstThreePagesRate}%)
-                        </span>
-                      </li>
-                      <li className="flex justify-between gap-2">
-                        <span>Finished 10 pages</span>
-                        <span className="shrink-0 font-semibold text-[#107C10]">
-                          {metrics.episodeCompletedCount.toLocaleString()} (
-                          {metrics.episodeCompletionRate}%)
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="border border-[#EDEBE9] bg-white p-3 shadow-[0_1.6px_3.6px_rgba(0,0,0,0.13)] sm:p-4">
-                    <h3 className="text-sm font-semibold text-[#323130]">
-                      Retention (week 1)
-                    </h3>
-                    <p className="mt-2 text-xs text-[#605E5C] sm:text-sm">
-                      Re-sign rate measures signups who logged in at least{" "}
-                      <strong className="text-[#323130]">2 times</strong> during their
-                      first 7 days after registration.
-                    </p>
-                    <div className="mt-4">
-                      <div className="flex items-end justify-between gap-2">
-                        <span className="text-2xl font-semibold text-[#323130] sm:text-3xl">
-                          {metrics.resignRate}%
-                        </span>
-                        <span className="text-[11px] text-[#605E5C] sm:text-xs">
-                          {metrics.resignCount} / {metrics.signupCount} signups
-                        </span>
-                      </div>
-                      <div className="mt-2 h-2 overflow-hidden bg-[#EDEBE9]">
-                        <div
-                          className="h-full bg-[#0078D4] transition-all"
-                          style={{ width: `${Math.min(metrics.resignRate, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </section>
+                <AdminEngagementCharts metrics={metrics} />
               </>
             ) : null}
               </>

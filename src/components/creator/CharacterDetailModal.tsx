@@ -17,6 +17,7 @@ interface CharacterDetailModalProps {
   stories: StudioStory[];
   open: boolean;
   onClose: () => void;
+  onEdit: (characterId: string) => void;
   onUseInStory: (characterId: string) => void;
   onDelete: (characterId: string) => void;
   onOpenStory: (storyId: string) => void;
@@ -27,6 +28,7 @@ export default function CharacterDetailModal({
   stories,
   open,
   onClose,
+  onEdit,
   onUseInStory,
   onDelete,
   onOpenStory,
@@ -123,14 +125,6 @@ export default function CharacterDetailModal({
                     </div>
                   )}
 
-                  <div className="rounded-2xl border border-[#E7D8FF] bg-white p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#667085]">
-                      Character ID
-                    </p>
-                    <p className="mt-1 break-all font-mono text-xs text-[#2A114B]">
-                      {ch.id}
-                    </p>
-                  </div>
                 </div>
 
                 <div className="space-y-5">
@@ -155,29 +149,29 @@ export default function CharacterDetailModal({
                     </span>
                   </div>
 
-                  <div>
+                  <div className="rounded-2xl border border-[#E7D8FF] bg-white p-4">
                     <p className="text-xs font-bold text-[#2A114B]">
-                      Short description
+                      Personality
                     </p>
-                    <p className="mt-1 text-sm text-[#667085]">
-                      {ch.shortDescription}
+                    <p className="mt-2 text-sm leading-relaxed text-[#2A114B]">
+                      {ch.personality || "—"}
                     </p>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-xs font-bold text-[#2A114B]">
-                        Personality
-                      </p>
-                      <p className="mt-1 text-sm text-[#667085]">
-                        {ch.personality}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-[#2A114B]">
                         Age range
                       </p>
                       <p className="mt-1 text-sm text-[#667085]">{ch.ageRange}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#2A114B]">
+                        Short description
+                      </p>
+                      <p className="mt-1 text-sm text-[#667085]">
+                        {ch.shortDescription || "—"}
+                      </p>
                     </div>
                   </div>
 
@@ -193,18 +187,6 @@ export default function CharacterDetailModal({
                   <div>
                     <p className="text-xs font-bold text-[#2A114B]">Outfit</p>
                     <p className="mt-1 text-sm text-[#667085]">{ch.outfit}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-[#2A114B]">
-                      AI consistency prompt
-                    </p>
-                    <textarea
-                      readOnly
-                      rows={5}
-                      value={ch.consistencyPrompt}
-                      className="mt-1 w-full rounded-2xl border border-[#E7D8FF] bg-white px-3 py-2 font-mono text-xs leading-relaxed text-[#2A114B]"
-                    />
                   </div>
 
                   <div>
@@ -307,13 +289,23 @@ export default function CharacterDetailModal({
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
                     className="rounded-2xl border border-[#FECACA] px-4 py-3 text-sm font-bold text-[#A4262C]"
                   >
                     Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onEdit(ch.id);
+                      handleClose();
+                    }}
+                    className="rounded-2xl border border-[#E7D8FF] px-4 py-3 text-sm font-bold text-[#5340FF]"
+                  >
+                    Edit
                   </button>
                   <button
                     type="button"

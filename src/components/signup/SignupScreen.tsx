@@ -149,18 +149,32 @@ export function SignupStepIndicator({ step = 1, total = 2 }: SignupStepProps) {
 
 export function SignupInput({
   label,
+  labelClassName,
+  tone = "light",
+  className,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & { label?: string }) {
+}: InputHTMLAttributes<HTMLInputElement> & {
+  label?: string;
+  labelClassName?: string;
+  tone?: "light" | "dark";
+}) {
+  const inputClass =
+    tone === "dark"
+      ? "w-full rounded-2xl border-2 border-[#5340FF]/30 bg-[#1a1040] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#5340FF] focus:bg-[#1a1040] focus:ring-4 focus:ring-[#5340FF]/20"
+      : "w-full rounded-2xl border-2 border-[#E7D8FF] bg-white px-4 py-3.5 text-sm text-[#101828] outline-none transition placeholder:text-[#667085]/60 focus:border-[#5340FF] focus:bg-[#FCFAFF] focus:ring-4 focus:ring-[#5340FF]/10";
+
   return (
     <div>
       {label && (
-        <label className="mb-1.5 block px-1 text-xs font-bold text-[#667085]">
+        <label
+          className={`mb-1.5 block px-1 text-xs font-bold text-[#667085] ${labelClassName ?? ""}`}
+        >
           {label}
         </label>
       )}
       <input
         {...props}
-        className={`w-full rounded-2xl border-2 border-[#E7D8FF] bg-white px-4 py-3.5 text-sm text-[#101828] outline-none transition placeholder:text-[#667085]/60 focus:border-[#5340FF] focus:bg-[#FCFAFF] focus:ring-4 focus:ring-[#5340FF]/10 ${props.className ?? ""}`}
+        className={`${inputClass} ${className ?? ""}`}
       />
     </div>
   );

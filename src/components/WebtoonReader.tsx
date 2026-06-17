@@ -1,13 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import SignupWall from "@/components/lp/SignupWall";
 import EpisodeCompleteCard from "@/components/reader/EpisodeCompleteCard";
 import PanelBlock from "@/components/reader/PanelBlock";
 import ReaderBackButton from "@/components/reader/ReaderBackButton";
 import { trackReadingProgress } from "@/components/analytics/AnalyticsProvider";
+import {
+  buildPaywallPath,
+  buildReaderSignupPath,
+} from "@/lib/reader/nextEpisodeGate";
 import { saveReadingProgress } from "@/lib/readingHistory";
 import { useUserStore } from "@/store/useUserStore";
+import { useSubscriptionStore } from "@/store/useSubscriptionStore";
 import type { ReaderPanelData } from "@/lib/readerPanels";
 
 interface WebtoonReaderProps {
@@ -20,7 +24,12 @@ interface WebtoonReaderProps {
   coverGradient?: string;
   coverArtUrl?: string;
   creatorDisplayName?: string;
-  episodes?: Array<{ number: number; title: string; coverGradient: string }>;
+  episodes?: Array<{
+    number: number;
+    title: string;
+    coverGradient: string;
+    coverArtUrl?: string;
+  }>;
   showControls?: boolean;
   onShare?: () => void;
   onGenerateNext?: () => void;
@@ -46,30 +55,88 @@ export default function WebtoonReader({
   credits = 7,
   generating = false,
   isCatalog = false,
+  episodes,
 }: WebtoonReaderProps) {
   const [maxPanelIndex, setMaxPanelIndex] = useState(0);
-  const [signupOpen, setSignupOpen] = useState(false);
-  const [signupShown, setSignupShown] = useState(false);
   const [showEndCard, setShowEndCard] = useState(false);
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const lastPanelRef = useRef<HTMLElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const { email } = useUserStore();
+  const { isSubscriber, hydrate: hydrateSubscription } = useSubscriptionStore();
   const loggedIn = Boolean(email);
+  const hasVipAccess = isSubscriber();
+  const needsSignup = isCatalog && !loggedIn;
+  const needsSubscription = isCatalog && loggedIn && !hasVipAccess;
+  const gatedNextEpisode = needsSignup || needsSubscription;
+  const returnPath = `/story/${seriesId}/read${episodeNumber > 1 ? `?ep=${episodeNumber}` : ""}`;
   const total = panels.length;
-  const shouldPromptSignup = isCatalog && !loggedIn;
 
-  const stripUrl = panels.find((p) => p.imageUrl)?.imageUrl;
+  const nextEpisodeFromList = episodes?.find((e) => e.number === episodeNumber + 1);
+  const panelCoverUrl = panels.find((p) => p.imageUrl)?.imageUrl;
+  const nextEpisode =
+    nextEpisodeFromList ??
+    (gatedNextEpisode
+      ? {
+          number: episodeNumber + 1,
+          title: `Episode ${episodeNumber + 1}`,
+          coverGradient,
+          coverArtUrl:
+            episodes?.[0]?.coverArtUrl ?? coverArtUrl ?? panelCoverUrl,
+        }
+      : undefined);
 
-  const openSignupIfNeeded = useCallback(() => {
-    if (shouldPromptSignup && !signupShown) {
-      setSignupOpen(true);
-      setSignupShown(true);
-      return true;
+  const stripUrl = panelCoverUrl;
+
+  const handleStartNextEpisode = useCallback(() => {
+    if (needsSignup) {
+      window.location.href = buildReaderSignupPath(
+        seriesId,
+        seriesTitle,
+        episodeNumber
+      );
+      return;
     }
-    if (showControls && !shouldPromptSignup) setShowEndCard(true);
-    return false;
-  }, [shouldPromptSignup, showControls, signupShown]);
+    if (needsSubscription) {
+      window.location.href = buildPaywallPath(
+        seriesId,
+        episodeNumber + 1,
+        seriesTitle
+      );
+      return;
+    }
+    if (nextEpisodeFromList) {
+      const href = `/story/${seriesId}/read${nextEpisodeFromList.number > 1 ? `?ep=${nextEpisodeFromList.number}` : ""}`;
+      window.location.href = href;
+    }
+  }, [
+    needsSignup,
+    needsSubscription,
+    nextEpisodeFromList,
+    seriesId,
+    seriesTitle,
+    episodeNumber,
+  ]);
+
+  useEffect(() => {
+    void hydrateSubscription();
+  }, [hydrateSubscription]);
+
+  useEffect(() => {
+    if (episodeNumber > 1 && needsSignup) {
+      window.location.replace(
+        buildReaderSignupPath(seriesId, seriesTitle, episodeNumber - 1)
+      );
+    }
+  }, [episodeNumber, needsSignup, seriesId, seriesTitle]);
+
+  useEffect(() => {
+    if (episodeNumber > 1 && needsSubscription) {
+      window.location.replace(
+        buildPaywallPath(seriesId, episodeNumber, seriesTitle)
+      );
+    }
+  }, [episodeNumber, needsSubscription, seriesId, seriesTitle]);
 
   useEffect(() => {
     if (stripUrl) return;
@@ -125,7 +192,7 @@ export default function WebtoonReader({
       coverGradient,
       creatorDisplayName,
       episodeNumber,
-      href: `/story/${seriesId}/read${episodeNumber > 1 ? `?ep=${episodeNumber}` : ""}`,
+      href: returnPath,
     });
   }, [
     seriesId,
@@ -135,30 +202,14 @@ export default function WebtoonReader({
     coverGradient,
     creatorDisplayName,
     episodeNumber,
+    returnPath,
   ]);
 
   useEffect(() => {
-    const el = lastPanelRef.current;
-    if (!el || !shouldPromptSignup || signupShown) return;
-
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.4) {
-          timer = setTimeout(() => {
-            setSignupOpen(true);
-            setSignupShown(true);
-          }, 600);
-        }
-      },
-      { threshold: 0.4 }
-    );
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-      if (timer) clearTimeout(timer);
-    };
-  }, [shouldPromptSignup, signupShown, panels.length, stripUrl]);
+    if (maxPanelIndex >= total - 1 && showControls) {
+      setShowEndCard(true);
+    }
+  }, [maxPanelIndex, total, showControls]);
 
   useEffect(() => {
     trackReadingProgress({
@@ -170,11 +221,10 @@ export default function WebtoonReader({
   }, [seriesId, episodeNumber, maxPanelIndex, total]);
 
   const handleNextEpisode = () => {
-    if (isCatalog) {
-      setSignupOpen(true);
-      return;
+    handleStartNextEpisode();
+    if (!needsSignup && !needsSubscription) {
+      onGenerateNext?.();
     }
-    onGenerateNext?.();
   };
 
   const setPanelRef = (index: number, el: HTMLElement | null) => {
@@ -219,15 +269,21 @@ export default function WebtoonReader({
           )}
         </div>
 
-        {showEndCard && !shouldPromptSignup && showControls && (
+        {showEndCard && showControls && (
           <EpisodeCompleteCard
             seriesTitle={seriesTitle}
             episodeNumber={episodeNumber}
             isCatalog={isCatalog}
+            genre={genre}
+            nextEpisode={nextEpisode}
+            requiresSignup={needsSignup}
+            requiresSubscription={needsSubscription}
             credits={credits}
             generating={generating}
             onShare={onShare}
             onNextEpisode={onGenerateNext ? handleNextEpisode : undefined}
+            onStartNextEpisode={handleStartNextEpisode}
+            onContinueReading={handleStartNextEpisode}
             onCreateInspired={
               onCreateInspired ??
               (!isCatalog ? () => { window.location.href = "/create"; } : undefined)
@@ -235,7 +291,7 @@ export default function WebtoonReader({
           />
         )}
 
-        {!showEndCard && maxPanelIndex >= total - 1 && showControls && !shouldPromptSignup && (
+        {!showEndCard && maxPanelIndex >= total - 1 && showControls && (
           <button
             type="button"
             onClick={() => setShowEndCard(true)}
@@ -244,23 +300,7 @@ export default function WebtoonReader({
             Episode complete — see what&apos;s next
           </button>
         )}
-
-        {!showEndCard && maxPanelIndex >= total - 1 && shouldPromptSignup && (
-          <button
-            type="button"
-            onClick={() => openSignupIfNeeded()}
-            className="w-full bg-[#12081F] px-4 py-8 text-center text-sm font-semibold text-white/90"
-          >
-            Continue reading — create a free account
-          </button>
-        )}
       </main>
-
-      <SignupWall
-        storyName={seriesTitle}
-        open={signupOpen}
-        onClose={() => setSignupOpen(false)}
-      />
     </div>
   );
 }

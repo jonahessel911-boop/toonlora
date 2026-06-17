@@ -6,6 +6,10 @@ export interface Database {
           session_id: string;
           credits: number;
           free_used: boolean;
+          subscription_status: string | null;
+          subscription_plan_id: string | null;
+          subscription_stripe_id: string | null;
+          subscription_period_end: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -13,10 +17,18 @@ export interface Database {
           session_id: string;
           credits?: number;
           free_used?: boolean;
+          subscription_status?: string | null;
+          subscription_plan_id?: string | null;
+          subscription_stripe_id?: string | null;
+          subscription_period_end?: string | null;
         };
         Update: {
           credits?: number;
           free_used?: boolean;
+          subscription_status?: string | null;
+          subscription_plan_id?: string | null;
+          subscription_stripe_id?: string | null;
+          subscription_period_end?: string | null;
         };
       };
       series: {

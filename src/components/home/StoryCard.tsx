@@ -18,11 +18,11 @@ interface StoryCardProps {
 
 const SIZE_WIDTH: Record<StoryCardSize, string> = {
   featured:
-    "w-[148px] min-w-[148px] max-w-[148px] sm:w-[172px] sm:min-w-[172px] sm:max-w-[172px] md:w-[200px] md:min-w-[200px] md:max-w-[200px]",
+    "w-[180px] min-w-[180px] max-w-[180px] sm:w-[196px] sm:min-w-[196px] sm:max-w-[196px] md:w-[220px] md:min-w-[220px] md:max-w-[220px] lg:w-[236px] lg:min-w-[236px] lg:max-w-[236px] xl:w-[252px] xl:min-w-[252px] xl:max-w-[252px] 2xl:w-[268px] 2xl:min-w-[268px] 2xl:max-w-[268px]",
   standard:
-    "w-[132px] min-w-[132px] max-w-[132px] sm:w-[156px] sm:min-w-[156px] sm:max-w-[156px]",
+    "w-[168px] min-w-[168px] max-w-[168px] sm:w-[176px] sm:min-w-[176px] sm:max-w-[176px] lg:w-[192px] lg:min-w-[192px] lg:max-w-[192px] xl:w-[204px] xl:min-w-[204px] xl:max-w-[204px] 2xl:w-[216px] 2xl:min-w-[216px] 2xl:max-w-[216px]",
   ranked:
-    "w-[132px] min-w-[132px] max-w-[132px] sm:w-[156px] sm:min-w-[156px] sm:max-w-[156px]",
+    "w-[168px] min-w-[168px] max-w-[168px] sm:w-[176px] sm:min-w-[176px] sm:max-w-[176px] lg:w-[192px] lg:min-w-[192px] lg:max-w-[192px] xl:w-[204px] xl:min-w-[204px] xl:max-w-[204px] 2xl:w-[216px] 2xl:min-w-[216px] 2xl:max-w-[216px]",
 };
 
 export default function StoryCard({
@@ -43,12 +43,12 @@ export default function StoryCard({
 
   return (
     <article
-      className={`group snap-start ${
+      className={`group flex h-full snap-start flex-col ${
         layout === "grid" ? "w-full min-w-0" : SIZE_WIDTH[size]
       } ${className}`}
     >
-      <Link href={href} className="block touch-manipulation">
-        <div className="relative overflow-hidden rounded-[18px] shadow-[0_4px_20px_rgba(42,17,75,0.08)] ring-1 ring-[#E7D8FF]/80 transition duration-300 active:scale-[0.98] sm:group-hover:-translate-y-1 sm:group-hover:shadow-[0_12px_32px_rgba(83,64,255,0.14)]">
+      <Link href={href} className="flex h-full flex-col touch-manipulation">
+        <div className="relative overflow-hidden rounded-[20px] shadow-[0_4px_20px_rgba(42,17,75,0.08)] ring-1 ring-[#E7D8FF]/80 transition duration-300 active:scale-[0.98] sm:rounded-[18px] sm:group-hover:-translate-y-1 sm:group-hover:shadow-[0_12px_32px_rgba(83,64,255,0.14)]">
           {story.coverArtUrl ? (
             <img
               src={story.coverArtUrl}
@@ -66,7 +66,7 @@ export default function StoryCard({
             />
           )}
 
-          <span className="absolute left-2.5 top-2.5 rounded-md bg-[#5340FF]/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:text-[10px]">
+          <span className="absolute left-2.5 top-2.5 rounded-md bg-[#5340FF]/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:text-[10px]">
             {story.genre}
           </span>
 
@@ -95,16 +95,14 @@ export default function StoryCard({
           ) : null}
         </div>
 
-        <div className="mt-3 px-0.5">
-          <h3 className="line-clamp-2 font-heading text-[13px] font-bold leading-snug text-[#101828] sm:text-sm">
+        <div className="mt-3 flex flex-1 flex-col px-0.5">
+          <h3 className="line-clamp-2 min-h-[2.75rem] font-heading text-[15px] font-bold leading-snug text-[#101828] sm:min-h-[2.5rem] sm:text-sm">
             {story.title}
           </h3>
-          {creator ? (
-            <p className="mt-0.5 line-clamp-1 text-[11px] text-[#667085] sm:text-xs">
-              by {creator}
-            </p>
-          ) : null}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-[#667085] sm:text-[11px]">
+          <p className="mt-1 line-clamp-1 min-h-[1.125rem] text-xs text-[#667085]">
+            {creator ? `by ${creator}` : "\u00A0"}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-[#667085] sm:mt-1.5 sm:text-[11px]">
             <span className="text-[#5340FF]">{views} views</span>
             <span>♥ {likes}</span>
             <span>

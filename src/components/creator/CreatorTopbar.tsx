@@ -5,6 +5,7 @@ import CreditsBadge from "@/components/creator/CreditsBadge";
 interface CreatorTopbarProps {
   title?: string;
   onMenuOpen?: () => void;
+  onBuyCoins?: () => void;
   primaryAction?: { label: string; onClick: () => void };
   secondaryAction?: { label: string; onClick: () => void };
 }
@@ -12,6 +13,7 @@ interface CreatorTopbarProps {
 export default function CreatorTopbar({
   title = "Toonlora Studio",
   onMenuOpen,
+  onBuyCoins,
   primaryAction,
   secondaryAction,
 }: CreatorTopbarProps) {
@@ -40,7 +42,7 @@ export default function CreatorTopbar({
 
       <div className="flex shrink-0 items-center gap-2">
         <div className="hidden sm:block">
-          <CreditsBadge compact />
+          <CreditsBadge compact onBuyCoins={onBuyCoins} />
         </div>
         {secondaryAction ? (
           <button

@@ -27,11 +27,13 @@ export default function CreatorSidebar({
 }: CreatorSidebarProps) {
   return (
     <aside
-      className={`flex h-full flex-col border-r border-[#E7D8FF] bg-white ${
-        mobile ? "w-full" : "w-[240px] shrink-0"
+      className={`flex flex-col border-r border-[#E7D8FF] bg-white ${
+        mobile
+          ? "h-full w-full"
+          : "fixed inset-y-0 left-0 z-30 hidden h-[100dvh] w-[240px] md:flex"
       }`}
     >
-      <div className="flex items-center justify-between border-b border-[#E7D8FF] px-4 py-4">
+      <div className="flex shrink-0 items-center justify-between border-b border-[#E7D8FF] px-4 py-4">
         <Link href="/" className="flex items-center gap-2">
           <ToonloraLogo className="h-7 w-auto" />
         </Link>
@@ -47,7 +49,7 @@ export default function CreatorSidebar({
         ) : null}
       </div>
 
-      <div className="px-3 py-3">
+      <div className="shrink-0 px-3 py-3">
         <p className="px-2 text-[10px] font-bold uppercase tracking-widest text-[#667085]">
           Studio
         </p>
@@ -56,7 +58,7 @@ export default function CreatorSidebar({
         </p>
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4">
+      <nav className="flex shrink-0 flex-col gap-0.5 px-2 py-2">
         {NAV.map((item) => {
           const isActive = active === item.id;
           return (
@@ -67,7 +69,7 @@ export default function CreatorSidebar({
                 onNavigate(item.id);
                 onClose?.();
               }}
-              className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-semibold transition ${
+              className={`flex h-auto shrink-0 w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-semibold transition ${
                 isActive
                   ? "bg-[#5340FF] text-white shadow-[0_4px_14px_rgba(83,64,255,0.35)]"
                   : "text-[#667085] hover:bg-[#F3ECFF] hover:text-[#2A114B]"
@@ -86,8 +88,8 @@ export default function CreatorSidebar({
         })}
       </nav>
 
-      <div className="border-t border-[#E7D8FF] p-4">
-        <CreditsBadge />
+      <div className="mt-auto shrink-0 border-t border-[#E7D8FF] p-4">
+        <CreditsBadge onBuyCoins={() => onNavigate("settings")} />
       </div>
     </aside>
   );

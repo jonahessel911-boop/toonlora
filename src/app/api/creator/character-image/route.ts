@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
-import { callOpenAICharacterPortrait } from "@/lib/engine/openai-client";
-import { buildCharacterPortraitPrompt } from "@/lib/creator/characterImagePrompt";
+import {
+  callOpenAICharacterPortrait,
+  callOpenAICharacterPortraitEdit,
+} from "@/lib/engine/openai-client";
+import {
+  buildCharacterPortraitEditPrompt,
+  buildCharacterPortraitPrompt,
+} from "@/lib/creator/characterImagePrompt";
 import type { CharacterGender, CharacterRole } from "@/types/creator";
 
 interface CharacterImageRequest {
   characterId?: string;
-  prompt?: string;
+  mode?: "generate" | "edit";
+  editInstruction?: string;
+  referencePortraitUrl?: string;
   name?: string;
   gender?: CharacterGender;
   role?: CharacterRole;
@@ -22,39 +30,52 @@ export async function POST(request: Request) {
     const body = (await request.json()) as CharacterImageRequest;
     const characterId = body.characterId?.trim() || `char-${Date.now()}`;
 
-    const prompt =
-      body.prompt?.trim() ||
-      (body.name &&
-        body.gender &&
-        body.role &&
-        body.styleTheme &&
-        body.ageRange &&
-        body.lookDescription &&
-        body.outfitDescription &&
-        body.personality
-        ? buildCharacterPortraitPrompt({
-            name: body.name,
-            gender: body.gender,
-            role: body.role,
-            styleTheme: body.styleTheme,
-            ageRange: body.ageRange,
-            lookDescription: body.lookDescription,
-            outfitDescription: body.outfitDescription,
-            personality: body.personality,
-            hasReferenceImage: Boolean(body.hasReferenceImage),
-          })
-        : "");
+    if (
+      body.mode === "edit" &&
+      body.referencePortraitUrl?.trim() &&
+      body.editInstruction?.trim()
+    ) {
+      const prompt = buildCharacterPortraitEditPrompt(body.editInstruction);
+      const portraitUrl = await callOpenAICharacterPortraitEdit(
+        prompt,
+        body.referencePortraitUrl.trim(),
+        characterId
+      );
 
-    if (!prompt) {
+      return NextResponse.json({ portraitUrl, characterId, mode: "edit" });
+    }
+
+    if (
+      !body.name ||
+      !body.gender ||
+      !body.role ||
+      !body.styleTheme ||
+      !body.ageRange ||
+      !body.lookDescription ||
+      !body.outfitDescription ||
+      !body.personality
+    ) {
       return NextResponse.json(
-        { error: "Missing prompt or character description fields" },
+        { error: "Missing character description fields" },
         { status: 400 }
       );
     }
 
+    const prompt = buildCharacterPortraitPrompt({
+      name: body.name,
+      gender: body.gender,
+      role: body.role,
+      styleTheme: body.styleTheme,
+      ageRange: body.ageRange,
+      lookDescription: body.lookDescription,
+      outfitDescription: body.outfitDescription,
+      personality: body.personality,
+      hasReferenceImage: Boolean(body.hasReferenceImage),
+    });
+
     const portraitUrl = await callOpenAICharacterPortrait(prompt, characterId);
 
-    return NextResponse.json({ portraitUrl, prompt, characterId });
+    return NextResponse.json({ portraitUrl, characterId, mode: "generate" });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Portrait generation failed";
     return NextResponse.json({ error: message }, { status: 500 });

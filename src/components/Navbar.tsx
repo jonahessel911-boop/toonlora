@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import ProfileMenu from "@/components/nav/ProfileMenu";
 import ToonloraLogo from "@/components/ui/ToonloraLogo";
+import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 import { useCreditsStore } from "@/store/useCreditsStore";
 import { useUserStore } from "@/store/useUserStore";
 
@@ -14,7 +15,7 @@ const browseNav = [
   { href: "/#trending", label: "Trending" },
   { href: "/#categories", label: "Genres" },
   { href: "/#community", label: "Community" },
-  { href: "/about", label: "About" },
+  { href: "/creator", label: "Lora Studio" },
 ] as const;
 
 function isHashLink(href: string) {
@@ -114,7 +115,7 @@ export default function Navbar() {
   }, [open]);
 
   const isBrowseActive = (href: string) => {
-    if (href === "/about") return pathname === "/about";
+    if (href === "/creator") return pathname.startsWith("/creator");
     if (pathname !== "/") return false;
     const target = href.includes("#") ? href.slice(href.indexOf("#")) : "";
     if (!activeHash && target === "#originals") return true;
@@ -129,7 +130,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-white/95 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-3 px-4 md:px-6">
+      <div className={`${PAGE_CONTAINER_CLASS} flex h-16 items-center justify-between gap-3`}>
         <Link href="/" className="flex shrink-0 items-center">
           <ToonloraLogo variant="nav" />
         </Link>
@@ -170,7 +171,7 @@ export default function Navbar() {
 
       <div className="hidden border-t border-border/50 md:block">
         <nav
-          className="mx-auto flex max-w-[1280px] gap-6 overflow-x-auto px-4 scrollbar-hide sm:gap-8 md:px-6"
+          className={`${PAGE_CONTAINER_CLASS} flex gap-6 overflow-x-auto scrollbar-hide sm:gap-8`}
           aria-label="Browse sections"
         >
           {browseNav.map((link) => (

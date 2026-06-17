@@ -17,7 +17,7 @@ export default function CreatorEditorPage() {
   }, [storyId, setEditorContext]);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#FCFAFF]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#FCFAFF]">
       <CreatorTopbar title="Panel editor" />
       <EditorGenerationBanner />
       <PanelEditor storyId={storyId} />

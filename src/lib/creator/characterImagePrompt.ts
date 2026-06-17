@@ -52,3 +52,17 @@ QUALITY:
 - Original character — do not copy existing IP, celebrities, or branded characters
 ${input.hasReferenceImage ? "\nUse the creator's reference image as style and outfit guidance while keeping an original design." : ""}`;
 }
+
+export function buildCharacterPortraitEditPrompt(editInstruction: string): string {
+  return `Modify this existing cartoon/webtoon character illustration.
+
+CHANGE REQUEST:
+${editInstruction.trim()}
+
+RULES:
+- Keep the same character identity unless the change request says otherwise
+- Keep full-body three-quarter standing pose unless the change request says otherwise
+- Keep transparent background with no scenery, floor, or shadow blob
+- Apply only the requested modifications
+- Professional webtoon character asset quality with clean bold outlines`;
+}

@@ -78,9 +78,10 @@ export const IMAGE_GRADIENTS = [
 ];
 
 export const CREDIT_PACKAGES = [
-  { credits: 10, price: "€4.99", popular: false },
-  { credits: 30, price: "€12.99", popular: true },
-  { credits: 100, price: "€29.99", popular: false },
+  { credits: 10, price: "€9,99", popular: false },
+  { credits: 25, price: "€19,99", popular: true },
+  { credits: 60, price: "€39,99", popular: false },
+  { credits: 150, price: "€89,99", popular: false },
 ];
 
 export const STORAGE_KEYS = {

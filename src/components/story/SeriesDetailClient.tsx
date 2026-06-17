@@ -6,8 +6,14 @@ import CoverArt, { getCoverPreset } from "@/components/ui/CoverArt";
 import { CREDIT_COPY, getGenreColors } from "@/lib/brand";
 import { APP_NAME } from "@/lib/constants";
 import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
+import {
+  buildPaywallPath,
+  buildReaderSignupPath,
+} from "@/lib/reader/nextEpisodeGate";
 import { storyToSeriesDetail, type SeriesDetail } from "@/lib/seriesCatalog";
 import { useStoryStore } from "@/store/useStoryStore";
+import { useSubscriptionStore } from "@/store/useSubscriptionStore";
+import { useUserStore } from "@/store/useUserStore";
 
 interface SeriesDetailClientProps {
   id: string;
@@ -15,8 +21,14 @@ interface SeriesDetailClientProps {
 
 export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
   const { getStoryById } = useStoryStore();
+  const { email } = useUserStore();
+  const { isSubscriber, hydrate: hydrateSubscription } = useSubscriptionStore();
   const [series, setSeries] = useState<SeriesDetail | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    void hydrateSubscription();
+  }, [hydrateSubscription]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +83,39 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
   const genreStyle = getGenreColors(series.genre);
   const readHref = `/story/${id}/read`;
   const isOfficial = series.source === "admin";
+  const loggedIn = Boolean(email);
+  const hasVipAccess = isSubscriber();
+  const openEpisode = (episodeNumber: number) => {
+    if (episodeNumber <= 1 || hasVipAccess) {
+      const href = `${readHref}${episodeNumber > 1 ? `?ep=${episodeNumber}` : ""}`;
+      window.location.href = href;
+      return;
+    }
+    if (!loggedIn) {
+      window.location.href = buildReaderSignupPath(
+        id,
+        series.title,
+        episodeNumber - 1
+      );
+      return;
+    }
+    window.location.href = buildPaywallPath(id, episodeNumber, series.title);
+  };
+
+  const displayEpisodes =
+    series.episodes.length > 1 || hasVipAccess
+      ? series.episodes
+      : [
+          ...series.episodes,
+          {
+            number: 2,
+            title: "Episode 2",
+            date: "",
+            likes: 0,
+            coverGradient: series.coverGradient,
+            coverArtUrl: series.episodes[0]?.coverArtUrl ?? series.coverArtUrl,
+          },
+        ];
 
   return (
     <div className="bg-white pb-16">
@@ -138,11 +183,12 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
               </div>
 
               <ul className="divide-y divide-border/40">
-                {series.episodes.map((ep) => (
+                {displayEpisodes.map((ep) => (
                   <li key={ep.number}>
-                    <Link
-                      href={`${readHref}${ep.number > 1 ? `?ep=${ep.number}` : ""}`}
-                      className="group flex items-center gap-3 px-4 py-3 transition hover:bg-surface-soft sm:gap-4 sm:px-6 sm:py-4"
+                    <button
+                      type="button"
+                      onClick={() => openEpisode(ep.number)}
+                      className="group flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-soft sm:gap-4 sm:px-6 sm:py-4"
                     >
                       <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl ring-1 ring-border/60 sm:h-16 sm:w-16">
                         {ep.coverArtUrl ? (
@@ -164,13 +210,17 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
                         <p className="font-bold text-gs-text transition group-hover:text-lp-purple">
                           {ep.title}
                         </p>
-                        {ep.number <= 1 && (
+                        {ep.number <= 1 ? (
                           <span className="mt-0.5 inline-block rounded-full bg-lp-purple/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-lp-purple">
                             Free
                           </span>
+                        ) : (
+                          <span className="mt-0.5 inline-block rounded-full bg-[#2A114B]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-lp-purple">
+                            VIP
+                          </span>
                         )}
                       </div>
-                    </Link>
+                    </button>
                   </li>
                 ))}
               </ul>

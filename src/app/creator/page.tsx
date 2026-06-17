@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import CreatorStudioApp from "@/components/creator/CreatorStudioApp";
 
 export const metadata = {
@@ -7,5 +8,9 @@ export const metadata = {
 };
 
 export default function CreatorPage() {
-  return <CreatorStudioApp />;
+  return (
+    <Suspense fallback={null}>
+      <CreatorStudioApp />
+    </Suspense>
+  );
 }

@@ -9,32 +9,35 @@ export interface CatalogQuery {
   limit?: number;
 }
 
-async function episodeCountForSeries(seriesId: string): Promise<number> {
+async function episodeMetaForSeriesIds(
+  seriesIds: string[]
+): Promise<Map<string, { count: number; cover?: string }>> {
+  const meta = new Map<string, { count: number; cover?: string }>();
+  if (!seriesIds.length) return meta;
+
   const supabase = getSupabaseAdmin();
-  if (!supabase) return 0;
+  if (!supabase) return meta;
 
-  const { count } = await supabase
-    .from("episodes")
-    .select("id", { count: "exact", head: true })
-    .eq("series_id", seriesId);
-
-  return count ?? 0;
-}
-
-async function coverArtForSeries(seriesId: string): Promise<string | undefined> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return undefined;
+  for (const id of seriesIds) {
+    meta.set(id, { count: 0 });
+  }
 
   const { data } = await supabase
     .from("episodes")
-    .select("comic_page")
-    .eq("series_id", seriesId)
-    .eq("episode_number", 1)
-    .maybeSingle();
+    .select("series_id, episode_number, comic_page")
+    .in("series_id", seriesIds);
 
-  if (!data?.comic_page) return undefined;
-  const comicPage = data.comic_page as { artUrl?: string | null };
-  return comicPage.artUrl ?? undefined;
+  for (const row of data ?? []) {
+    const entry = meta.get(row.series_id);
+    if (!entry) continue;
+    entry.count += 1;
+    if (row.episode_number === 1) {
+      const comicPage = row.comic_page as { artUrl?: string | null };
+      entry.cover = comicPage.artUrl ?? undefined;
+    }
+  }
+
+  return meta;
 }
 
 function rowToCatalog(
@@ -106,14 +109,12 @@ export async function listPublishedCatalog(
   if (error || !data?.length) return [];
 
   const rows = data as SeriesRow[];
-  const meta = await Promise.all(
-    rows.map(async (row) => ({
-      count: await episodeCountForSeries(row.id),
-      cover: await coverArtForSeries(row.id),
-    }))
-  );
+  const meta = await episodeMetaForSeriesIds(rows.map((row) => row.id));
 
-  return rows.map((row, i) => rowToCatalog(row, meta[i].count, meta[i].cover));
+  return rows.map((row) => {
+    const episodeMeta = meta.get(row.id) ?? { count: 0 };
+    return rowToCatalog(row, episodeMeta.count, episodeMeta.cover);
+  });
 }
 
 export async function listAllSeriesAdmin(): Promise<CatalogSeries[]> {
@@ -128,14 +129,12 @@ export async function listAllSeriesAdmin(): Promise<CatalogSeries[]> {
   if (error || !data?.length) return [];
 
   const rows = data as SeriesRow[];
-  const meta = await Promise.all(
-    rows.map(async (row) => ({
-      count: await episodeCountForSeries(row.id),
-      cover: await coverArtForSeries(row.id),
-    }))
-  );
+  const meta = await episodeMetaForSeriesIds(rows.map((row) => row.id));
 
-  return rows.map((row, i) => rowToCatalog(row, meta[i].count, meta[i].cover));
+  return rows.map((row) => {
+    const episodeMeta = meta.get(row.id) ?? { count: 0 };
+    return rowToCatalog(row, episodeMeta.count, episodeMeta.cover);
+  });
 }
 
 export async function updateSeriesPublishing(
@@ -191,7 +190,7 @@ export async function getCatalogSeriesById(
     .maybeSingle();
 
   if (!data) return null;
-  const count = await episodeCountForSeries(id);
-  const cover = await coverArtForSeries(id);
-  return rowToCatalog(data as SeriesRow, count, cover);
+  const meta = await episodeMetaForSeriesIds([id]);
+  const episodeMeta = meta.get(id) ?? { count: 0 };
+  return rowToCatalog(data as SeriesRow, episodeMeta.count, episodeMeta.cover);
 }

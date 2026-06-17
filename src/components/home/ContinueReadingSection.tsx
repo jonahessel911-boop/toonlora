@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import HomeSection from "@/components/home/HomeSection";
+import HorizontalScrollRail from "@/components/home/HorizontalScrollRail";
 import StoryCard from "@/components/home/StoryCard";
 import { getReadingHistory, type ReadingHistoryEntry } from "@/lib/readingHistory";
 import { catalogToCard } from "@/types/catalog";
@@ -53,11 +54,11 @@ export default function ContinueReadingSection() {
       subtitle="Pick up where you left off."
       tone="soft"
     >
-      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide snap-x snap-mandatory sm:mx-0 sm:gap-4 sm:px-0 md:gap-5">
+      <HorizontalScrollRail className="flex items-stretch gap-4 overflow-x-auto px-4 pb-1 scrollbar-hide snap-x snap-mandatory sm:gap-4 sm:px-0 md:gap-5 lg:gap-5 xl:gap-6">
         {stories.map((story) => (
           <StoryCard key={story.id} story={story} size="standard" />
         ))}
-      </div>
+      </HorizontalScrollRail>
     </HomeSection>
   );
 }

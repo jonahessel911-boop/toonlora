@@ -33,11 +33,8 @@ export default function BrowseHome() {
   const featuredStories = prioritizeCoverArt(featured).slice(0, 6);
   const trendingRanked = trending.map((s, i) => ({ ...s, rank: i + 1 }));
 
-  const hasCatalog =
-    loadingFeatured ||
-    loadingTrending ||
-    featured.length > 0 ||
-    trending.length > 0;
+  const initialLoad =
+    loadingFeatured && loadingTrending && featured.length === 0 && trending.length === 0;
 
   useEffect(() => {
     const scrollToHash = () => {
@@ -55,7 +52,7 @@ export default function BrowseHome() {
     return () => window.removeEventListener("hashchange", scrollToHash);
   }, []);
 
-  if (!hasCatalog) {
+  if (initialLoad) {
     return (
       <div className="min-h-[50vh] bg-[#FCFAFF]">
         <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-20 text-center">
@@ -123,7 +120,7 @@ export default function BrowseHome() {
         </HomeSection>
       ) : null}
 
-      <BrowseByGenre />
+      <BrowseByGenre fallbackStories={trending} />
 
       {!loadingCommunity && community.length > 0 ? (
         <HomeSection

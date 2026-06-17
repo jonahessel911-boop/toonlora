@@ -52,7 +52,6 @@ export default function CreateComicModal({
   const createStoryFromFlow = useCreatorStore((s) => s.createStoryFromFlow);
   const addGenerationJob = useCreatorStore((s) => s.addGenerationJob);
   const generationJobs = useCreatorStore((s) => s.generationJobs);
-  const communityCharacters = useCreatorStore((s) => s.communityCharacters);
 
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState("");
@@ -78,7 +77,6 @@ export default function CreateComicModal({
   );
 
   const myCharacters = getMyCharacters();
-  const usableCommunity = communityCharacters.filter((c) => c.allowOthersToUse);
 
   const toggleChar = (id: string) => {
     setSelectedChars((prev) =>
@@ -337,22 +335,6 @@ export default function CreateComicModal({
                       />
                     ))}
                   </div>
-                  {usableCommunity.length > 0 ? (
-                    <>
-                      <p className="text-xs font-bold uppercase text-[#667085]">
-                        Community characters
-                      </p>
-                      {usableCommunity.slice(0, 2).map((c) => (
-                        <CharacterCard
-                          key={c.id}
-                          character={c}
-                          selectable
-                          selected={selectedChars.includes(c.id)}
-                          onSelect={() => toggleChar(c.id)}
-                        />
-                      ))}
-                    </>
-                  ) : null}
                 </div>
               ) : null}
 

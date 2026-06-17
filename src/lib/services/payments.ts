@@ -1,11 +1,17 @@
-import { CREDIT_PACKAGES } from "@/lib/constants";
+import { COIN_PACKAGES } from "@/lib/payments/coin-packages";
+import { apiFetch } from "@/lib/session";
 
-/**
- * Future: integrate Stripe checkout sessions.
- */
-export async function createCheckoutSession(credits: number): Promise<string | null> {
-  const pkg = CREDIT_PACKAGES.find((p) => p.credits === credits);
+export async function createCoinCheckout(packageId: string): Promise<string | null> {
+  const pkg = COIN_PACKAGES.find((p) => p.id === packageId);
   if (!pkg) return null;
-  // TODO: return Stripe checkout URL
-  return null;
+
+  const res = await apiFetch("/api/stripe/checkout", {
+    method: "POST",
+    body: JSON.stringify({ packageId }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error ?? "Checkout failed");
+  }
+  return (data.url as string) ?? null;
 }

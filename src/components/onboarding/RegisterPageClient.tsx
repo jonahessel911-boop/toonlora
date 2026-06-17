@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import SignupLogo, {
   SignupAvatar,
@@ -11,11 +11,14 @@ import SignupLogo, {
   SignupStepIndicator,
   SignupSubmitButton,
 } from "@/components/signup/SignupScreen";
+import { sanitizeReturnTo } from "@/lib/reader/nextEpisodeGate";
 import { apiFetch } from "@/lib/session";
 import { useUserStore } from "@/store/useUserStore";
 
 export default function RegisterPageClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = sanitizeReturnTo(searchParams.get("returnTo"));
   const { setProfile } = useUserStore();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -63,7 +66,7 @@ export default function RegisterPageClient() {
         onboarded: true,
         agreedToTerms: true,
       });
-      router.push("/library");
+      router.push(returnTo ?? "/library");
     } catch (err) {
       if (err instanceof TypeError && err.message.includes("fetch")) {
         setError("Could not reach the server. Is npm run dev running?");

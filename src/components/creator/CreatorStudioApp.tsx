@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import CreatorSidebar from "@/components/creator/CreatorSidebar";
 import CreatorTopbar from "@/components/creator/CreatorTopbar";
@@ -12,8 +12,10 @@ import EmptyStudioState from "@/components/creator/EmptyStudioState";
 import CreateComicModal from "@/components/creator/CreateComicModal";
 import CharacterCreateModal from "@/components/creator/CharacterCreateModal";
 import CharacterDetailModal from "@/components/creator/CharacterDetailModal";
+import CharacterEditModal from "@/components/creator/CharacterEditModal";
 import StoryCharacterFilter from "@/components/creator/StoryCharacterFilter";
 import ComicGenerationBanner from "@/components/creator/ComicGenerationBanner";
+import CoinsShop from "@/components/creator/CoinsShop";
 import { filterUserStories } from "@/lib/creator/mockData";
 import { useCreatorStore } from "@/store/useCreatorStore";
 import { useCreditsStore } from "@/store/useCreditsStore";
@@ -28,12 +30,14 @@ const SECTIONS: StudioSection[] = [
 
 export default function CreatorStudioApp() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mobileNav, setMobileNav] = useState(false);
   const [comicModal, setComicModal] = useState(false);
   const [characterModal, setCharacterModal] = useState(false);
   const [detailCharacterId, setDetailCharacterId] = useState<string | null>(
     null
   );
+  const [editCharacterId, setEditCharacterId] = useState<string | null>(null);
   const [storyCharacterFilter, setStoryCharacterFilter] = useState<string[]>(
     []
   );
@@ -50,15 +54,36 @@ export default function CreatorStudioApp() {
     (s) => s.createCharacterFromForm
   );
   const deleteCharacter = useCreatorStore((s) => s.deleteCharacter);
+  const saveCharacterEdits = useCreatorStore((s) => s.saveCharacterEdits);
   const getCharacter = useCreatorStore((s) => s.getCharacter);
   const publishStory = useCreatorStore((s) => s.publishStory);
   const setEditorContext = useCreatorStore((s) => s.setEditorContext);
 
   const { credits, hydrate } = useCreditsStore();
+  const [purchaseStatus, setPurchaseStatus] = useState<
+    "success" | "cancelled" | null
+  >(null);
 
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    const section = searchParams.get("section");
+    const purchase = searchParams.get("purchase");
+
+    if (section === "coins" || section === "settings") {
+      setSection("settings");
+    }
+
+    if (purchase === "success" || purchase === "cancelled") {
+      setPurchaseStatus(purchase);
+      if (purchase === "success") {
+        void hydrate();
+      }
+      router.replace("/creator", { scroll: false });
+    }
+  }, [searchParams, setSection, hydrate, router]);
 
   useEffect(() => {
     if (!SECTIONS.includes(activeSection)) {
@@ -70,6 +95,7 @@ export default function CreatorStudioApp() {
   const detailCharacter = detailCharacterId
     ? getCharacter(detailCharacterId)
     : null;
+  const editCharacter = editCharacterId ? getCharacter(editCharacterId) : null;
 
   const filteredStories = useMemo(() => {
     if (storyCharacterFilter.length === 0) return stories;
@@ -142,12 +168,12 @@ export default function CreatorStudioApp() {
                 }}
               />
               <StudioStatCard
-                label="Credits"
+                label="Coins"
                 value={credits}
                 accent="yellow"
                 action={{
-                  label: "Buy credits",
-                  onClick: () => {},
+                  label: "Buy coins",
+                  onClick: () => setSection("settings"),
                 }}
               />
             </div>
@@ -246,21 +272,36 @@ export default function CreatorStudioApp() {
 
       case "settings":
         return (
-          <div className="max-w-lg space-y-4 rounded-[32px] border border-[#E7D8FF] bg-white p-6">
-            <h3 className="font-heading text-lg font-extrabold text-[#2A114B]">
-              Settings
-            </h3>
-            <label className="flex items-center justify-between text-sm">
-              <span className="text-[#667085]">Default visibility</span>
-              <select className="rounded-xl border border-[#E7D8FF] px-3 py-2 text-sm">
-                <option>Private</option>
-                <option>Public</option>
-              </select>
-            </label>
-            <label className="flex items-center gap-2 text-sm text-[#667085]">
-              <input type="checkbox" defaultChecked />
-              Require attribution when others use my characters
-            </label>
+          <div className="mx-auto max-w-3xl space-y-8">
+            <div className="rounded-[32px] border border-[#E7D8FF] bg-white p-6">
+              <h3 className="font-heading text-lg font-extrabold text-[#2A114B]">
+                Studio preferences
+              </h3>
+              <div className="mt-4 space-y-4">
+                <label className="flex items-center justify-between text-sm">
+                  <span className="text-[#667085]">Default visibility</span>
+                  <select className="rounded-xl border border-[#E7D8FF] px-3 py-2 text-sm">
+                    <option>Private</option>
+                    <option>Public</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-[#667085]">
+                  <input type="checkbox" defaultChecked />
+                  Require attribution when others use my characters
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="mb-4 font-heading text-lg font-extrabold text-[#2A114B]">
+                Coins
+              </h3>
+              <CoinsShop
+                purchaseStatus={purchaseStatus}
+                onDismissStatus={() => setPurchaseStatus(null)}
+                embedded
+              />
+            </div>
           </div>
         );
 
@@ -270,10 +311,8 @@ export default function CreatorStudioApp() {
   };
 
   return (
-    <div className="flex min-h-[100dvh] bg-[#FCFAFF]">
-      <div className="hidden md:flex">
-        <CreatorSidebar active={activeSection} onNavigate={setSection} />
-      </div>
+    <div className="h-[100dvh] overflow-hidden bg-[#FCFAFF]">
+      <CreatorSidebar active={activeSection} onNavigate={setSection} />
 
       <AnimatePresence>
         {mobileNav ? (
@@ -304,21 +343,14 @@ export default function CreatorStudioApp() {
         ) : null}
       </AnimatePresence>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden md:ml-[240px]">
         <CreatorTopbar
           title={sectionTitle[activeSection]}
           onMenuOpen={() => setMobileNav(true)}
-          primaryAction={{
-            label: "Create new comic",
-            onClick: () => setComicModal(true),
-          }}
-          secondaryAction={{
-            label: "Create character",
-            onClick: () => setCharacterModal(true),
-          }}
+          onBuyCoins={() => setSection("settings")}
         />
 
-        <ComicGenerationBanner />
+        {!comicModal ? <ComicGenerationBanner /> : null}
 
         <div className="md:hidden">
           <div className="flex gap-1 overflow-x-auto border-b border-[#E7D8FF] px-2 py-2">
@@ -374,12 +406,24 @@ export default function CreatorStudioApp() {
         stories={stories}
         open={Boolean(detailCharacterId && detailCharacter)}
         onClose={() => setDetailCharacterId(null)}
+        onEdit={(id) => setEditCharacterId(id)}
         onUseInStory={() => setComicModal(true)}
         onDelete={(id) => {
           deleteCharacter(id);
           setDetailCharacterId(null);
         }}
         onOpenStory={(storyId) => openEditor(storyId)}
+      />
+      <CharacterEditModal
+        character={editCharacter ?? null}
+        open={Boolean(editCharacterId && editCharacter)}
+        onClose={() => setEditCharacterId(null)}
+        onSave={(id, patch) => {
+          const savedId = saveCharacterEdits(id, patch);
+          setEditCharacterId(null);
+          setDetailCharacterId(savedId);
+          return savedId;
+        }}
       />
     </div>
   );

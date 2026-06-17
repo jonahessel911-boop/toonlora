@@ -25,10 +25,17 @@ export async function GET(request: Request) {
       limit,
     });
 
-    return NextResponse.json({
-      series: series.map((s) => catalogToCard(s)),
-      source: "supabase",
-    });
+    return NextResponse.json(
+      {
+        series: series.map((s) => catalogToCard(s)),
+        source: "supabase",
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Catalog failed" },

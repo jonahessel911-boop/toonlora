@@ -13,6 +13,7 @@ import { episodeToReaderPanels } from "@/lib/readerPanels";
 import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
 import { useStoryStore } from "@/store/useStoryStore";
 import { useCreditsStore } from "@/store/useCreditsStore";
+import { useSubscriptionStore } from "@/store/useSubscriptionStore";
 import type { Story } from "@/types/story";
 import { apiFetch } from "@/lib/session";
 import { isDatabaseEnabled } from "@/lib/config";
@@ -35,6 +36,7 @@ export default function StoryReaderClient({
   const { hydrate, getStoryById, addStory, hydrated } = useStoryStore();
   const { canGenerate, consumeGeneration, credits, hydrate: hydrateCredits } =
     useCreditsStore();
+  const { hydrate: hydrateSubscription, setSubscription } = useSubscriptionStore();
   const [story, setStory] = useState<Story | undefined>();
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -42,7 +44,17 @@ export default function StoryReaderClient({
   useEffect(() => {
     void hydrate();
     void hydrateCredits();
-  }, [hydrate, hydrateCredits]);
+    void hydrateSubscription();
+  }, [hydrate, hydrateCredits, hydrateSubscription]);
+
+  useEffect(() => {
+    const subscribed = searchParams.get("subscribed");
+    if (subscribed === "success") {
+      void hydrateSubscription().then(() => {
+        setSubscription({ status: "active" });
+      });
+    }
+  }, [searchParams, hydrateSubscription, setSubscription]);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,7 +146,7 @@ export default function StoryReaderClient({
     series: SeriesDetail,
     episodeNumber: number
   ) => (
-    <EpisodeReadLayout series={series} episodeNumber={episodeNumber}>
+    <EpisodeReadLayout series={series} episodeNumber={episodeNumber} story={story}>
       {reader}
     </EpisodeReadLayout>
   );
@@ -206,6 +218,7 @@ export default function StoryReaderClient({
           number: e.number,
           title: e.title,
           coverGradient: e.coverGradient,
+          coverArtUrl: e.coverArtUrl,
         }))}
         showControls={!isPublic}
         onShare={handleShare}
@@ -230,7 +243,7 @@ export default function StoryReaderClient({
           onShare={handleShare}
         />
       </div>
-      <EpisodeCommentsSection series={seriesDetail} episodeNumber={1} />
+      <EpisodeCommentsSection series={seriesDetail} episodeNumber={1} story={story} />
     </div>
   );
 }

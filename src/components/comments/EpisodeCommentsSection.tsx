@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import CoverArt from "@/components/ui/CoverArt";
+import EpisodeCharactersSection from "@/components/reader/EpisodeCharactersSection";
 import { isDatabaseEnabled } from "@/lib/config";
 import {
   listCommentsFromClient,
@@ -12,6 +13,7 @@ import {
   type EpisodeComment,
 } from "@/lib/services/comments-repository";
 import type { SeriesDetail, SeriesEpisodeListing } from "@/lib/seriesCatalog";
+import type { Story } from "@/types/story";
 import { useCatalog } from "@/hooks/useCatalog";
 import { apiFetch } from "@/lib/session";
 import { useUserStore } from "@/store/useUserStore";
@@ -19,6 +21,7 @@ import { useUserStore } from "@/store/useUserStore";
 interface EpisodeCommentsSectionProps {
   series: SeriesDetail;
   episodeNumber: number;
+  story?: Story;
 }
 
 function formatCommentDate(iso: string) {
@@ -214,6 +217,7 @@ function CommentItem({
 export default function EpisodeCommentsSection({
   series,
   episodeNumber,
+  story,
 }: EpisodeCommentsSectionProps) {
   const { email, fullName } = useUserStore();
   const loggedIn = Boolean(email && fullName);
@@ -337,6 +341,10 @@ export default function EpisodeCommentsSection({
         activeEpisode={episodeNumber}
         genre={series.genre}
       />
+
+      {story ? (
+        <EpisodeCharactersSection story={story} episodeNumber={episodeNumber} />
+      ) : null}
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-col gap-8 lg:flex-row lg:gap-10">

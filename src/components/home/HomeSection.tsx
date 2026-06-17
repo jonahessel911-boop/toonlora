@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 
 interface HomeSectionProps {
   id?: string;
@@ -28,7 +29,7 @@ export default function HomeSection({
         tone === "soft" ? "bg-[#F3ECFF]/40" : "bg-white"
       }`}
     >
-      <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
+      <div className={PAGE_CONTAINER_CLASS}>
         <div className="mb-6 flex items-end justify-between gap-4 md:mb-8">
           <div className="min-w-0">
             <h2 className="font-heading text-xl font-extrabold tracking-tight text-[#101828] md:text-[1.75rem]">

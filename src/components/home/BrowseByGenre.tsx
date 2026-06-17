@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import HomeSection from "@/components/home/HomeSection";
+import HorizontalScrollRail from "@/components/home/HorizontalScrollRail";
 import StoryCard from "@/components/home/StoryCard";
 import { useCatalog } from "@/hooks/useCatalog";
+import type { CatalogSeries } from "@/types/catalog";
 import type { Category } from "@/types/story";
 
 const GENRES: Category[] = [
@@ -16,7 +18,11 @@ const GENRES: Category[] = [
   "Anime",
 ];
 
-export default function BrowseByGenre() {
+export default function BrowseByGenre({
+  fallbackStories = [],
+}: {
+  fallbackStories?: CatalogSeries[];
+}) {
   const [active, setActive] = useState<Category>("Romance");
 
   const { series: genreStories, loading: loadingGenre } = useCatalog({
@@ -24,14 +30,22 @@ export default function BrowseByGenre() {
     sort: "featured",
     limit: 8,
   });
+  const needsFallback = !loadingGenre && genreStories.length === 0;
   const { series: popularPicks, loading: loadingPopular } = useCatalog({
     sort: "popular",
     limit: 8,
+    enabled: needsFallback && fallbackStories.length === 0,
   });
 
-  const usingFallback = !loadingGenre && genreStories.length === 0;
-  const displayStories = usingFallback ? popularPicks : genreStories;
-  const loading = loadingGenre || (usingFallback && loadingPopular);
+  const usingFallback = needsFallback;
+  const displayStories = usingFallback
+    ? fallbackStories.length > 0
+      ? fallbackStories
+      : popularPicks
+    : genreStories;
+  const loading =
+    loadingGenre ||
+    (usingFallback && fallbackStories.length === 0 && loadingPopular);
 
   const gridSubtitle = useMemo(() => {
     if (loading) return undefined;
@@ -83,12 +97,14 @@ export default function BrowseByGenre() {
         </div>
       ) : (
         <>
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:hidden">
-            {displayStories.slice(0, 6).map((story) => (
-              <StoryCard key={story.id} story={story} size="standard" />
-            ))}
+          <div className="sm:hidden">
+            <HorizontalScrollRail className="flex items-stretch gap-4 overflow-x-auto px-4 pb-1 scrollbar-hide snap-x snap-mandatory sm:gap-4 sm:px-0 md:gap-5 lg:gap-5 xl:gap-6">
+              {displayStories.slice(0, 6).map((story) => (
+                <StoryCard key={story.id} story={story} size="standard" />
+              ))}
+            </HorizontalScrollRail>
           </div>
-          <div className="hidden grid-cols-3 gap-4 sm:grid md:grid-cols-4 lg:gap-5">
+          <div className="hidden grid-cols-3 gap-4 sm:grid md:grid-cols-4 lg:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
             {displayStories.slice(0, 8).map((story) => (
               <StoryCard key={story.id} story={story} size="standard" layout="grid" />
             ))}

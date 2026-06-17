@@ -561,8 +561,18 @@ export function isSeedStory(storyId: string): boolean {
   return SEED_STORY_IDS.has(storyId);
 }
 
+export function storyHasGeneratedArt(story: StudioStory): boolean {
+  if (story.coverUrl) return true;
+  return story.episodes.some((episode) =>
+    episode.panels.some((panel) => Boolean(panel.imageUrl))
+  );
+}
+
 export function filterUserStories(stories: StudioStory[]): StudioStory[] {
-  return stories.filter((story) => !isSeedStory(story.id));
+  return stories.filter((story) => {
+    if (isSeedStory(story.id)) return false;
+    return storyHasGeneratedArt(story);
+  });
 }
 
 export const MOCK_ANALYTICS: CreatorAnalytics = {

@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function ProfilePage() {
   return (
-    <div className="min-h-[60vh] bg-[#FCFAFF]">
+    <div className="min-h-[100dvh] bg-[#F5F4F8]">
       <ProfileApp />
     </div>
   );

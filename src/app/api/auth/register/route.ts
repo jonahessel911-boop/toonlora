@@ -38,9 +38,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ profile, source: "supabase" });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Registration failed" },
-      { status: 500 }
-    );
+    const message = err instanceof Error ? err.message : "Registration failed";
+    const friendly = message.includes("profiles_email_key")
+      ? "This email is already registered. Sign in instead."
+      : message.includes("profiles_session_id_key")
+        ? "Could not create account for this browser session. Try again."
+        : message;
+
+    return NextResponse.json({ error: friendly }, { status: 500 });
   }
 }

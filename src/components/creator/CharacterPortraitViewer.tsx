@@ -6,6 +6,8 @@ interface CharacterPortraitViewerProps {
   src: string;
   alt: string;
   className?: string;
+  compact?: boolean;
+  overlayLabel?: string;
 }
 
 const MIN_SCALE = 0.5;
@@ -27,6 +29,8 @@ export default function CharacterPortraitViewer({
   src,
   alt,
   className = "",
+  compact = false,
+  overlayLabel,
 }: CharacterPortraitViewerProps) {
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -82,10 +86,12 @@ export default function CharacterPortraitViewer({
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
+  const frameMinH = compact ? "min-h-[200px]" : "min-h-[280px] sm:min-h-[360px]";
+
   return (
     <div className={`relative flex flex-col ${className}`}>
       <div
-        className="relative min-h-[280px] flex-1 cursor-grab overflow-hidden rounded-2xl border border-[#E7D8FF] active:cursor-grabbing sm:min-h-[360px]"
+        className={`relative flex-1 cursor-grab overflow-hidden rounded-2xl border border-[#E7D8FF] active:cursor-grabbing ${frameMinH}`}
         style={CHECKERBOARD_STYLE}
         onWheel={onWheel}
         onPointerDown={onPointerDown}
@@ -93,23 +99,32 @@ export default function CharacterPortraitViewer({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <div className="flex h-full min-h-[280px] items-center justify-center sm:min-h-[360px]">
+        <div className={`flex h-full items-center justify-center ${frameMinH}`}>
           <img
             src={src}
             alt={alt}
             draggable={false}
-            className="max-h-full max-w-full select-none object-contain transition-transform duration-75"
+            className="max-h-[min(52vh,320px)] max-w-full select-none object-contain transition-transform duration-75"
             style={{
               transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
             }}
           />
         </div>
-        <p className="pointer-events-none absolute left-3 top-3 rounded-lg bg-white/90 px-2 py-1 text-[10px] font-semibold text-[#667085]">
-          Scroll to zoom · drag to pan
-        </p>
+        {!overlayLabel ? (
+          <p className="pointer-events-none absolute left-3 top-3 rounded-lg bg-white/90 px-2 py-1 text-[10px] font-semibold text-[#667085]">
+            Scroll to zoom · drag to pan
+          </p>
+        ) : null}
+        {overlayLabel ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl bg-[#FCFAFF]/88 backdrop-blur-[2px]">
+            <p className="font-heading text-lg font-extrabold text-[#2A114B]">
+              {overlayLabel}
+            </p>
+          </div>
+        ) : null}
       </div>
 
-      <div className="mt-3 flex items-center justify-center gap-2">
+      <div className={`flex items-center justify-center gap-2 ${compact ? "mt-2" : "mt-3"}`}>
         <button
           type="button"
           onClick={() => zoomBy(-0.25)}

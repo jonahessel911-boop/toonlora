@@ -6,6 +6,7 @@ import type {
 import type { CreatorCharacterInput } from "@/lib/creator/studioPanelPrompt";
 import type { CreatorPanelScript } from "@/lib/creator/studioPanelPrompt";
 import { useCreatorStore } from "@/store/useCreatorStore";
+import { storyHasGeneratedArt } from "@/lib/creator/mockData";
 
 export type GeneratePanelsPayload = ComicGenerationPayload;
 
@@ -141,6 +142,13 @@ export function runComicGeneration(jobId: string): void {
         completedPanels: total,
       });
     } catch (err) {
+      const store = useCreatorStore.getState();
+      const story = store.getStory(job.storyId);
+      if (story && !storyHasGeneratedArt(story)) {
+        useCreatorStore.setState((state) => ({
+          stories: state.stories.filter((entry) => entry.id !== job.storyId),
+        }));
+      }
       update({
         status: "failed",
         error: err instanceof Error ? err.message : "Generation failed",

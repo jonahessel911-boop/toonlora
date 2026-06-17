@@ -20,21 +20,29 @@ export async function registerProfileInDb(
   const email = input.email.trim().toLowerCase();
   const fullName = input.fullName.trim();
 
-  const { data: existing } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("email", email)
-    .maybeSingle();
+  const [{ data: bySession }, { data: byEmail }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("session_id", sessionId).maybeSingle(),
+    supabase.from("profiles").select("*").eq("email", email).maybeSingle(),
+  ]);
+
+  if (bySession && byEmail && bySession.id !== byEmail.id) {
+    throw new Error(
+      "This email is already registered. Sign in with that email instead."
+    );
+  }
+
+  const existing = bySession ?? byEmail;
 
   if (existing) {
     const { data: updated, error } = await supabase
       .from("profiles")
       .update({
         session_id: sessionId,
+        email,
         full_name: fullName,
         wants_recommendations: input.wantsRecommendations ?? true,
       })
-      .eq("email", email)
+      .eq("id", existing.id)
       .select()
       .single();
 

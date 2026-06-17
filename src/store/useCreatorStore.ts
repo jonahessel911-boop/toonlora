@@ -49,6 +49,10 @@ interface CreatorStore {
   updateStory: (id: string, patch: Partial<StudioStory>) => void;
   addCharacter: (character: StudioCharacter) => void;
   updateCharacter: (id: string, patch: Partial<StudioCharacter>) => void;
+  saveCharacterEdits: (
+    id: string,
+    patch: Partial<StudioCharacter>
+  ) => string;
   duplicateCharacter: (id: string) => void;
   deleteCharacter: (id: string) => void;
 
@@ -159,7 +163,9 @@ export const useCreatorStore = create<CreatorStore>()(
         get().communityCharacters.find((c) => c.id === id),
 
       getMyCharacters: () =>
-        get().characters.filter((c) => c.creatorId === MOCK_CREATOR_ID),
+        get().characters.filter(
+          (c) => c.creatorId === MOCK_CREATOR_ID && !c.archivedPublicSnapshot
+        ),
 
       getMyStories: () => filterUserStories(get().stories),
 
@@ -189,6 +195,59 @@ export const useCreatorStore = create<CreatorStore>()(
             c.id === id ? { ...c, ...patch } : c
           ),
         })),
+
+      saveCharacterEdits: (id, patch) => {
+        const current = get().getCharacter(id);
+        if (!current) return id;
+
+        const nextVisibility = patch.visibility ?? current.visibility;
+        const becomingPublic =
+          nextVisibility === "public" && current.visibility !== "public";
+        const editingPublicSnapshot = current.visibility === "public";
+
+        const remapStories = (fromId: string, toId: string) => {
+          set((s) => ({
+            stories: s.stories.map((story) => ({
+              ...story,
+              characterIds: story.characterIds.map((characterId) =>
+                characterId === fromId ? toId : characterId
+              ),
+            })),
+          }));
+        };
+
+        if (editingPublicSnapshot) {
+          const newId = `char-${Date.now()}`;
+          const forked = ensureCharacter({
+            ...current,
+            ...patch,
+            id: newId,
+            visibility: nextVisibility === "public" ? "private" : nextVisibility,
+            publishedCharacterId: current.publishedCharacterId ?? `pub-${Date.now()}`,
+            usedInStories: [...current.usedInStories],
+            archivedPublicSnapshot: false,
+          });
+          get().updateCharacter(id, { archivedPublicSnapshot: true });
+          get().addCharacter(forked);
+          remapStories(id, newId);
+          return newId;
+        }
+
+        const publishedCharacterId = becomingPublic
+          ? `pub-${Date.now()}`
+          : patch.publishedCharacterId ?? current.publishedCharacterId;
+
+        get().updateCharacter(id, {
+          ...patch,
+          visibility: nextVisibility,
+          ...(publishedCharacterId ? { publishedCharacterId } : {}),
+          allowOthersToUse:
+            patch.allowOthersToUse ??
+            (nextVisibility === "public" ? current.allowOthersToUse : false),
+        });
+
+        return id;
+      },
 
       duplicateCharacter: (id) => {
         const original = get().getCharacter(id);
@@ -309,6 +368,8 @@ export const useCreatorStore = create<CreatorStore>()(
 
       createCharacterFromForm: (data) => {
         const id = `char-${Date.now()}`;
+        const publishedCharacterId =
+          data.visibility === "public" ? `pub-${Date.now()}` : undefined;
         const character: StudioCharacter = ensureCharacter({
           ...data,
           id,
@@ -317,6 +378,9 @@ export const useCreatorStore = create<CreatorStore>()(
           referenceImages: data.referenceImages ?? [],
           usedInStories: [],
           portraitGradient: GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)],
+          publishedCharacterId,
+          allowOthersToUse:
+            data.visibility === "public" ? data.allowOthersToUse : false,
         });
         get().addCharacter(character);
         return id;
@@ -485,7 +549,9 @@ export const useCreatorStore = create<CreatorStore>()(
         state.characters = state.characters.map(ensureCharacter);
         state.stories = filterUserStories(state.stories);
         const sections = ["overview", "stories", "characters", "settings"];
-        if (!sections.includes(state.activeSection)) {
+        if ((state.activeSection as string) === "coins") {
+          state.activeSection = "settings";
+        } else if (!sections.includes(state.activeSection)) {
           state.activeSection = "overview";
         }
         state.generationJobs = (state.generationJobs ?? []).map((job) =>
@@ -495,7 +561,7 @@ export const useCreatorStore = create<CreatorStore>()(
         );
       },
       partialize: (state) => ({
-        stories: state.stories,
+        stories: filterUserStories(state.stories),
         characters: state.characters,
         analytics: state.analytics,
         generationJobs: state.generationJobs.filter(

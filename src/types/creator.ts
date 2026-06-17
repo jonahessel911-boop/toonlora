@@ -101,6 +101,10 @@ export interface StudioCharacter {
   shortDescription: string;
   ageRange: string;
   portraitGradient: string;
+  /** Public listing id — separate from owner copy so edits do not collide. */
+  publishedCharacterId?: string;
+  /** Frozen public snapshot — hidden from the creator's working character list. */
+  archivedPublicSnapshot?: boolean;
 }
 
 export interface CreatorAnalytics {

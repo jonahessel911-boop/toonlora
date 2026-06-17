@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CharacterPortraitViewer from "@/components/creator/CharacterPortraitViewer";
+import CharacterGenerationProgress from "@/components/creator/CharacterGenerationProgress";
 import CharacterReferenceUpload from "@/components/creator/CharacterReferenceUpload";
 import type { CharacterGender } from "@/lib/creator/characterAppearance";
 import { defaultAppearance } from "@/lib/creator/characterAppearance";
 import { buildCharacterPortraitPrompt } from "@/lib/creator/characterImagePrompt";
+import { buildCharacterShortDescription } from "@/lib/creator/characterDescription";
 import type { CharacterRole, CharacterVisibility } from "@/types/creator";
 import { STUDIO_CREDIT_COSTS, formatCreditCost } from "@/lib/creator/credits";
 
@@ -67,15 +69,18 @@ export default function CharacterCreateModal({
   const [lookDescription, setLookDescription] = useState("");
   const [outfitDescription, setOutfitDescription] = useState("");
   const [personality, setPersonality] = useState("");
-  const [shortDescription, setShortDescription] = useState("");
   const [styleTheme, setStyleTheme] = useState("fantasy");
   const [ageRange, setAgeRange] = useState("18-24");
   const [role, setRole] = useState<CharacterRole>("main character");
   const [visibility, setVisibility] = useState<CharacterVisibility>("private");
   const [allowOthers, setAllowOthers] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<number | undefined>(
+    undefined
+  );
   const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
-  const [imagePrompt, setImagePrompt] = useState("");
+  const [editInstruction, setEditInstruction] = useState("");
+  const [appliedEdits, setAppliedEdits] = useState<string[]>([]);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [draftCharacterId] = useState(() => `char-${Date.now()}`);
@@ -109,10 +114,25 @@ export default function CharacterCreateModal({
   );
 
   useEffect(() => {
-    if (step === 1 && !imagePrompt) {
-      setImagePrompt(autoPrompt);
+    if (step === 1 && !portraitUrl) {
+      setEditInstruction("");
     }
-  }, [step, autoPrompt, imagePrompt]);
+  }, [step, portraitUrl]);
+
+  useEffect(() => {
+    if (!generating || generationProgress === 100) return;
+
+    const timer = setInterval(() => {
+      setGenerationProgress((value) => {
+        const base = value ?? 0;
+        if (base >= 92) return base;
+        const bump = base < 40 ? 4 : base < 70 ? 2 : 0.8;
+        return Math.min(92, base + bump);
+      });
+    }, 500);
+
+    return () => clearInterval(timer);
+  }, [generating, generationProgress]);
 
   const reset = useCallback(() => {
     setStep(0);
@@ -121,9 +141,10 @@ export default function CharacterCreateModal({
     setLookDescription("");
     setOutfitDescription("");
     setPersonality("");
-    setShortDescription("");
     setPortraitUrl(null);
-    setImagePrompt("");
+    setGenerationProgress(undefined);
+    setEditInstruction("");
+    setAppliedEdits([]);
     setGenerateError(null);
     setReferenceImages([]);
   }, []);
@@ -131,19 +152,21 @@ export default function CharacterCreateModal({
   const handleGenderChange = (g: CharacterGender) => {
     setGender(g);
     setPortraitUrl(null);
-    setImagePrompt("");
+    setEditInstruction("");
+    setAppliedEdits([]);
   };
 
   const handleGeneratePortrait = async () => {
     setGenerating(true);
     setGenerateError(null);
+    setGenerationProgress(0);
     try {
       const res = await fetch("/api/creator/character-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          mode: "generate",
           characterId: draftCharacterId,
-          prompt: imagePrompt || autoPrompt,
           name: name.trim(),
           gender,
           role,
@@ -158,33 +181,76 @@ export default function CharacterCreateModal({
       const data = (await res.json()) as {
         portraitUrl?: string;
         error?: string;
-        prompt?: string;
       };
       if (!res.ok || !data.portraitUrl) {
         throw new Error(data.error ?? "Portrait generation failed");
       }
+      setGenerationProgress(100);
+      await new Promise((resolve) => setTimeout(resolve, 450));
       setPortraitUrl(data.portraitUrl);
-      if (data.prompt) setImagePrompt(data.prompt);
+      setAppliedEdits([]);
+      setEditInstruction("");
     } catch (err) {
       setGenerateError(
         err instanceof Error ? err.message : "Portrait generation failed"
       );
     } finally {
       setGenerating(false);
+      setGenerationProgress(undefined);
+    }
+  };
+
+  const handleEditPortrait = async () => {
+    if (!portraitUrl || !editInstruction.trim()) return;
+    setGenerating(true);
+    setGenerateError(null);
+    setGenerationProgress(0);
+    try {
+      const res = await fetch("/api/creator/character-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "edit",
+          characterId: draftCharacterId,
+          editInstruction: editInstruction.trim(),
+          referencePortraitUrl: portraitUrl,
+        }),
+      });
+      const data = (await res.json()) as {
+        portraitUrl?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.portraitUrl) {
+        throw new Error(data.error ?? "Portrait edit failed");
+      }
+      setGenerationProgress(100);
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      setPortraitUrl(data.portraitUrl);
+      setAppliedEdits((prev) => [...prev, editInstruction.trim()]);
+      setEditInstruction("");
+    } catch (err) {
+      setGenerateError(
+        err instanceof Error ? err.message : "Portrait edit failed"
+      );
+    } finally {
+      setGenerating(false);
+      setGenerationProgress(undefined);
     }
   };
 
   const handleSave = () => {
     if (!portraitUrl) return;
     const appearance = defaultAppearance(gender);
+    const generatedShortDescription = buildCharacterShortDescription(
+      lookDescription,
+      personality,
+      outfitDescription
+    );
     onCreate({
       name,
       gender,
       appearance,
-      shortDescription:
-        shortDescription ||
-        `${lookDescription.slice(0, 80)}`.trim() ||
-        name,
+      shortDescription: generatedShortDescription || name,
       personality,
       visualDescription: lookDescription,
       outfit: outfitDescription,
@@ -196,7 +262,10 @@ export default function CharacterCreateModal({
       styleTheme,
       ageRange,
       role,
-      consistencyPrompt: imagePrompt || autoPrompt,
+      consistencyPrompt:
+        appliedEdits.length > 0
+          ? `${autoPrompt}\n\nApplied edits:\n${appliedEdits.map((e) => `- ${e}`).join("\n")}`
+          : autoPrompt,
       visibility,
       allowOthersToUse: visibility === "public" ? allowOthers : false,
       attributionRequired: true,
@@ -270,40 +339,7 @@ export default function CharacterCreateModal({
               ))}
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-              {step >= 1 ? (
-                <div className="relative flex shrink-0 flex-col border-b border-[#E7D8FF] bg-gradient-to-b from-[#F3ECFF] to-white p-4 lg:w-[44%] lg:border-b-0 lg:border-r">
-                  {generating ? (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16">
-                      <div className="h-14 w-14 animate-spin rounded-full border-4 border-[#E7D8FF] border-t-[#5340FF]" />
-                      <p className="font-heading text-lg font-extrabold text-[#2A114B]">
-                        Painting your character…
-                      </p>
-                      <p className="max-w-xs text-center text-sm text-[#667085]">
-                        Full body, three-quarter pose, transparent background
-                      </p>
-                    </div>
-                  ) : portraitUrl ? (
-                    <CharacterPortraitViewer
-                      src={portraitUrl}
-                      alt={name || "Character portrait"}
-                      className="h-full"
-                    />
-                  ) : (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#E7D8FF] bg-white/60 p-8 text-center">
-                      <p className="text-4xl">🎨</p>
-                      <p className="font-heading text-base font-extrabold text-[#2A114B]">
-                        Portrait preview
-                      </p>
-                      <p className="text-sm text-[#667085]">
-                        Your character will stand half schuin to the camera with a
-                        transparent cutout background — zoom in to inspect details.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
                 {step === 0 && (
                   <div className="mx-auto max-w-lg space-y-5">
@@ -443,51 +479,123 @@ export default function CharacterCreateModal({
                   </div>
                 )}
 
-                {step === 1 && (
-                  <div className="mx-auto max-w-lg space-y-4">
-                    <div>
-                      <h3 className="font-heading text-xl font-extrabold text-[#2A114B]">
-                        AI image prompt
-                      </h3>
-                      <p className="mt-1 text-sm text-[#667085]">
-                        Review or tweak the full description before generating.{" "}
-                        {formatCreditCost(STUDIO_CREDIT_COSTS.generateCharacter)}
-                      </p>
-                    </div>
+                {step === 1 && !portraitUrl && generating ? (
+                  <CharacterGenerationProgress
+                    characterName={name}
+                    progress={generationProgress}
+                  />
+                ) : null}
 
-                    <textarea
-                      rows={14}
-                      value={imagePrompt || autoPrompt}
-                      onChange={(e) => setImagePrompt(e.target.value)}
-                      className="w-full rounded-2xl border border-[#E7D8FF] bg-white px-3 py-3 font-mono text-xs leading-relaxed text-[#2A114B]"
-                    />
-
+                {step === 1 && !portraitUrl && !generating ? (
+                  <div className="mx-auto flex min-h-[min(420px,50vh)] max-w-md flex-col items-center justify-center text-center">
+                    <p className="text-sm text-[#667085]">
+                      Ready to bring{" "}
+                      <span className="font-bold text-[#2A114B]">
+                        {name.trim() || "your character"}
+                      </span>{" "}
+                      to life with AI.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void handleGeneratePortrait()}
+                      className="mt-8 rounded-2xl bg-[#FF6847] px-10 py-4 text-base font-bold text-white shadow-[0_8px_24px_rgba(255,104,71,0.35)] transition hover:bg-[#ff5230]"
+                    >
+                      Create character
+                    </button>
+                    <p className="mt-3 text-xs text-[#667085]">
+                      {formatCreditCost(STUDIO_CREDIT_COSTS.generateCharacter)}
+                    </p>
                     {generateError ? (
-                      <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+                      <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
                         {generateError}
                       </p>
                     ) : null}
-
-                    {portraitUrl ? (
-                      <p className="rounded-xl bg-[#E9F7E9] px-3 py-2 text-sm font-semibold text-[#107C10]">
-                        ✓ Portrait ready — zoom the preview, then continue to save
-                      </p>
-                    ) : null}
                   </div>
-                )}
+                ) : null}
+
+                {step === 1 && portraitUrl ? (
+                  <div className="mx-auto grid w-full max-w-4xl gap-5 md:grid-cols-[minmax(0,1fr)_240px] lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-6">
+                    <div className="min-h-0">
+                      <CharacterPortraitViewer
+                        src={portraitUrl}
+                        alt={name || "Character portrait"}
+                        className="w-full"
+                        compact
+                        overlayLabel={
+                          generating ? "Working the magic…" : undefined
+                        }
+                      />
+                    </div>
+
+                    <div className="flex min-h-0 flex-col">
+                      <label className="block">
+                        <span className="text-sm font-bold text-[#2A114B]">
+                          Edit image
+                        </span>
+                        <textarea
+                          rows={4}
+                          value={editInstruction}
+                          onChange={(e) => setEditInstruction(e.target.value)}
+                          disabled={generating}
+                          placeholder="Change hair color to brown, change outfit to a suit."
+                          className="mt-2 w-full resize-none rounded-2xl border border-[#E7D8FF] bg-white px-4 py-3 text-sm leading-relaxed text-[#2A114B] placeholder:text-[#98A2B3] disabled:opacity-60"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        disabled={generating || !editInstruction.trim()}
+                        onClick={() => void handleEditPortrait()}
+                        className="mt-4 w-full rounded-2xl border border-[#E7D8FF] bg-white py-3 text-sm font-bold text-[#5340FF] transition hover:bg-[#F3ECFF] disabled:opacity-50"
+                      >
+                        {generating ? "Applying…" : "Apply edit"}
+                      </button>
+
+                      {generating ? (
+                        <div className="mt-4">
+                          <div className="mb-1.5 flex justify-end text-xs font-medium text-[#667085]">
+                            {Math.round(generationProgress ?? 0)}%
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-[#E7D8FF]">
+                            <div
+                              className="h-full rounded-full bg-[#5340FF] transition-[width] duration-500 ease-out"
+                              style={{
+                                width: `${generationProgress ?? 0}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {generateError ? (
+                        <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+                          {generateError}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
 
                 {step === 2 && (
                   <div className="mx-auto max-w-lg space-y-4">
-                    <label className="block text-xs font-bold text-[#2A114B]">
-                      Short description
-                      <textarea
-                        rows={2}
-                        value={shortDescription}
-                        onChange={(e) => setShortDescription(e.target.value)}
-                        placeholder={lookDescription.slice(0, 80)}
-                        className="mt-1 w-full rounded-xl border border-[#E7D8FF] px-3 py-2.5 text-sm"
-                      />
-                    </label>
+                    <div className="rounded-2xl border border-[#E7D8FF] bg-white p-4">
+                      <p className="text-xs font-bold text-[#2A114B]">
+                        Personality
+                      </p>
+                      <p className="mt-2 text-sm leading-relaxed text-[#2A114B]">
+                        {personality}
+                      </p>
+                      <p className="mt-4 text-xs font-bold text-[#2A114B]">
+                        How others will see them
+                      </p>
+                      <p className="mt-2 text-sm leading-relaxed text-[#667085]">
+                        {buildCharacterShortDescription(
+                          lookDescription,
+                          personality,
+                          outfitDescription
+                        ) || "Your character summary will appear here."}
+                      </p>
+                    </div>
 
                     <div className="rounded-2xl bg-[#F3ECFF] p-4">
                       <p className="text-xs font-bold text-[#2A114B]">
@@ -537,8 +645,9 @@ export default function CharacterCreateModal({
               {step > 0 ? (
                 <button
                   type="button"
+                  disabled={generating}
                   onClick={() => setStep((s) => s - 1)}
-                  className="rounded-2xl border border-[#E7D8FF] px-5 py-3 text-sm font-bold text-[#667085]"
+                  className="rounded-2xl border border-[#E7D8FF] px-5 py-3 text-sm font-bold text-[#667085] disabled:opacity-50"
                 >
                   Back
                 </button>
@@ -556,53 +665,23 @@ export default function CharacterCreateModal({
                 <button
                   type="button"
                   disabled={!canContinueDescribe}
-                  onClick={() => {
-                    setImagePrompt(autoPrompt);
-                    setStep(1);
-                  }}
+                  onClick={() => setStep(1)}
                   className="ml-auto rounded-2xl bg-[#5340FF] px-6 py-3 text-sm font-bold text-white disabled:opacity-40"
                 >
                   Continue to generate
                 </button>
               )}
 
-              {step === 1 && (
-                <div className="ml-auto flex gap-2">
-                  {portraitUrl ? (
-                    <>
-                      <button
-                        type="button"
-                        disabled={generating}
-                        onClick={() => {
-                          setPortraitUrl(null);
-                          void handleGeneratePortrait();
-                        }}
-                        className="rounded-2xl border border-[#E7D8FF] px-5 py-3 text-sm font-bold text-[#5340FF] disabled:opacity-60"
-                      >
-                        Regenerate
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setStep(2)}
-                        className="rounded-2xl bg-[#5340FF] px-6 py-3 text-sm font-bold text-white"
-                      >
-                        Continue
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={generating}
-                      onClick={() => void handleGeneratePortrait()}
-                      className="rounded-2xl bg-[#FF6847] px-6 py-3 text-sm font-bold text-white disabled:opacity-60"
-                    >
-                      {generating
-                        ? "Generating…"
-                        : `Generate portrait (${formatCreditCost(STUDIO_CREDIT_COSTS.generateCharacter)})`}
-                    </button>
-                  )}
-                </div>
-              )}
+              {step === 1 && portraitUrl ? (
+                <button
+                  type="button"
+                  disabled={generating}
+                  onClick={() => setStep(2)}
+                  className="ml-auto rounded-2xl bg-[#5340FF] px-6 py-3 text-sm font-bold text-white disabled:opacity-60"
+                >
+                  Continue
+                </button>
+              ) : null}
 
               {step === 2 && (
                 <button

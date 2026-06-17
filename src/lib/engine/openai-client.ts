@@ -79,6 +79,50 @@ function isUnknownImageModelError(errText: string): boolean {
   );
 }
 
+async function requestOpenAIImageEdit(
+  prompt: string,
+  referenceImageUrl: string,
+  model: string,
+  options?: { transparent?: boolean }
+): Promise<{ b64?: string; url?: string }> {
+  const imageRes = await fetch(referenceImageUrl);
+  if (!imageRes.ok) {
+    throw new Error("Failed to load reference portrait");
+  }
+
+  const imageBlob = await imageRes.blob();
+  const form = new FormData();
+  form.append("model", model);
+  form.append("prompt", prompt);
+  form.append("image[]", imageBlob, "reference.png");
+  form.append("size", "1024x1536");
+  form.append("quality", "high");
+  form.append("output_format", "png");
+  form.append("n", "1");
+  if (options?.transparent) {
+    form.append("background", "transparent");
+  }
+
+  const response = await fetch("https://api.openai.com/v1/images/edits", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: form,
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(err);
+  }
+
+  const data = await response.json();
+  return {
+    b64: data.data?.[0]?.b64_json as string | undefined,
+    url: data.data?.[0]?.url as string | undefined,
+  };
+}
+
 async function requestOpenAIImage(
   prompt: string,
   model: string,
@@ -235,6 +279,47 @@ export async function callOpenAICharacterPortrait(
   }
 
   throw new Error(`OpenAI character portrait failed: ${lastError}`);
+}
+
+export async function callOpenAICharacterPortraitEdit(
+  prompt: string,
+  referenceImageUrl: string,
+  characterId: string,
+  model = getOpenAIImageModel()
+): Promise<string> {
+  requireOpenAIKey();
+
+  let lastError = "OpenAI character portrait edit failed";
+  const models = imageModelsToTry(model).filter(isGptImageModel);
+  const editModels = models.length > 0 ? models : ["gpt-image-1"];
+
+  for (const candidate of editModels) {
+    try {
+      const transparent = isGptImageModel(candidate);
+      const { b64, url } = await requestOpenAIImageEdit(
+        prompt,
+        referenceImageUrl,
+        candidate,
+        { transparent }
+      );
+      if (!b64 && !url) {
+        lastError = "OpenAI image edit returned no image data";
+        continue;
+      }
+      return persistCharacterPortrait(
+        b64 ? `data:image/png;base64,${b64}` : url!,
+        characterId
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      lastError = message;
+      if (!isUnknownImageModelError(message)) {
+        throw new Error(`OpenAI character portrait edit failed: ${message}`);
+      }
+    }
+  }
+
+  throw new Error(`OpenAI character portrait edit failed: ${lastError}`);
 }
 
 export async function callOpenAIStudioPanel(
