@@ -4,6 +4,7 @@ export interface SendEmailOptions {
   htmlBody: string;
   textBody?: string;
   tag?: string;
+  bcc?: string;
 }
 
 export interface PostmarkSendResult {
@@ -47,6 +48,9 @@ export async function sendPostmarkEmail(
     body: JSON.stringify({
       From: getPostmarkFrom(),
       To: to,
+      ...(options.bcc?.trim()
+        ? { Bcc: options.bcc.trim() }
+        : {}),
       Subject: options.subject,
       HtmlBody: options.htmlBody,
       TextBody: options.textBody ?? stripHtml(options.htmlBody),

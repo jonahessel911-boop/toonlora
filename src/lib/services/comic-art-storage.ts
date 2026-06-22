@@ -33,15 +33,40 @@ export async function persistStudioPanelArt(
   );
 }
 
+/** Upload admin-provided panel image bytes. */
+export async function persistAdminPanelUpload(
+  bytes: Buffer,
+  contentType: string,
+  storyId: string,
+  panelOrder: number
+): Promise<string> {
+  const ext = contentType.includes("jpeg")
+    ? "jpg"
+    : contentType.includes("webp")
+      ? "webp"
+      : "png";
+  return persistImageToBucket(
+    bytes,
+    `uploads/${storyId}/panel-${String(panelOrder).padStart(3, "0")}.${ext}`,
+    contentType
+  );
+}
+
 async function persistImageToBucket(
-  imageData: string,
-  path: string
+  imageData: string | Buffer,
+  path: string,
+  contentType = "image/png"
 ): Promise<string> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return imageData;
+  if (!supabase) {
+    if (typeof imageData === "string") return imageData;
+    throw new Error("Database not configured for image upload");
+  }
 
   let bytes: Buffer;
-  if (imageData.startsWith("http://") || imageData.startsWith("https://")) {
+  if (Buffer.isBuffer(imageData)) {
+    bytes = imageData;
+  } else if (imageData.startsWith("http://") || imageData.startsWith("https://")) {
     const res = await fetch(imageData);
     if (!res.ok) throw new Error("Failed to download generated image");
     bytes = Buffer.from(await res.arrayBuffer());
@@ -53,7 +78,7 @@ async function persistImageToBucket(
   const { error } = await supabase.storage
     .from(BUCKET)
     .upload(path, bytes, {
-      contentType: "image/png",
+      contentType,
       upsert: true,
     });
 

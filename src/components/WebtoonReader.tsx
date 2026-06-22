@@ -73,7 +73,9 @@ export default function WebtoonReader({
   const total = panels.length;
 
   const nextEpisodeFromList = episodes?.find((e) => e.number === episodeNumber + 1);
-  const panelCoverUrl = panels.find((p) => p.imageUrl)?.imageUrl;
+  const panelsWithImages = panels.filter((p) => p.imageUrl);
+  const isMultiPanelUpload = panelsWithImages.length > 1;
+  const panelCoverUrl = panelsWithImages[0]?.imageUrl;
   const nextEpisode =
     nextEpisodeFromList ??
     (gatedNextEpisode
@@ -86,7 +88,7 @@ export default function WebtoonReader({
         }
       : undefined);
 
-  const stripUrl = panelCoverUrl;
+  const stripUrl = isMultiPanelUpload ? undefined : panelCoverUrl;
 
   const handleStartNextEpisode = useCallback(() => {
     if (needsSignup) {

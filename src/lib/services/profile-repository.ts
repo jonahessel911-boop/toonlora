@@ -11,7 +11,7 @@ export interface RegisterProfileInput {
 export async function registerProfileInDb(
   sessionId: string,
   input: RegisterProfileInput
-): Promise<ProfileRow> {
+): Promise<{ profile: ProfileRow; isNew: boolean }> {
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("Database not configured");
 
@@ -47,7 +47,7 @@ export async function registerProfileInDb(
       .single();
 
     if (error) throw new Error(error.message);
-    return updated as ProfileRow;
+    return { profile: updated as ProfileRow, isNew: false };
   }
 
   const { data, error } = await supabase
@@ -62,7 +62,7 @@ export async function registerProfileInDb(
     .single();
 
   if (error) throw new Error(error.message);
-  return data as ProfileRow;
+  return { profile: data as ProfileRow, isNew: true };
 }
 
 export async function getProfileBySessionFromDb(

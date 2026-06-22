@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/api/session";
 import { isServerDatabaseConfigured } from "@/lib/config";
+import { sendSignupWelcomeEmail } from "@/lib/email/sendSignupWelcome";
 import { registerProfileInDb } from "@/lib/services/profile-repository";
 import { recordLoginEvent } from "@/lib/services/analytics-repository";
 
@@ -28,13 +29,24 @@ export async function POST(request: Request) {
     }
 
     const sessionId = getSessionFromRequest(request);
-    const profile = await registerProfileInDb(sessionId, {
+    const { profile, isNew } = await registerProfileInDb(sessionId, {
       fullName,
       email,
       wantsRecommendations: body.wantsRecommendations !== false,
     });
 
     await recordLoginEvent(profile.id, "signup");
+
+    if (isNew) {
+      try {
+        await sendSignupWelcomeEmail(email);
+      } catch (err) {
+        console.error(
+          "[toonlora] Welcome email failed:",
+          err instanceof Error ? err.message : err
+        );
+      }
+    }
 
     return NextResponse.json({ profile, source: "supabase" });
   } catch (err) {

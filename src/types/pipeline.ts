@@ -85,6 +85,8 @@ export interface PanelBreakdownItem {
   sfx_text: string;
   camera: string;
   background: string;
+  /** Per-panel artwork URL (admin uploads). */
+  artUrl?: string;
 }
 
 export interface PanelBreakdown {

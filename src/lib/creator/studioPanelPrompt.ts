@@ -20,6 +20,65 @@ export interface CreatorPanelBreakdown {
   panels: CreatorPanelScript[];
 }
 
+export interface GeneratedStoryCharacter {
+  name: string;
+  gender: "woman" | "man";
+  role: string;
+  personality: string;
+  visualDescription: string;
+  outfit: string;
+  shortDescription: string;
+}
+
+export interface GeneratedStoryCharacters {
+  characters: GeneratedStoryCharacter[];
+}
+
+export function buildStoryCharactersPrompt(params: {
+  title: string;
+  genre: string;
+  description: string;
+  episodePrompt: string;
+}): string {
+  return `You are a webtoon character designer.
+
+Invent 2–3 original characters for this comic episode. They must fit the genre, story description, and episode plot.
+
+SERIES: ${params.title}
+GENRE: ${params.genre}
+${getGenreImageHint(params.genre)}
+
+STORY DESCRIPTION:
+${params.description || "—"}
+
+EPISODE PLOT:
+${params.episodePrompt}
+
+RULES:
+- Include one clear main character and at least one supporting character.
+- Names should be distinctive and easy to remember.
+- visualDescription: face, hair, build, and signature look (no outfit details here).
+- outfit: what they wear in this story.
+- shortDescription: one sentence bio for a character card.
+- role must be one of: main character, love interest, friend, side character, villain, mentor.
+- gender must be "woman" or "man".
+
+OUTPUT JSON ONLY:
+{
+  "characters": [
+    {
+      "name": "",
+      "gender": "woman",
+      "role": "main character",
+      "personality": "",
+      "visualDescription": "",
+      "outfit": "",
+      "shortDescription": ""
+    }
+  ]
+}`;
+}
+
 export function buildCreatorEpisodeBreakdownPrompt(params: {
   title: string;
   genre: string;
@@ -28,12 +87,15 @@ export function buildCreatorEpisodeBreakdownPrompt(params: {
   panelCount: number;
   characters: CreatorCharacterInput[];
 }): string {
-  const characterBlock = params.characters
-    .map(
-      (c) =>
-        `- ${c.name} (${c.role}): ${c.visualDescription}. Outfit: ${c.outfit}`
-    )
-    .join("\n");
+  const characterBlock =
+    params.characters.length > 0
+      ? params.characters
+          .map(
+            (c) =>
+              `- ${c.name} (${c.role}): ${c.visualDescription}. Outfit: ${c.outfit}`
+          )
+          .join("\n")
+      : "Invent fitting characters as you write the panels.";
 
   return `You are a vertical webtoon storyboard writer.
 

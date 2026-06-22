@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import ArtStylePicker from "@/components/admin/ArtStylePicker";
+import AdminUploadComicPanel from "@/components/admin/AdminUploadComicPanel";
 import type { CatalogSeries } from "@/types/catalog";
 import {
   PANEL_COUNT_MAX,
@@ -133,10 +134,12 @@ export default function AdminComicsPanel() {
 
   return (
     <div className="space-y-6">
+      <AdminUploadComicPanel onPublished={loadSeries} />
+
       <section className="border border-[#EDEBE9] bg-white shadow-[0_1.6px_3.6px_rgba(0,0,0,0.13)]">
         <div className="border-b border-[#EDEBE9] px-4 py-3">
           <h2 className="text-sm font-semibold text-[#323130]">
-            Create &amp; publish official comic
+            Generate with AI
           </h2>
           <p className="mt-1 text-xs text-[#605E5C]">
             Generates episode 1 as one vertical webtoon page (single column, no

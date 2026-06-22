@@ -23,7 +23,7 @@ import type {
   ComicGenerationPayload,
 } from "@/types/creator";
 
-const STORAGE_KEY = "toonlora-creator-studio";
+const STORAGE_KEY = "toonlora-creator-studio-v2";
 
 interface CreatorStore {
   hydrated: boolean;

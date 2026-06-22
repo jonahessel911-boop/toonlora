@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import ProfileMenu from "@/components/nav/ProfileMenu";
@@ -129,62 +130,64 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/70 bg-white/95 backdrop-blur-md">
-      <div className={`${PAGE_CONTAINER_CLASS} flex h-16 items-center justify-between gap-3`}>
-        <Link href="/" className="flex shrink-0 items-center">
-          <ToonloraLogo variant="nav" />
-        </Link>
-
-        <div className="flex items-center gap-1 sm:gap-2">
-          {loggedIn && (
-            <span className="tl-nav-credits hidden md:inline-flex">{credits} ✦</span>
-          )}
-
-          {!loggedIn && (
-            <Link href="/signin" className="tl-nav-login hidden sm:inline-flex">
-              Log in
-            </Link>
-          )}
-
-          <ProfileMenu />
-
-          <Link
-            href="/#trending"
-            className="hidden h-10 w-10 items-center justify-center rounded-full text-gs-text transition hover:bg-surface-soft sm:flex"
-            aria-label="Search stories"
-          >
-            <SearchIcon />
+    <>
+      <header className="sticky top-0 z-50 border-b border-border/70 bg-white/95 backdrop-blur-md">
+        <div className={`${PAGE_CONTAINER_CLASS} flex h-16 items-center justify-between gap-3`}>
+          <Link href="/" className="flex shrink-0 items-center">
+            <ToonloraLogo variant="nav" />
           </Link>
 
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-gs-text transition hover:bg-surface-soft md:hidden"
-            aria-label="Menu"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-      </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            {loggedIn && (
+              <span className="tl-nav-credits hidden md:inline-flex">{credits} ✦</span>
+            )}
 
-      <div className="hidden border-t border-border/50 md:block">
-        <nav
-          className={`${PAGE_CONTAINER_CLASS} flex gap-6 overflow-x-auto scrollbar-hide sm:gap-8`}
-          aria-label="Browse sections"
-        >
-          {browseNav.map((link) => (
-            <BrowseTab
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              active={isBrowseActive(link.href)}
-              onNavigate={handleBrowseNavigate}
-            />
-          ))}
-        </nav>
-      </div>
+            {!loggedIn && (
+              <Link href="/signin" className="tl-nav-login hidden sm:inline-flex">
+                Log in
+              </Link>
+            )}
+
+            <ProfileMenu />
+
+            <Link
+              href="/#trending"
+              className="hidden h-10 w-10 items-center justify-center rounded-full text-gs-text transition hover:bg-surface-soft sm:flex"
+              aria-label="Search stories"
+            >
+              <SearchIcon />
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-gs-text transition hover:bg-surface-soft md:hidden"
+              aria-label="Menu"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="hidden border-t border-border/50 md:block">
+          <nav
+            className={`${PAGE_CONTAINER_CLASS} flex gap-6 overflow-x-auto scrollbar-hide sm:gap-8`}
+            aria-label="Browse sections"
+          >
+            {browseNav.map((link) => (
+              <BrowseTab
+                key={link.href}
+                href={link.href}
+                label={link.label}
+                active={isBrowseActive(link.href)}
+                onNavigate={handleBrowseNavigate}
+              />
+            ))}
+          </nav>
+        </div>
+      </header>
 
       <MobileDrawer
         open={open}
@@ -200,7 +203,7 @@ export default function Navbar() {
           router.push("/");
         }}
       />
-    </header>
+    </>
   );
 }
 
@@ -224,8 +227,15 @@ function MobileDrawer({
   onLogout: () => void;
 }) {
   const { credits } = useCreditsStore();
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -375,6 +385,7 @@ function MobileDrawer({
           </motion.aside>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

@@ -4,7 +4,12 @@ import type {
   ComicGenerationJob,
 } from "@/types/creator";
 import type { CreatorCharacterInput } from "@/lib/creator/studioPanelPrompt";
-import type { CreatorPanelScript } from "@/lib/creator/studioPanelPrompt";
+import type {
+  CreatorPanelScript,
+  GeneratedStoryCharacter,
+} from "@/lib/creator/studioPanelPrompt";
+import type { CharacterRole } from "@/types/creator";
+import { defaultAppearance } from "@/lib/creator/characterAppearance";
 import { useCreatorStore } from "@/store/useCreatorStore";
 import { storyHasGeneratedArt } from "@/lib/creator/mockData";
 
@@ -31,6 +36,110 @@ export async function requestPanelBreakdown(payload: ComicGenerationPayload) {
     slots: Array<{ id: string; order: number }>;
     panelCount: number;
   }>({ mode: "breakdown", ...payload });
+}
+
+const VALID_ROLES: CharacterRole[] = [
+  "main character",
+  "love interest",
+  "villain",
+  "friend",
+  "side character",
+  "mentor",
+];
+
+function normalizeRole(role: string): CharacterRole {
+  const lower = role.toLowerCase().trim();
+  const match = VALID_ROLES.find((r) => r === lower);
+  return match ?? "side character";
+}
+
+export async function requestStoryCharacters(
+  payload: Pick<
+    ComicGenerationPayload,
+    "storyId" | "episodeId" | "title" | "genre" | "description" | "episodePrompt"
+  >
+) {
+  return postJson<{ characters: GeneratedStoryCharacter[] }>({
+    mode: "characters",
+    ...payload,
+    panelCount: 0,
+    characters: [],
+    characterIds: [],
+    existingPanels: [],
+  });
+}
+
+function createCharactersFromStory(
+  storyId: string,
+  generated: GeneratedStoryCharacter[]
+): { characterIds: string[]; characters: CreatorCharacterInput[] } {
+  const store = useCreatorStore.getState();
+  const characterIds: string[] = [];
+  const characters: CreatorCharacterInput[] = [];
+
+  for (const entry of generated) {
+    const gender = entry.gender === "man" ? "man" : "woman";
+    const appearance = defaultAppearance(gender);
+    const id = store.createCharacterFromForm({
+      name: entry.name.trim() || "Character",
+      gender,
+      appearance,
+      shortDescription: entry.shortDescription.trim() || entry.name,
+      personality: entry.personality.trim() || "Mysterious",
+      visualDescription: entry.visualDescription.trim() || entry.name,
+      outfit: entry.outfit.trim() || "Casual clothes",
+      colorPalette: [
+        appearance.topColor,
+        appearance.bottomColor,
+        appearance.accentColor,
+      ],
+      styleTheme: "webtoon",
+      ageRange: "18-25",
+      role: normalizeRole(entry.role),
+      consistencyPrompt: `${entry.visualDescription}. Outfit: ${entry.outfit}`,
+      visibility: "private",
+      allowOthersToUse: false,
+      attributionRequired: true,
+      referenceImages: [],
+    });
+    characterIds.push(id);
+    characters.push({
+      name: entry.name,
+      visualDescription: entry.visualDescription,
+      outfit: entry.outfit,
+      role: normalizeRole(entry.role),
+    });
+    store.updateCharacter(id, {
+      usedInStories: [storyId],
+    });
+  }
+
+  store.updateStory(storyId, { characterIds });
+  return { characterIds, characters };
+}
+
+async function ensureStoryCharacters(
+  payload: ComicGenerationPayload
+): Promise<ComicGenerationPayload> {
+  if (payload.characterIds.length > 0 && payload.characters.length > 0) {
+    return payload;
+  }
+
+  const { characters: generated } = await requestStoryCharacters(payload);
+  if (!generated.length) {
+    throw new Error("Could not create characters for this story");
+  }
+
+  const { characterIds, characters } = createCharactersFromStory(
+    payload.storyId,
+    generated
+  );
+
+  return {
+    ...payload,
+    characterIds,
+    characters,
+  };
 }
 
 export async function requestGeneratePanelFromScript(
@@ -89,13 +198,21 @@ export function runComicGeneration(jobId: string): void {
     };
 
     try {
+      const needsCharacters = job.payload.characterIds.length === 0;
       update({
         progress: 3,
-        message: "Creating your Lora…",
+        message: needsCharacters
+          ? "Inventing characters for your story…"
+          : "Creating your Lora…",
         completedPanels: 0,
       });
 
-      const { scripts, slots } = await requestPanelBreakdown(job.payload);
+      const payload = await ensureStoryCharacters(job.payload);
+      if (payload !== job.payload) {
+        update({ payload });
+      }
+
+      const { scripts, slots } = await requestPanelBreakdown(payload);
       const total = slots.length;
 
       update({
@@ -120,7 +237,7 @@ export function runComicGeneration(jobId: string): void {
         });
 
         const panel = await requestGeneratePanelFromScript({
-          ...job.payload,
+          ...payload,
           panelId: slot.id,
           panelOrder: slot.order,
           panelScript: script,

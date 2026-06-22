@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   title: "Toonlora — Create & Share Cartoon Stories",
   description:
     "Read free cartoon stories from the community. Turn your idea into a shareable webtoon episode in minutes.",
+  icons: {
+    icon: "/icon",
+    apple: "/apple-icon",
+  },
 };
 
 export const viewport = {

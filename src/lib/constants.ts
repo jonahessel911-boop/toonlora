@@ -85,7 +85,7 @@ export const CREDIT_PACKAGES = [
 ];
 
 export const STORAGE_KEYS = {
-  stories: "toonlora-stories",
+  stories: "toonlora-stories-v2",
   credits: "toonlora-credits",
   freeUsed: "toonlora-free-used",
   readingHistory: "toonlora-reading-history",

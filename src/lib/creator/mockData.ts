@@ -3,7 +3,6 @@ import type {
   CreatorAnalytics,
   StudioBubble,
   StudioCharacter,
-  StudioEpisode,
   StudioPanel,
   StudioStory,
 } from "@/types/creator";
@@ -13,8 +12,6 @@ import {
 } from "@/lib/creator/characterAppearance";
 
 const NOW = new Date().toISOString();
-const DAYS_AGO = (d: number) =>
-  new Date(Date.now() - d * 86400000).toISOString();
 
 export const MOCK_CREATOR_ID = "creator-local";
 export const MOCK_CREATOR_NAME = "You";
@@ -66,166 +63,6 @@ function bubble(
   };
 }
 
-function makePanels(
-  episodeId: string,
-  storyCharacterIds: string[],
-  withBubbles = false
-): StudioPanel[] {
-  const mc = storyCharacterIds[0];
-  const li = storyCharacterIds[1];
-
-  const configs: Array<{
-    prompt: string;
-    gradient: string;
-    overlays: StudioBubble[];
-  }> = [
-    {
-      prompt: "Night street, character walking under warm lamps",
-      gradient: GRADIENTS[0],
-      overlays: withBubbles
-        ? [
-            bubble(`p1`, {
-              type: "narration",
-              text: "The air felt charged, as if something stirred in the shadows.",
-              x: 8,
-              y: 6,
-              width: 84,
-              tail: "none",
-              style: "default",
-            }),
-            bubble(`p1`, {
-              type: "speech",
-              characterId: mc,
-              text: "Just another quiet evening...",
-              x: 10,
-              y: 72,
-              width: 55,
-              tail: "bottom-left",
-              style: "default",
-            }),
-          ]
-        : [],
-    },
-    {
-      prompt: "Close-up — startled expression",
-      gradient: GRADIENTS[1],
-      overlays: withBubbles
-        ? [
-            bubble(`p2`, {
-              type: "sfx",
-              text: "WHISPER...",
-              x: 68,
-              y: 12,
-              width: 24,
-              tail: "none",
-              style: "dramatic",
-            }),
-            bubble(`p2`, {
-              type: "speech",
-              characterId: mc,
-              text: "What was that?",
-              x: 12,
-              y: 68,
-              width: 50,
-              tail: "bottom-left",
-              style: "default",
-            }),
-          ]
-        : [],
-    },
-    {
-      prompt: "Wide shot — woods at the edge of town",
-      gradient: GRADIENTS[2],
-      overlays: withBubbles
-        ? [
-            bubble(`p3`, {
-              type: "narration",
-              text: "The woods beckon, whispering secrets of forgotten tales.",
-              x: 8,
-              y: 8,
-              width: 84,
-              tail: "none",
-              style: "soft",
-            }),
-          ]
-        : [],
-    },
-    {
-      prompt: "Ghost girl appears among the trees",
-      gradient: GRADIENTS[3],
-      overlays: withBubbles
-        ? [
-            bubble(`p4`, {
-              type: "speech",
-              characterId: li,
-              text: "Please... don't run away.",
-              x: 14,
-              y: 62,
-              width: 58,
-              tail: "bottom-right",
-              style: "soft",
-            }),
-          ]
-        : [],
-    },
-    {
-      prompt: "Extreme close-up — eyes wide with shock",
-      gradient: GRADIENTS[4],
-      overlays: withBubbles
-        ? [
-            bubble(`p5`, {
-              type: "sfx",
-              text: "THUMP...",
-              x: 70,
-              y: 18,
-              width: 22,
-              tail: "none",
-              style: "dramatic",
-            }),
-          ]
-        : [],
-    },
-    {
-      prompt: "Both characters face each other — magical glow",
-      gradient: GRADIENTS[0],
-      overlays: withBubbles
-        ? [
-            bubble(`p6`, {
-              type: "speech",
-              characterId: mc,
-              text: "You... you're real?",
-              x: 52,
-              y: 58,
-              width: 42,
-              tail: "bottom-right",
-              style: "default",
-            }),
-            bubble(`p6`, {
-              type: "sfx",
-              text: "GLIMMER...",
-              x: 38,
-              y: 28,
-              width: 24,
-              tail: "none",
-              style: "dramatic",
-            }),
-          ]
-        : [],
-    },
-  ];
-
-  return configs.map((c, i) => ({
-    id: `${episodeId}-panel-${i + 1}`,
-    episodeId,
-    gradient: c.gradient,
-    prompt: c.prompt,
-    characterIds: storyCharacterIds,
-    overlays: c.overlays,
-    order: i + 1,
-    status: "ready" as const,
-  }));
-}
-
 export const INITIAL_CHARACTERS: StudioCharacter[] = [
   seedCharacter("man", { topColor: "#667085", hairId: "messy", accessoryId: "backpack" }, {
     id: "char-jona",
@@ -241,7 +78,7 @@ export const INITIAL_CHARACTERS: StudioCharacter[] = [
     styleTheme: "fantasy",
     consistencyPrompt: "Young man, messy brown hair, grey hoodie, expressive eyes",
     referenceImages: [],
-    usedInStories: ["story-shadow-whisper"],
+    usedInStories: [],
     allowOthersToUse: false,
     attributionRequired: true,
     shortDescription: "A curious dreamer who stumbles into the supernatural",
@@ -262,7 +99,7 @@ export const INITIAL_CHARACTERS: StudioCharacter[] = [
     styleTheme: "fantasy",
     consistencyPrompt: "Ghost girl, pale blue skin, glowing blue eyes, wavy dark blue hair, starry dress",
     referenceImages: [],
-    usedInStories: ["story-shadow-whisper"],
+    usedInStories: [],
     allowOthersToUse: false,
     attributionRequired: true,
     shortDescription: "A gentle spirit trapped between worlds",
@@ -283,7 +120,7 @@ export const INITIAL_CHARACTERS: StudioCharacter[] = [
     styleTheme: "comedy",
     consistencyPrompt: "Friendly guy with round glasses and orange beanie",
     referenceImages: [],
-    usedInStories: ["story-cafe-chaos"],
+    usedInStories: [],
     allowOthersToUse: false,
     attributionRequired: true,
     shortDescription: "The best friend who always has a snack",
@@ -304,7 +141,7 @@ export const INITIAL_CHARACTERS: StudioCharacter[] = [
     styleTheme: "romance",
     consistencyPrompt: "Young woman with purple hair streak and art smock",
     referenceImages: [],
-    usedInStories: ["story-midnight-ink"],
+    usedInStories: [],
     allowOthersToUse: false,
     attributionRequired: true,
     shortDescription: "An artist who paints her dreams into reality",
@@ -349,7 +186,7 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     styleTheme: "anime",
     consistencyPrompt: "Anime girl, pink twin-tails, navy school uniform",
     referenceImages: [],
-    usedInStories: ["ext-1", "ext-2", "ext-3"],
+    usedInStories: [],
     allowOthersToUse: true,
     attributionRequired: true,
     shortDescription: "A cheerful student who sees magic in everyday life",
@@ -370,7 +207,7 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     styleTheme: "anime",
     consistencyPrompt: "Cyberpunk boy, neon blue hair, glowing visor",
     referenceImages: [],
-    usedInStories: ["ext-4", "ext-5"],
+    usedInStories: [],
     allowOthersToUse: true,
     attributionRequired: true,
     shortDescription: "A street racer from the neon district",
@@ -391,7 +228,7 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     styleTheme: "fantasy",
     consistencyPrompt: "Elder mage, silver hair, starlight eyes, gold-trim robes",
     referenceImages: [],
-    usedInStories: ["ext-6", "ext-7", "ext-8", "ext-9"],
+    usedInStories: [],
     allowOthersToUse: true,
     attributionRequired: true,
     shortDescription: "An ancient mage who guides lost heroes",
@@ -412,7 +249,7 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     styleTheme: "comedy",
     consistencyPrompt: "Round orange mascot creature with tiny wings and red scarf",
     referenceImages: [],
-    usedInStories: ["ext-10"],
+    usedInStories: [],
     allowOthersToUse: true,
     attributionRequired: true,
     shortDescription: "A tiny winged companion who never stops talking",
@@ -433,7 +270,7 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     styleTheme: "romance",
     consistencyPrompt: "Dreamy girl with starry hair and constellation dress",
     referenceImages: [],
-    usedInStories: ["ext-11", "ext-12"],
+    usedInStories: [],
     allowOthersToUse: true,
     attributionRequired: true,
     shortDescription: "A girl who speaks in constellations",
@@ -454,7 +291,7 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
     styleTheme: "drama",
     consistencyPrompt: "Rugged hero with scarred jaw, leather jacket, red bandana",
     referenceImages: [],
-    usedInStories: ["ext-13", "ext-14", "ext-15"],
+    usedInStories: [],
     allowOthersToUse: true,
     attributionRequired: true,
     shortDescription: "A rogue who fights for the underdog",
@@ -463,94 +300,7 @@ export const COMMUNITY_CHARACTERS: StudioCharacter[] = [
   }),
 ];
 
-const activeEpisodeId = "ep-shadow-1";
-
-export const INITIAL_STORIES: StudioStory[] = [
-  {
-    id: "story-shadow-whisper",
-    title: "Shadow Whisper",
-    description: "A quiet evening turns supernatural when Jona meets a spirit in the woods.",
-    genre: "Fantasy",
-    coverGradient: GRADIENTS[0],
-    status: "draft",
-    visibility: "private",
-    audienceRating: "Teen",
-    characterIds: ["char-jona", "char-griezel"],
-    allowInspiredVersions: false,
-    allowPublicCharacterUse: false,
-    requireAttribution: true,
-    allowComments: true,
-    createdAt: DAYS_AGO(5),
-    updatedAt: DAYS_AGO(0),
-    reads: 0,
-    likes: 0,
-    episodes: [
-      {
-        id: activeEpisodeId,
-        storyId: "story-shadow-whisper",
-        title: "Episode 1 — The Whisper",
-        status: "draft",
-        panels: makePanels(activeEpisodeId, ["char-jona", "char-griezel"], true),
-      },
-    ],
-  },
-  {
-    id: "story-cafe-chaos",
-    title: "Café Chaos",
-    description: "Milo's favorite café gets a magical makeover.",
-    genre: "Comedy",
-    coverGradient: GRADIENTS[2],
-    status: "published",
-    visibility: "public",
-    audienceRating: "All ages",
-    characterIds: ["char-milo"],
-    allowInspiredVersions: false,
-    allowPublicCharacterUse: false,
-    requireAttribution: true,
-    allowComments: true,
-    createdAt: DAYS_AGO(14),
-    updatedAt: DAYS_AGO(3),
-    reads: 1240,
-    likes: 89,
-    episodes: [
-      {
-        id: "ep-cafe-1",
-        storyId: "story-cafe-chaos",
-        title: "Episode 1 — Spilled Latte",
-        status: "published",
-        panels: makePanels("ep-cafe-1", ["char-milo"], false),
-      },
-    ],
-  },
-  {
-    id: "story-midnight-ink",
-    title: "Midnight Ink",
-    description: "Luna's paintings start moving when the clock strikes twelve.",
-    genre: "Romance",
-    coverGradient: GRADIENTS[3],
-    status: "private",
-    visibility: "private",
-    audienceRating: "Teen",
-    characterIds: ["char-luna"],
-    allowInspiredVersions: false,
-    allowPublicCharacterUse: false,
-    requireAttribution: true,
-    allowComments: false,
-    createdAt: DAYS_AGO(8),
-    updatedAt: DAYS_AGO(6),
-    reads: 12,
-    likes: 3,
-    episodes: [
-      {
-        id: "ep-ink-1",
-        storyId: "story-midnight-ink",
-        title: "Episode 1 — Wet Canvas",
-        status: "draft",
-        panels: makePanels("ep-ink-1", ["char-luna"], false),
-      },
-    ],
-  },
-];
+export const INITIAL_STORIES: StudioStory[] = [];
 
 /** Built-in demo stories — excluded from the creator Stories list. */
 export const SEED_STORY_IDS = new Set(
@@ -585,8 +335,6 @@ export const MOCK_ANALYTICS: CreatorAnalytics = {
   inspiredVersions: 3,
   characterUses: 12,
 };
-
-export const ACTIVE_EDITOR_STORY_ID = "story-shadow-whisper";
 
 export function createEmptyStory(
   partial: Pick<StudioStory, "title" | "description" | "genre" | "visibility" | "audienceRating" | "characterIds">

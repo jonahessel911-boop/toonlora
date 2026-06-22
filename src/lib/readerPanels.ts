@@ -31,15 +31,21 @@ export function episodeToReaderPanels(
 ): ReaderPanelData[] {
   const stripUrl = episode.comicPage.artUrl ?? undefined;
 
+  const breakdownByNumber = new Map(
+    episode.panelBreakdown.panels.map((p) => [p.panel_number, p])
+  );
+
   return episode.script.panels.map((scriptPanel, panelIndex) => {
     const id = `${seriesId ?? "ep"}-panel-${scriptPanel.panel_number}`;
+    const panelArtUrl = breakdownByNumber.get(scriptPanel.panel_number)?.artUrl;
+    const imageUrl = panelArtUrl ?? (panelIndex === 0 ? stripUrl : undefined);
 
     return {
       id,
       panelNumber: scriptPanel.panel_number,
-      imageUrl: panelIndex === 0 ? stripUrl : undefined,
-      showStripImage: panelIndex === 0 && Boolean(stripUrl),
-      artUrl: panelIndex === 0 ? stripUrl : undefined,
+      imageUrl,
+      showStripImage: panelIndex === 0 && Boolean(stripUrl) && !panelArtUrl,
+      artUrl: imageUrl,
       gradient:
         PANEL_GRADIENTS[(scriptPanel.panel_number - 1) % PANEL_GRADIENTS.length] ||
         coverGradient,

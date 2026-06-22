@@ -7,10 +7,12 @@ import {
 import {
   buildAddPanelPrompt,
   buildCreatorEpisodeBreakdownPrompt,
+  buildStoryCharactersPrompt,
   buildStudioPanelImagePrompt,
   type CreatorCharacterInput,
   type CreatorPanelBreakdown,
   type CreatorPanelScript,
+  type GeneratedStoryCharacters,
 } from "@/lib/creator/studioPanelPrompt";
 import { scriptToStudioPanel } from "@/lib/creator/studioPanelBuilder";
 import type { StudioPanel } from "@/types/creator";
@@ -21,7 +23,7 @@ interface PanelSlot {
 }
 
 interface GeneratePanelsRequest {
-  mode?: "batch" | "breakdown" | "panel" | "add" | "single";
+  mode?: "batch" | "breakdown" | "panel" | "add" | "single" | "characters";
   storyId: string;
   episodeId: string;
   title: string;
@@ -97,6 +99,7 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as GeneratePanelsRequest;
+    const mode = body.mode ?? "batch";
     const {
       storyId,
       episodeId,
@@ -104,8 +107,8 @@ export async function POST(request: Request) {
       genre,
       description = "",
       episodePrompt,
-      characters,
-      characterIds,
+      characters = [],
+      characterIds = [],
     } = body;
 
     if (
@@ -113,7 +116,7 @@ export async function POST(request: Request) {
       !episodeId?.trim() ||
       !title?.trim() ||
       !episodePrompt?.trim() ||
-      !characters?.length
+      (mode !== "characters" && !characters.length)
     ) {
       return NextResponse.json(
         { error: "Missing required fields for panel generation" },
@@ -122,7 +125,22 @@ export async function POST(request: Request) {
     }
 
     const nameToId = characterNameMap(characters, characterIds);
-    const mode = body.mode ?? "batch";
+
+    if (mode === "characters") {
+      const raw = await callOpenAIChat({
+        prompt: buildStoryCharactersPrompt({
+          title,
+          genre,
+          description,
+          episodePrompt,
+        }),
+        json: true,
+      });
+      const generated = parseJSON<GeneratedStoryCharacters>(raw);
+      return NextResponse.json({
+        characters: generated.characters.slice(0, 3),
+      });
+    }
 
     if (mode === "breakdown") {
       const panelCount = body.panelCount ?? body.existingPanels?.length ?? 8;

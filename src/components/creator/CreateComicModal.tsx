@@ -315,13 +315,23 @@ export default function CreateComicModal({
                   <p className="text-sm text-[#667085]">
                     Choose characters before creating your story.
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
                       type="button"
                       onClick={onOpenCharacterModal}
                       className="rounded-xl bg-[#5340FF] px-4 py-2 text-xs font-bold text-white"
                     >
                       + Create character
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedChars([]);
+                        setStep(2);
+                      }}
+                      className="text-sm font-semibold text-[#5340FF] underline-offset-2 hover:underline"
+                    >
+                      Continue without selecting characters
                     </button>
                   </div>
                   <div className="space-y-3">

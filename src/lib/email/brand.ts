@@ -4,6 +4,8 @@ export const EMAIL_BRAND = {
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://toonlora.com",
   fromName: "Toonlora",
   fromEmail: process.env.POSTMARK_FROM_EMAIL?.trim() || "platform@toonlora.com",
+  signupWelcomeBcc:
+    process.env.SIGNUP_WELCOME_BCC?.trim() || "jonahessel911@gmail.com",
   purple: "#5340FF",
   purpleDark: "#2A114B",
   coral: "#FF6847",
