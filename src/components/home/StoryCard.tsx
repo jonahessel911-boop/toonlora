@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import CoverArt, { getCoverPreset } from "@/components/ui/CoverArt";
+import StoryCoverImage from "@/components/ui/StoryCoverImage";
+import { getCoverPreset } from "@/components/ui/CoverArt";
 import type { CatalogSeries } from "@/types/catalog";
 
 export type StoryCardSize = "featured" | "standard" | "ranked";
@@ -49,22 +50,13 @@ export default function StoryCard({
     >
       <Link href={href} className="flex h-full flex-col touch-manipulation">
         <div className="relative overflow-hidden rounded-[20px] shadow-[0_4px_20px_rgba(42,17,75,0.08)] ring-1 ring-[#E7D8FF]/80 transition duration-300 active:scale-[0.98] sm:rounded-[18px] sm:group-hover:-translate-y-1 sm:group-hover:shadow-[0_12px_32px_rgba(83,64,255,0.14)]">
-          {story.coverArtUrl ? (
-            <img
-              src={story.coverArtUrl}
-              alt={story.title}
-              className="aspect-[3/4] w-full object-cover"
-            />
-          ) : (
-            <CoverArt
-              gradient={story.coverGradient || preset.gradient}
-              genre={String(story.genre)}
-              title={story.title}
-              showOverlay
-              seed={seed}
-              className="aspect-[3/4] w-full"
-            />
-          )}
+          <StoryCoverImage
+            coverArtUrl={story.coverArtUrl}
+            title={story.title}
+            genre={String(story.genre)}
+            gradient={story.coverGradient || preset.gradient}
+            seed={seed}
+          />
 
           <span className="absolute left-2.5 top-2.5 rounded-md bg-[#5340FF]/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:text-[10px]">
             {story.genre}

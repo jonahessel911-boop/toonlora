@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import HomeSection from "@/components/home/HomeSection";
 import HorizontalScrollRail from "@/components/home/HorizontalScrollRail";
 import StoryCard from "@/components/home/StoryCard";
+import {
+  fetchPublishedStory,
+  getStoryCoverArtUrl,
+} from "@/lib/fetchPublishedStory";
 import { getReadingHistory, type ReadingHistoryEntry } from "@/lib/readingHistory";
 import { catalogToCard } from "@/types/catalog";
 import type { CatalogSeries } from "@/types/catalog";
 
-function entryToCard(entry: ReadingHistoryEntry): CatalogSeries {
+function entryToCard(entry: ReadingHistoryEntry, coverArtUrl?: string): CatalogSeries {
   return catalogToCard({
     id: entry.seriesId,
     title: entry.title,
@@ -24,28 +28,53 @@ function entryToCard(entry: ReadingHistoryEntry): CatalogSeries {
     featuredRank: null,
     publishedAt: null,
     createdAt: entry.updatedAt,
-    coverArtUrl: entry.coverArtUrl,
+    coverArtUrl: coverArtUrl ?? entry.coverArtUrl,
     href: entry.href,
   });
 }
 
+async function hydrateEntry(entry: ReadingHistoryEntry): Promise<CatalogSeries> {
+  const story = await fetchPublishedStory(entry.seriesId);
+  if (!story) return entryToCard(entry);
+
+  const coverArtUrl = getStoryCoverArtUrl(story) ?? entry.coverArtUrl;
+  return entryToCard(
+    {
+      ...entry,
+      title: story.title,
+      genre: String(story.genre),
+      coverGradient: story.coverGradient,
+      creatorDisplayName: story.creatorDisplayName ?? entry.creatorDisplayName,
+    },
+    coverArtUrl
+  );
+}
+
 export default function ContinueReadingSection() {
-  const [entries, setEntries] = useState<ReadingHistoryEntry[]>([]);
+  const [stories, setStories] = useState<CatalogSeries[]>([]);
+
+  const refresh = useCallback(async () => {
+    const entries = getReadingHistory().slice(0, 8);
+    if (entries.length === 0) {
+      setStories([]);
+      return;
+    }
+    const cards = await Promise.all(entries.map((entry) => hydrateEntry(entry)));
+    setStories(cards);
+  }, []);
 
   useEffect(() => {
-    setEntries(getReadingHistory().slice(0, 8));
-    const onStorage = () => setEntries(getReadingHistory().slice(0, 8));
+    void refresh();
+    const onStorage = () => void refresh();
     window.addEventListener("storage", onStorage);
     window.addEventListener("tl-reading-history", onStorage);
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("tl-reading-history", onStorage);
     };
-  }, []);
+  }, [refresh]);
 
-  if (entries.length === 0) return null;
-
-  const stories = entries.map(entryToCard);
+  if (stories.length === 0) return null;
 
   return (
     <HomeSection

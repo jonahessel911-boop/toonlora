@@ -16,6 +16,14 @@ export async function fetchPublishedStory(id: string): Promise<Story | null> {
 }
 
 export function getStoryCoverArtUrl(story: Story): string | undefined {
-  const fromEpisode = story.episodes?.[0]?.comicPage?.artUrl;
-  return fromEpisode ?? undefined;
+  const episode = story.episodes?.[0];
+  if (!episode) return undefined;
+
+  const fromBreakdown = [...(episode.panelBreakdown?.panels ?? [])]
+    .sort((a, b) => a.panel_number - b.panel_number)
+    .map((panel) => panel.artUrl)
+    .find(Boolean);
+
+  if (fromBreakdown) return fromBreakdown;
+  return episode.comicPage?.artUrl ?? undefined;
 }

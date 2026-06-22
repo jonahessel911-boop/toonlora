@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fredoka, Inter } from "next/font/google";
 import AppShell from "@/components/AppShell";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -48,6 +49,7 @@ export default function RootLayout({
       }
     >
       <body className="min-h-[100dvh] bg-background font-sans antialiased">
+        <GoogleAnalytics />
         <AppShell>{children}</AppShell>
       </body>
     </html>

@@ -22,28 +22,29 @@ function emptyPanel(panelNumber: number): EpisodePanel {
   };
 }
 
-export function buildUploadedStory(params: {
-  id: string;
-  title: string;
-  genre: string;
-  synopsis: string;
+export function buildEpisodeFromPanelUrls(params: {
+  storyId: string;
+  episodeNumber: number;
+  episodeId?: string;
+  episodeTitle?: string;
+  synopsis?: string;
   coverGradient: string;
-  creatorDisplayName?: string;
   panelImageUrls: string[];
-}): Story {
+}): StoryEpisode {
   const panelCount = params.panelImageUrls.length;
+  const episodeNumber = params.episodeNumber;
 
   const script: EpisodeScript = {
-    episode_title: "Episode 1",
-    episode_number: 1,
-    episode_summary: params.synopsis,
+    episode_title: params.episodeTitle ?? `Episode ${episodeNumber}`,
+    episode_number: episodeNumber,
+    episode_summary: params.synopsis ?? "",
     emotional_goal: "",
     cliffhanger: "",
     panels: params.panelImageUrls.map((_, i) => emptyPanel(i + 1)),
   };
 
   const panelBreakdown: PanelBreakdown = {
-    episode_number: 1,
+    episode_number: episodeNumber,
     panel_count: panelCount,
     panels: params.panelImageUrls.map((url, i) => ({
       panel_number: i + 1,
@@ -66,7 +67,7 @@ export function buildUploadedStory(params: {
   };
 
   const comicPage: ComicPage = {
-    episode_number: 1,
+    episode_number: episodeNumber,
     artUrl: params.panelImageUrls[0] ?? null,
     artGradient: params.coverGradient,
     width: 720,
@@ -75,20 +76,49 @@ export function buildUploadedStory(params: {
   };
 
   const textOverlay: TextOverlay = {
-    episode_number: 1,
+    episode_number: episodeNumber,
     panels: [],
   };
 
-  const episode: StoryEpisode = {
-    id: `story-upload-${params.id}-ep-1`,
-    episodeNumber: 1,
-    title: "Episode 1",
+  return {
+    id: params.episodeId ?? `story-upload-${params.storyId}-ep-${episodeNumber}`,
+    episodeNumber,
+    title: params.episodeTitle ?? `Episode ${episodeNumber}`,
     script,
     panelBreakdown,
     imagePrompt,
     comicPage,
     textOverlay,
   };
+}
+
+export function getEpisodePanelUrls(episode: StoryEpisode): string[] {
+  const fromBreakdown = [...episode.panelBreakdown.panels]
+    .sort((a, b) => a.panel_number - b.panel_number)
+    .map((panel) => panel.artUrl)
+    .filter((url): url is string => Boolean(url));
+
+  if (fromBreakdown.length > 0) return fromBreakdown;
+  if (episode.comicPage.artUrl) return [episode.comicPage.artUrl];
+  return [];
+}
+
+export function buildUploadedStory(params: {
+  id: string;
+  title: string;
+  genre: string;
+  synopsis: string;
+  coverGradient: string;
+  creatorDisplayName?: string;
+  panelImageUrls: string[];
+}): Story {
+  const episode = buildEpisodeFromPanelUrls({
+    storyId: params.id,
+    episodeNumber: 1,
+    synopsis: params.synopsis,
+    coverGradient: params.coverGradient,
+    panelImageUrls: params.panelImageUrls,
+  });
 
   return {
     id: params.id,

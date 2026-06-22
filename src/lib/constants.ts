@@ -1,4 +1,5 @@
 import type { Category } from "@/types/story";
+import { PLATFORM_GENRES } from "@/lib/platformGenres";
 
 export const APP_NAME = "Toonlora";
 
@@ -46,6 +47,9 @@ export const TONES = TONE_OPTIONS;
 
 /** @deprecated use EPISODE_LENGTHS */
 export const STORY_LENGTHS = EPISODE_LENGTHS;
+
+/** Browse + admin genre list (includes mature & history tags). */
+export const CATALOG_GENRES: string[] = PLATFORM_GENRES;
 
 export const CATEGORIES: Category[] = [
   "Romance",

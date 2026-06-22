@@ -158,8 +158,18 @@ export default function AdminDashboard() {
         <main className="min-w-0 flex-1">
           <div className="border-b border-[#EDEBE9] bg-white px-3 py-3 sm:px-6">
             <p className="hidden text-xs text-[#605E5C] sm:block">
-              Home <span className="mx-1">›</span> Reporting <span className="mx-1">›</span>{" "}
-              <span className="text-[#323130]">User engagement</span>
+              Home <span className="mx-1">›</span>{" "}
+              {activeTab === "reporting" ? (
+                <>
+                  Reporting <span className="mx-1">›</span>{" "}
+                  <span className="text-[#323130]">User engagement</span>
+                </>
+              ) : (
+                <>
+                  Content <span className="mx-1">›</span>{" "}
+                  <span className="text-[#323130]">Comics & publishing</span>
+                </>
+              )}
             </p>
             <h1 className="text-lg font-semibold text-[#323130] sm:mt-1 sm:text-xl">
               {activeTab === "reporting"
@@ -169,6 +179,11 @@ export default function AdminDashboard() {
             {activeTab === "reporting" && metrics ? (
               <p className="mt-1 text-[11px] text-[#605E5C] sm:text-xs">
                 Updated {new Date(metrics.generatedAt).toLocaleString()}
+              </p>
+            ) : activeTab === "content" ? (
+              <p className="mt-1 text-[11px] text-[#605E5C] sm:text-xs">
+                Upload panel art or generate comics with AI, then manage your
+                catalog.
               </p>
             ) : null}
           </div>

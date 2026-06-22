@@ -1,50 +1,61 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ArtStylePicker from "@/components/admin/ArtStylePicker";
+import AdminEpisodeEditor from "@/components/admin/AdminEpisodeEditor";
+import AdminSeriesTable from "@/components/admin/AdminSeriesTable";
 import AdminUploadComicPanel from "@/components/admin/AdminUploadComicPanel";
+import {
+  ADMIN_GRADIENTS,
+  AdminAlert,
+  AdminField,
+  AdminGenreSelect,
+  AdminInput,
+  AdminPrimaryButton,
+  AdminSelect,
+  AdminTabBar,
+  AdminTextarea,
+  DEFAULT_PLATFORM_GENRE,
+  GradientPicker,
+  PLATFORM_GENRES,
+} from "@/components/admin/adminUi";
 import type { CatalogSeries } from "@/types/catalog";
 import {
   PANEL_COUNT_MAX,
   PANEL_COUNT_MIN,
 } from "@/lib/panelCount";
 
-const GENRES = [
-  "Romance",
-  "Anime",
-  "Fantasy",
-  "Comedy",
-  "Drama",
-  "Adventure",
-  "Slice of Life",
-];
-
-const GRADIENTS = [
-  "from-[#5340FF] via-[#7C3AED] to-[#FF4FA3]",
-  "from-[#FF6847] via-[#FF4FA3] to-[#5340FF]",
-  "from-[#22D3EE] via-[#5340FF] to-[#2A114B]",
-  "from-[#FFE033] via-[#FF6847] to-[#FBBF24]",
-];
+type PageView = "catalog" | "create" | "edit";
+type CreateMode = "upload" | "ai";
 
 export default function AdminComicsPanel() {
+  const [pageView, setPageView] = useState<PageView>("catalog");
+  const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
+  const [createMode, setCreateMode] = useState<CreateMode>("upload");
   const [series, setSeries] = useState<CatalogSeries[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  const [search, setSearch] = useState("");
+  const [filterGenre, setFilterGenre] = useState("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">(
+    "all"
+  );
+
   const [title, setTitle] = useState("");
-  const [genre, setGenre] = useState("Fantasy");
+  const [genre, setGenre] = useState(DEFAULT_PLATFORM_GENRE);
   const [mainCharacter, setMainCharacter] = useState("");
   const [loveInterest, setLoveInterest] = useState("");
   const [storyIdea, setStoryIdea] = useState("");
   const [synopsis, setSynopsis] = useState("");
   const [creatorName, setCreatorName] = useState("Toonlora Official");
   const [featuredRank, setFeaturedRank] = useState("");
-  const [coverGradient, setCoverGradient] = useState(GRADIENTS[0]);
+  const [coverGradient, setCoverGradient] = useState<string>(ADMIN_GRADIENTS[0].class);
   const [artStyleId, setArtStyleId] = useState("cartoon-webtoon");
   const [panelCount, setPanelCount] = useState(6);
+  const [showAiAdvanced, setShowAiAdvanced] = useState(false);
 
   const loadSeries = useCallback(async () => {
     setLoading(true);
@@ -64,6 +75,23 @@ export default function AdminComicsPanel() {
   useEffect(() => {
     void loadSeries();
   }, [loadSeries]);
+
+  const filteredSeries = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return series.filter((row) => {
+      const matchSearch =
+        !q ||
+        row.title.toLowerCase().includes(q) ||
+        row.genre.toLowerCase().includes(q) ||
+        row.creatorDisplayName.toLowerCase().includes(q);
+      const matchGenre = filterGenre === "all" || row.genre === filterGenre;
+      const matchStatus =
+        filterStatus === "all" || row.status === filterStatus;
+      return matchSearch && matchGenre && matchStatus;
+    });
+  }, [series, search, filterGenre, filterStatus]);
+
+  const publishedCount = series.filter((s) => s.status === "published").length;
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,12 +128,15 @@ export default function AdminComicsPanel() {
       const panels =
         data.story?.episodes?.[0]?.script?.panels?.length ?? panelCount;
       setMessage(
-        `Published "${data.story?.title ?? title}" — episode 1 with ${panels} panels.`
+        `"${data.story?.title ?? title}" published with ${panels} AI panels.`
       );
       setTitle("");
       setStoryIdea("");
       setSynopsis("");
+      setMainCharacter("");
+      setLoveInterest("");
       void loadSeries();
+      setPageView("catalog");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create comic");
     } finally {
@@ -132,280 +163,290 @@ export default function AdminComicsPanel() {
     void loadSeries();
   };
 
-  return (
-    <div className="space-y-6">
-      <AdminUploadComicPanel onPublished={loadSeries} />
+  if (pageView === "edit" && editingSeriesId) {
+    return (
+      <AdminEpisodeEditor
+        seriesId={editingSeriesId}
+        onSaved={() => {
+          void loadSeries();
+          setPageView("catalog");
+          setEditingSeriesId(null);
+        }}
+        onCancel={() => {
+          setPageView("catalog");
+          setEditingSeriesId(null);
+        }}
+      />
+    );
+  }
 
-      <section className="border border-[#EDEBE9] bg-white shadow-[0_1.6px_3.6px_rgba(0,0,0,0.13)]">
-        <div className="border-b border-[#EDEBE9] px-4 py-3">
-          <h2 className="text-sm font-semibold text-[#323130]">
-            Generate with AI
-          </h2>
-          <p className="mt-1 text-xs text-[#605E5C]">
-            Generates episode 1 as one vertical webtoon page (single column, no
-            grid) with OpenAI — genre and art style shape the visuals. Requires{" "}
-            <code className="text-[11px]">OPENAI_API_KEY</code> in{" "}
-            <code className="text-[11px]">.env.local</code>.
-          </p>
-        </div>
+  if (pageView === "create") {
+    return (
+      <div className="space-y-5">
+        <AdminTabBar
+          active={createMode}
+          onChange={(id) => setCreateMode(id as CreateMode)}
+          tabs={[
+            { id: "upload", label: "Upload panels", icon: "🖼️" },
+            { id: "ai", label: "Generate with AI", icon: "✨" },
+          ]}
+        />
 
-        <form onSubmit={handleCreate} className="space-y-5 p-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-xs font-semibold text-[#323130]">
-              Series title (optional)
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 w-full border border-[#8A8886] px-3 py-2 text-sm"
-                placeholder="Auto-generated from characters"
-              />
-            </label>
-            <label className="block text-xs font-semibold text-[#323130]">
-              Genre
-              <select
-                value={genre}
-                onChange={(e) => setGenre(e.target.value)}
-                className="mt-1 w-full border border-[#8A8886] px-3 py-2 text-sm"
-              >
-                {GENRES.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-xs font-semibold text-[#323130]">
-              Main character
-              <input
-                required
-                value={mainCharacter}
-                onChange={(e) => setMainCharacter(e.target.value)}
-                className="mt-1 w-full border border-[#8A8886] px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="block text-xs font-semibold text-[#323130]">
-              Love interest
-              <input
-                required
-                value={loveInterest}
-                onChange={(e) => setLoveInterest(e.target.value)}
-                className="mt-1 w-full border border-[#8A8886] px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="block text-xs font-semibold text-[#323130] sm:col-span-2">
-              Story idea
-              <textarea
-                required
-                value={storyIdea}
-                onChange={(e) => setStoryIdea(e.target.value)}
-                rows={3}
-                className="mt-1 w-full border border-[#8A8886] px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="block text-xs font-semibold text-[#323130] sm:col-span-2">
-              Synopsis (shown on series page)
-              <textarea
-                value={synopsis}
-                onChange={(e) => setSynopsis(e.target.value)}
-                rows={2}
-                className="mt-1 w-full border border-[#8A8886] px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="block text-xs font-semibold text-[#323130]">
-              Creator credit
-              <input
-                value={creatorName}
-                onChange={(e) => setCreatorName(e.target.value)}
-                className="mt-1 w-full border border-[#8A8886] px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="block text-xs font-semibold text-[#323130]">
-              Featured rank (lower = higher on homepage)
-              <input
-                type="number"
-                value={featuredRank}
-                onChange={(e) => setFeaturedRank(e.target.value)}
-                className="mt-1 w-full border border-[#8A8886] px-3 py-2 text-sm"
-                placeholder="1"
-              />
-            </label>
-          </div>
-
-          <div className="rounded border border-[#EDEBE9] bg-[#FAF9F8] p-4">
-            <p className="text-xs font-semibold text-[#323130]">
-              Generation settings
-            </p>
-            <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <label className="block text-xs font-semibold text-[#323130]">
-                Episodes to generate
-                <input
-                  readOnly
-                  value="1"
-                  className="mt-1 w-full cursor-not-allowed border border-[#EDEBE9] bg-white px-3 py-2 text-sm text-[#605E5C]"
-                />
-                <span className="mt-1 block text-[11px] font-normal text-[#605E5C]">
-                  Admin create always starts with episode 1.
-                </span>
-              </label>
-              <label className="block text-xs font-semibold text-[#323130]">
-                Panels per episode
-                <input
-                  type="number"
-                  min={PANEL_COUNT_MIN}
-                  max={PANEL_COUNT_MAX}
-                  required
-                  value={panelCount}
-                  onChange={(e) =>
-                    setPanelCount(
-                      Math.min(
-                        PANEL_COUNT_MAX,
-                        Math.max(
-                          PANEL_COUNT_MIN,
-                          Number(e.target.value) || PANEL_COUNT_MIN
-                        )
-                      )
-                    )
-                  }
-                  className="mt-1 w-full border border-[#8A8886] px-3 py-2 text-sm"
-                />
-                <span className="mt-1 block text-[11px] font-normal text-[#605E5C]">
-                  {PANEL_COUNT_MIN}–{PANEL_COUNT_MAX} vertical strips stacked in
-                  one column (no grid).
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <ArtStylePicker value={artStyleId} onChange={setArtStyleId} />
-
-          <div>
-            <p className="text-xs font-semibold text-[#323130]">Cover gradient</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {GRADIENTS.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => setCoverGradient(g)}
-                  className={`h-10 w-16 rounded bg-gradient-to-br ${g} ring-2 ${
-                    coverGradient === g ? "ring-[#0078D4]" : "ring-transparent"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {error ? <p className="text-sm text-[#A4262C]">{error}</p> : null}
-          {message ? <p className="text-sm text-[#107C10]">{message}</p> : null}
-
-          <button
-            type="submit"
-            disabled={creating}
-            className="bg-[#0078D4] px-4 py-2 text-sm font-semibold text-white hover:bg-[#106EBE] disabled:opacity-50"
-          >
-            {creating
-              ? `Generating episode 1 (${panelCount} panels)…`
-              : `Generate & publish episode 1 (${panelCount} panels)`}
-          </button>
-        </form>
-      </section>
-
-      <section className="border border-[#EDEBE9] bg-white shadow-[0_1.6px_3.6px_rgba(0,0,0,0.13)]">
-        <div className="border-b border-[#EDEBE9] px-4 py-3">
-          <h2 className="text-sm font-semibold text-[#323130]">All series</h2>
-        </div>
-
-        {loading ? (
-          <p className="p-4 text-sm text-[#605E5C]">Loading series…</p>
-        ) : series.length === 0 ? (
-          <p className="p-4 text-sm text-[#605E5C]">
-            No series yet. Create your first official comic above.
-          </p>
+        {createMode === "upload" ? (
+          <AdminUploadComicPanel
+            onPublished={() => {
+              void loadSeries();
+              setPageView("catalog");
+            }}
+            onCancel={() => setPageView("catalog")}
+          />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-[#FAF9F8] text-xs uppercase text-[#605E5C]">
-                <tr>
-                  <th className="px-4 py-2">Title</th>
-                  <th className="px-4 py-2">Source</th>
-                  <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Eps</th>
-                  <th className="px-4 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {series.map((row) => (
-                  <tr key={row.id} className="border-t border-[#EDEBE9]">
-                    <td className="px-4 py-3 font-medium text-[#323130]">
-                      <Link
-                        href={`/story/${row.id}`}
-                        className="text-[#0078D4] hover:underline"
-                      >
-                        {row.title}
-                      </Link>
-                      <p className="text-xs text-[#605E5C]">{row.genre}</p>
-                    </td>
-                    <td className="px-4 py-3 capitalize text-[#605E5C]">
-                      {row.source}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded px-2 py-0.5 text-xs font-semibold ${
-                          row.status === "published"
-                            ? "bg-[#DFF6DD] text-[#107C10]"
-                            : "bg-[#F3F2F1] text-[#605E5C]"
-                        }`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[#605E5C]">
-                      {row.episodeCount}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/story/${row.id}/read`}
-                          className="text-xs font-semibold text-[#0078D4]"
-                        >
-                          Read
-                        </Link>
-                        {row.status === "published" ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void patchSeries(row.id, { action: "unpublish" })
-                            }
-                            className="text-xs text-[#605E5C]"
-                          >
-                            Unpublish
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void patchSeries(row.id, { action: "publish" })
-                            }
-                            className="text-xs font-semibold text-[#107C10]"
-                          >
-                            Publish
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => void deleteSeries(row.id, row.title)}
-                          className="text-xs text-[#A4262C]"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <form
+            onSubmit={handleCreate}
+            className="rounded-xl border border-[#EDEBE9] bg-white shadow-sm"
+          >
+            <div className="border-b border-[#EDEBE9] bg-[#FAF9F8] px-5 py-4">
+              <h3 className="text-sm font-semibold text-[#323130]">
+                New comic — AI generation
+              </h3>
+              <p className="mt-1 text-xs text-[#605E5C]">
+                Episode 1 is generated and published automatically.
+              </p>
+            </div>
+
+            <div className="space-y-4 p-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <AdminField label="Title" hint="Optional — auto-generated if empty">
+                  <AdminInput
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Series title"
+                  />
+                </AdminField>
+                <AdminField label="Genre">
+                  <AdminGenreSelect
+                    value={genre}
+                    onChange={(e) => setGenre(e.target.value)}
+                  />
+                </AdminField>
+                <AdminField label="Main character">
+                  <AdminInput
+                    required
+                    value={mainCharacter}
+                    onChange={(e) => setMainCharacter(e.target.value)}
+                  />
+                </AdminField>
+                <AdminField label="Love interest">
+                  <AdminInput
+                    required
+                    value={loveInterest}
+                    onChange={(e) => setLoveInterest(e.target.value)}
+                  />
+                </AdminField>
+              </div>
+              <AdminField label="Story idea">
+                <AdminTextarea
+                  required
+                  rows={3}
+                  value={storyIdea}
+                  onChange={(e) => setStoryIdea(e.target.value)}
+                  placeholder="What happens in episode 1?"
+                />
+              </AdminField>
+              <AdminField label="Synopsis">
+                <AdminTextarea
+                  rows={2}
+                  value={synopsis}
+                  onChange={(e) => setSynopsis(e.target.value)}
+                  placeholder="Shown on series page (defaults to story idea)"
+                />
+              </AdminField>
+
+              <button
+                type="button"
+                onClick={() => setShowAiAdvanced((v) => !v)}
+                className="text-xs font-semibold text-[#0078D4] hover:underline"
+              >
+                {showAiAdvanced ? "Hide" : "Show"} advanced options
+              </button>
+
+              {showAiAdvanced ? (
+                <div className="space-y-4 rounded-lg border border-[#EDEBE9] bg-[#FAF9F8] p-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <AdminField label="Creator credit">
+                      <AdminInput
+                        value={creatorName}
+                        onChange={(e) => setCreatorName(e.target.value)}
+                      />
+                    </AdminField>
+                    <AdminField label="Panels per episode">
+                      <AdminInput
+                        type="number"
+                        min={PANEL_COUNT_MIN}
+                        max={PANEL_COUNT_MAX}
+                        required
+                        value={panelCount}
+                        onChange={(e) =>
+                          setPanelCount(
+                            Math.min(
+                              PANEL_COUNT_MAX,
+                              Math.max(
+                                PANEL_COUNT_MIN,
+                                Number(e.target.value) || PANEL_COUNT_MIN
+                              )
+                            )
+                          )
+                        }
+                      />
+                    </AdminField>
+                    <AdminField label="Featured rank">
+                      <AdminInput
+                        type="number"
+                        min={1}
+                        value={featuredRank}
+                        onChange={(e) => setFeaturedRank(e.target.value)}
+                        placeholder="Optional"
+                      />
+                    </AdminField>
+                  </div>
+                  <AdminField label="Cover gradient">
+                    <GradientPicker
+                      value={coverGradient}
+                      onChange={setCoverGradient}
+                    />
+                  </AdminField>
+                  <AdminField label="Art style">
+                    <ArtStylePicker
+                      value={artStyleId}
+                      onChange={setArtStyleId}
+                    />
+                  </AdminField>
+                </div>
+              ) : null}
+
+              {error ? <AdminAlert type="error">{error}</AdminAlert> : null}
+              {message ? <AdminAlert type="success">{message}</AdminAlert> : null}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EDEBE9] bg-[#FAF9F8] px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setPageView("catalog")}
+                className="text-sm font-semibold text-[#605E5C] hover:text-[#323130]"
+              >
+                ← Back to catalog
+              </button>
+              <AdminPrimaryButton type="submit" loading={creating}>
+                {creating ? "Generating…" : "Generate & publish"}
+              </AdminPrimaryButton>
+            </div>
+          </form>
         )}
-      </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="grid flex-1 gap-3 sm:grid-cols-3 sm:max-w-lg">
+          <StatChip label="Total" value={series.length} />
+          <StatChip label="Published" value={publishedCount} accent="#107C10" />
+          <StatChip
+            label="Drafts"
+            value={series.length - publishedCount}
+            accent="#CA5010"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setPageView("create")}
+          className="rounded-lg bg-[#0078D4] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#106EBE]"
+        >
+          + New comic
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-[#EDEBE9] bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-end gap-3">
+          <AdminField label="Search" className="min-w-[200px] flex-1">
+            <AdminInput
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Title, genre, creator…"
+            />
+          </AdminField>
+          <AdminField label="Genre" className="w-40">
+            <AdminSelect
+              value={filterGenre}
+              onChange={(e) => setFilterGenre(e.target.value)}
+            >
+              <option value="all">All genres</option>
+              {PLATFORM_GENRES.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </AdminSelect>
+          </AdminField>
+          <AdminField label="Status" className="w-36">
+            <AdminSelect
+              value={filterStatus}
+              onChange={(e) =>
+                setFilterStatus(e.target.value as typeof filterStatus)
+              }
+            >
+              <option value="all">All</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </AdminSelect>
+          </AdminField>
+          <button
+            type="button"
+            onClick={() => void loadSeries()}
+            disabled={loading}
+            className="mb-0.5 rounded-lg border border-[#D2D0CE] px-3 py-2.5 text-xs font-semibold text-[#323130] hover:bg-[#F3F2F1] disabled:opacity-50"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <AdminSeriesTable
+        series={filteredSeries}
+        loading={loading}
+        onEdit={(id) => {
+          setEditingSeriesId(id);
+          setPageView("edit");
+        }}
+        onPublish={(id) => void patchSeries(id, { action: "publish" })}
+        onUnpublish={(id) => void patchSeries(id, { action: "unpublish" })}
+        onDelete={(id, name) => void deleteSeries(id, name)}
+      />
+    </div>
+  );
+}
+
+function StatChip({
+  label,
+  value,
+  accent = "#0078D4",
+}: {
+  label: string;
+  value: number;
+  accent?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-[#EDEBE9] bg-[#FAF9F8] px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#605E5C]">
+        {label}
+      </p>
+      <p
+        className="mt-0.5 text-xl font-semibold leading-none"
+        style={{ color: accent }}
+      >
+        {value}
+      </p>
     </div>
   );
 }

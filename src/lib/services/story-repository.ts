@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { buildEpisodeFromPanelUrls } from "@/lib/admin/uploadedStoryBuilder";
 import type { EpisodeRow, SeriesRow } from "@/lib/supabase/types";
 import type { Story, StoryEpisode } from "@/types/story";
 
@@ -184,6 +185,70 @@ export async function saveStoryToDb(
   }
 
   return getStoryFromDb(seriesId) as Promise<Story>;
+}
+
+export interface UpdateAdminEpisodeInput {
+  title: string;
+  genre: string;
+  synopsis: string;
+  creatorDisplayName: string;
+  coverGradient: string;
+  featuredRank?: number | null;
+  episodeNumber: number;
+  panelImageUrls: string[];
+}
+
+export async function updateAdminStoryEpisode(
+  storyId: string,
+  input: UpdateAdminEpisodeInput
+): Promise<Story> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("Database not configured");
+
+  const story = await getStoryFromDb(storyId);
+  if (!story) throw new Error("Series not found");
+
+  const existingEpisode =
+    story.episodes?.find((ep) => ep.episodeNumber === input.episodeNumber) ??
+    story.episodes?.[0];
+
+  if (!existingEpisode) {
+    throw new Error(`Episode ${input.episodeNumber} not found`);
+  }
+
+  if (input.panelImageUrls.length === 0) {
+    throw new Error("At least one panel image is required");
+  }
+
+  const updatedEpisode = buildEpisodeFromPanelUrls({
+    storyId,
+    episodeNumber: input.episodeNumber,
+    episodeId: existingEpisode.id,
+    episodeTitle: existingEpisode.title,
+    synopsis: input.synopsis,
+    coverGradient: input.coverGradient,
+    panelImageUrls: input.panelImageUrls,
+  });
+
+  const { error: seriesError } = await supabase
+    .from("series")
+    .update({
+      title: input.title,
+      genre: input.genre,
+      cover_gradient: input.coverGradient,
+      synopsis: input.synopsis,
+      story_idea: input.synopsis,
+      creator_display_name: input.creatorDisplayName,
+      featured_rank: input.featuredRank ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", storyId);
+
+  if (seriesError) throw new Error(seriesError.message);
+
+  await upsertEpisodes(storyId, [updatedEpisode]);
+
+  return getStoryFromDb(storyId) as Promise<Story>;
 }
 
 export async function getStoryFromDb(id: string): Promise<Story | null> {

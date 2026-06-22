@@ -24,7 +24,7 @@ async function episodeMetaForSeriesIds(
 
   const { data } = await supabase
     .from("episodes")
-    .select("series_id, episode_number, comic_page")
+    .select("series_id, episode_number, comic_page, panel_breakdown")
     .in("series_id", seriesIds);
 
   for (const row of data ?? []) {
@@ -33,7 +33,13 @@ async function episodeMetaForSeriesIds(
     entry.count += 1;
     if (row.episode_number === 1) {
       const comicPage = row.comic_page as { artUrl?: string | null };
-      entry.cover = comicPage.artUrl ?? undefined;
+      const breakdown = row.panel_breakdown as {
+        panels?: Array<{ panel_number: number; artUrl?: string }>;
+      } | null;
+      const panelCover = breakdown?.panels
+        ?.slice()
+        .sort((a, b) => a.panel_number - b.panel_number)[0]?.artUrl;
+      entry.cover = panelCover ?? comicPage.artUrl ?? undefined;
     }
   }
 
