@@ -74,6 +74,8 @@ export default function SubscribePageClient() {
       onClose={() => router.push(`/story/${storyId}/read`)}
       returnPath={returnPath}
       coverArtUrl={coverArtUrl}
+      storyId={storyId}
+      episodeNumber={nextEpisode}
     />
   );
 }

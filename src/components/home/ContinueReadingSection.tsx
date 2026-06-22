@@ -85,7 +85,7 @@ export default function ContinueReadingSection() {
     >
       <HorizontalScrollRail className="flex items-stretch gap-4 overflow-x-auto px-4 pb-1 scrollbar-hide snap-x snap-mandatory sm:gap-4 sm:px-0 md:gap-5 lg:gap-5 xl:gap-6">
         {stories.map((story) => (
-          <StoryCard key={story.id} story={story} size="standard" />
+          <StoryCard key={story.id} story={story} size="standard" listSection="continue_reading" />
         ))}
       </HorizontalScrollRail>
     </HomeSection>

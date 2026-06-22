@@ -11,6 +11,7 @@ interface StoryRailProps {
   rankChanges?: number[];
   loading?: boolean;
   skeletonCount?: number;
+  listSection?: string;
 }
 
 function StoryCardSkeleton({ size }: { size: StoryCardSize }) {
@@ -37,6 +38,7 @@ export default function StoryRail({
   rankChanges,
   loading = false,
   skeletonCount = 5,
+  listSection,
 }: StoryRailProps) {
   if (loading) {
     return (
@@ -59,6 +61,7 @@ export default function StoryRail({
           size={size}
           rank={showRank ? (story.rank ?? i + 1) : undefined}
           rankChange={rankChanges?.[i]}
+          listSection={listSection}
         />
       ))}
     </HorizontalScrollRail>

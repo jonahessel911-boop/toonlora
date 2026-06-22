@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   DEFAULT_SUBSCRIPTION_PLAN_ID,
@@ -9,6 +9,7 @@ import {
   type SubscriptionPlan,
 } from "@/lib/payments/subscription-plans";
 import { TOONLORA_READING_BENEFITS } from "@/lib/payments/reading-benefits";
+import { trackPaywallCheckoutClick, trackPaywallView } from "@/lib/analytics/gtag";
 import { apiFetch } from "@/lib/session";
 import { useSubscriptionStore } from "@/store/useSubscriptionStore";
 
@@ -19,6 +20,8 @@ interface SubscriptionPaywallProps {
   returnPath: string;
   coverArtUrl?: string;
   variant?: "modal" | "page";
+  storyId?: string;
+  episodeNumber?: number;
 }
 
 function useCountdown(initialSeconds: number) {
@@ -44,17 +47,32 @@ export default function SubscriptionPaywall({
   returnPath,
   coverArtUrl,
   variant = "modal",
+  storyId,
+  episodeNumber,
 }: SubscriptionPaywallProps) {
   const [selectedPlanId, setSelectedPlanId] = useState(DEFAULT_SUBSCRIPTION_PLAN_ID);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { mins, secs } = useCountdown(7 * 60 + 49);
+  const paywallViewTracked = useRef(false);
 
   const selectedPlan =
     SUBSCRIPTION_PLANS.find((p) => p.id === selectedPlanId) ??
     SUBSCRIPTION_PLANS[2];
 
+  useEffect(() => {
+    if (!open || paywallViewTracked.current) return;
+    paywallViewTracked.current = true;
+    trackPaywallView({
+      storyId,
+      storyTitle: storyName,
+      variant,
+      episodeNumber,
+    });
+  }, [open, storyId, storyName, variant, episodeNumber]);
+
   const startCheckout = useCallback(async () => {
+    trackPaywallCheckoutClick({ planId: selectedPlanId, storyId });
     setLoading(true);
     setError("");
     try {
@@ -73,7 +91,7 @@ export default function SubscriptionPaywall({
       setError(err instanceof Error ? err.message : "Checkout failed");
       setLoading(false);
     }
-  }, [selectedPlanId, returnPath]);
+  }, [selectedPlanId, returnPath, storyId]);
 
   if (!open) return null;
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import StoryCoverImage from "@/components/ui/StoryCoverImage";
 import { getCoverPreset } from "@/components/ui/CoverArt";
+import { trackStoryClick } from "@/lib/analytics/gtag";
 import type { CatalogSeries } from "@/types/catalog";
 
 export type StoryCardSize = "featured" | "standard" | "ranked";
@@ -14,6 +15,7 @@ interface StoryCardProps {
   layout?: StoryCardLayout;
   rank?: number;
   rankChange?: number;
+  listSection?: string;
   className?: string;
 }
 
@@ -32,6 +34,7 @@ export default function StoryCard({
   layout = "rail",
   rank,
   rankChange,
+  listSection,
   className = "",
 }: StoryCardProps) {
   const preset = getCoverPreset(String(story.genre));
@@ -48,7 +51,18 @@ export default function StoryCard({
         layout === "grid" ? "w-full min-w-0" : SIZE_WIDTH[size]
       } ${className}`}
     >
-      <Link href={href} className="flex h-full flex-col touch-manipulation">
+      <Link
+        href={href}
+        className="flex h-full flex-col touch-manipulation"
+        onClick={() =>
+          trackStoryClick({
+            seriesId: story.id,
+            title: story.title,
+            genre: String(story.genre),
+            listSection,
+          })
+        }
+      >
         <div className="relative overflow-hidden rounded-[20px] shadow-[0_4px_20px_rgba(42,17,75,0.08)] ring-1 ring-[#E7D8FF]/80 transition duration-300 active:scale-[0.98] sm:rounded-[18px] sm:group-hover:-translate-y-1 sm:group-hover:shadow-[0_12px_32px_rgba(83,64,255,0.14)]">
           <StoryCoverImage
             coverArtUrl={story.coverArtUrl}

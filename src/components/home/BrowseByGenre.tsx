@@ -100,13 +100,24 @@ export default function BrowseByGenre({
           <div className="sm:hidden">
             <HorizontalScrollRail className="flex items-stretch gap-4 overflow-x-auto px-4 pb-1 scrollbar-hide snap-x snap-mandatory sm:gap-4 sm:px-0 md:gap-5 lg:gap-5 xl:gap-6">
               {displayStories.slice(0, 6).map((story) => (
-                <StoryCard key={story.id} story={story} size="standard" />
+                <StoryCard
+                  key={story.id}
+                  story={story}
+                  size="standard"
+                  listSection={`browse_by_genre:${active}`}
+                />
               ))}
             </HorizontalScrollRail>
           </div>
           <div className="hidden grid-cols-3 gap-4 sm:grid md:grid-cols-4 lg:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
             {displayStories.slice(0, 8).map((story) => (
-              <StoryCard key={story.id} story={story} size="standard" layout="grid" />
+              <StoryCard
+                key={story.id}
+                story={story}
+                size="standard"
+                layout="grid"
+                listSection={`browse_by_genre:${active}`}
+              />
             ))}
           </div>
         </>

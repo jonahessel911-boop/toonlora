@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SignupLogo, {
   SignupAvatar,
   SignupBackButton,
@@ -12,6 +12,7 @@ import SignupLogo, {
   SignupSubmitButton,
 } from "@/components/signup/SignupScreen";
 import { sanitizeReturnTo } from "@/lib/reader/nextEpisodeGate";
+import { trackSignUp, trackSignupFormView } from "@/lib/analytics/gtag";
 import { apiFetch } from "@/lib/session";
 import { useUserStore } from "@/store/useUserStore";
 
@@ -25,6 +26,10 @@ export default function RegisterPageClient() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    trackSignupFormView({ formType: "register" });
+  }, []);
 
   const canSubmit =
     fullName.trim().length > 0 &&
@@ -66,6 +71,7 @@ export default function RegisterPageClient() {
         onboarded: true,
         agreedToTerms: true,
       });
+      trackSignUp({ formType: "register" });
       router.push(returnTo ?? "/library");
     } catch (err) {
       if (err instanceof TypeError && err.message.includes("fetch")) {

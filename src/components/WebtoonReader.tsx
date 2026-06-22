@@ -6,6 +6,10 @@ import PanelBlock from "@/components/reader/PanelBlock";
 import ReaderBackButton from "@/components/reader/ReaderBackButton";
 import { trackReadingProgress } from "@/components/analytics/AnalyticsProvider";
 import {
+  trackEpisodeComplete,
+  trackNextEpisodeClick,
+} from "@/lib/analytics/gtag";
+import {
   buildPaywallPath,
   buildReaderSignupPath,
 } from "@/lib/reader/nextEpisodeGate";
@@ -62,6 +66,7 @@ export default function WebtoonReader({
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const lastPanelRef = useRef<HTMLElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
+  const episodeCompleteTracked = useRef(false);
   const { email } = useUserStore();
   const { isSubscriber, hydrate: hydrateSubscription } = useSubscriptionStore();
   const loggedIn = Boolean(email);
@@ -91,6 +96,16 @@ export default function WebtoonReader({
   const stripUrl = isMultiPanelUpload ? undefined : panelCoverUrl;
 
   const handleStartNextEpisode = useCallback(() => {
+    if (isCatalog) {
+      trackNextEpisodeClick({
+        seriesId,
+        title: seriesTitle,
+        episodeNumber,
+        nextEpisodeNumber: episodeNumber + 1,
+        gate: needsSignup ? "signup" : needsSubscription ? "subscribe" : "open",
+      });
+    }
+
     if (needsSignup) {
       window.location.href = buildReaderSignupPath(
         seriesId,
@@ -112,6 +127,7 @@ export default function WebtoonReader({
       window.location.href = href;
     }
   }, [
+    isCatalog,
     needsSignup,
     needsSubscription,
     nextEpisodeFromList,
@@ -215,6 +231,27 @@ export default function WebtoonReader({
   }, [maxPanelIndex, total, showControls]);
 
   useEffect(() => {
+    if (episodeCompleteTracked.current || total === 0) return;
+    if (maxPanelIndex >= total - 1) {
+      episodeCompleteTracked.current = true;
+      trackEpisodeComplete({
+        seriesId,
+        title: seriesTitle,
+        episodeNumber,
+        totalPanels: total,
+        isCatalog: Boolean(isCatalog),
+      });
+    }
+  }, [
+    maxPanelIndex,
+    total,
+    seriesId,
+    seriesTitle,
+    episodeNumber,
+    isCatalog,
+  ]);
+
+  useEffect(() => {
     trackReadingProgress({
       seriesId,
       episodeNumber,
@@ -224,6 +261,15 @@ export default function WebtoonReader({
   }, [seriesId, episodeNumber, maxPanelIndex, total]);
 
   const handleNextEpisode = () => {
+    if (!isCatalog) {
+      trackNextEpisodeClick({
+        seriesId,
+        title: seriesTitle,
+        episodeNumber,
+        nextEpisodeNumber: episodeNumber + 1,
+        gate: "creator",
+      });
+    }
     handleStartNextEpisode();
     if (!needsSignup && !needsSubscription) {
       onGenerateNext?.();
@@ -274,6 +320,7 @@ export default function WebtoonReader({
 
         {showEndCard && showControls && (
           <EpisodeCompleteCard
+            seriesId={seriesId}
             seriesTitle={seriesTitle}
             episodeNumber={episodeNumber}
             isCatalog={isCatalog}

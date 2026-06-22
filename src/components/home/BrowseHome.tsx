@@ -98,6 +98,7 @@ export default function BrowseHome() {
             size="featured"
             loading={loadingFeatured}
             skeletonCount={6}
+            listSection="featured_originals"
           />
         </HomeSection>
       ) : null}
@@ -116,6 +117,7 @@ export default function BrowseHome() {
             showRank
             rankChanges={RANK_CHANGES}
             loading={loadingTrending}
+            listSection="trending"
           />
         </HomeSection>
       ) : null}
@@ -129,7 +131,7 @@ export default function BrowseHome() {
           subtitle="Cartoon stories from indie creators on Toonlora."
           viewAllHref="/library"
         >
-          <StoryRail stories={community} size="standard" />
+          <StoryRail stories={community} size="standard" listSection="community" />
         </HomeSection>
       ) : null}
     </div>

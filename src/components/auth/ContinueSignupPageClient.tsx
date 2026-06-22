@@ -15,6 +15,7 @@ import {
   buildPaywallPath,
   sanitizeReturnTo,
 } from "@/lib/reader/nextEpisodeGate";
+import { trackSignUp, trackSignupFormView } from "@/lib/analytics/gtag";
 import { storyToSeriesDetail } from "@/lib/seriesCatalog";
 import { apiFetch } from "@/lib/session";
 import { useStoryStore } from "@/store/useStoryStore";
@@ -41,6 +42,14 @@ export default function ContinueSignupPageClient() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    trackSignupFormView({
+      formType: "reader_continue",
+      seriesId: storyId || undefined,
+      storyTitle: storyTitle || undefined,
+    });
+  }, [storyId, storyTitle]);
 
   useEffect(() => {
     if (!storyId) return;
@@ -108,6 +117,10 @@ export default function ContinueSignupPageClient() {
 
       if (res.status === 503) {
         saveLocalProfile();
+        trackSignUp({
+          formType: "reader_continue",
+          seriesId: storyId || undefined,
+        });
         redirectAfterSignup();
         return;
       }
@@ -117,6 +130,10 @@ export default function ContinueSignupPageClient() {
       }
 
       saveLocalProfile();
+      trackSignUp({
+        formType: "reader_continue",
+        seriesId: storyId || undefined,
+      });
       redirectAfterSignup();
     } catch (err) {
       setError(

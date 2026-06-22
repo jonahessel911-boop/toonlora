@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import SignupLogo, {
@@ -9,6 +9,7 @@ import SignupLogo, {
   SignupSubmitButton,
 } from "@/components/signup/SignupScreen";
 import { sanitizeReturnTo } from "@/lib/reader/nextEpisodeGate";
+import { trackLogin, trackSignupFormView } from "@/lib/analytics/gtag";
 import { apiFetch } from "@/lib/session";
 import { useUserStore } from "@/store/useUserStore";
 
@@ -20,6 +21,10 @@ export default function SigninPageClient() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    trackSignupFormView({ formType: "signin" });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +51,7 @@ export default function SigninPageClient() {
         onboarded: true,
       });
       completeOnboarding();
+      trackLogin();
       router.push(returnTo ?? "/library");
     } catch {
       setError("Could not sign in. Check your connection.");

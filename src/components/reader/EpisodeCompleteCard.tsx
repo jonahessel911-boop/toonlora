@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import CoverArt from "@/components/ui/CoverArt";
+import { trackNextEpisodePromptView } from "@/lib/analytics/gtag";
 
 export interface NextEpisodeInfo {
   number: number;
@@ -10,6 +12,7 @@ export interface NextEpisodeInfo {
 }
 
 interface EpisodeCompleteCardProps {
+  seriesId?: string;
   seriesTitle?: string;
   episodeNumber?: number;
   isCatalog?: boolean;
@@ -27,6 +30,7 @@ interface EpisodeCompleteCardProps {
 }
 
 export default function EpisodeCompleteCard({
+  seriesId,
   seriesTitle,
   episodeNumber = 1,
   isCatalog = false,
@@ -42,6 +46,34 @@ export default function EpisodeCompleteCard({
   onStartNextEpisode,
   onCreateInspired,
 }: EpisodeCompleteCardProps) {
+  const nextEpisodePromptTracked = useRef(false);
+  const nextEpisodeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!nextEpisode || !seriesId || nextEpisodePromptTracked.current) return;
+
+    const el = nextEpisodeRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        nextEpisodePromptTracked.current = true;
+        trackNextEpisodePromptView({
+          seriesId,
+          title: seriesTitle ?? "",
+          episodeNumber,
+          nextEpisodeNumber: nextEpisode.number,
+        });
+        observer.disconnect();
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [nextEpisode, seriesId, seriesTitle, episodeNumber]);
+
   const handleContinue = () => {
     (onStartNextEpisode ?? onContinueReading)?.();
   };
@@ -132,7 +164,7 @@ export default function EpisodeCompleteCard({
       ) : null}
 
       {nextEpisode ? (
-        <div className="bg-[#08040F] px-4 py-8 sm:px-6">
+        <div ref={nextEpisodeRef} className="bg-[#08040F] px-4 py-8 sm:px-6">
           <p className="text-center text-sm font-semibold text-white/90">
             Read next episode
           </p>
