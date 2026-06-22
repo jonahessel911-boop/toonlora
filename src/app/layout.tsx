@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Fredoka, Inter } from "next/font/google";
+import Script from "next/script";
 import AppShell from "@/components/AppShell";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import { GA_MEASUREMENT_ID } from "@/lib/analytics/ga-measurement-id";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -48,6 +50,25 @@ export default function RootLayout({
         } as React.CSSProperties
       }
     >
+      {GA_MEASUREMENT_ID ? (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+            strategy="beforeInteractive"
+          />
+          <Script id="google-analytics-init" strategy="beforeInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              window.gtag = gtag;
+              gtag('js', new Date());
+              gtag('config', '${GA_MEASUREMENT_ID}', {
+                send_page_view: true,
+              });
+            `}
+          </Script>
+        </>
+      ) : null}
       <body className="min-h-[100dvh] bg-background font-sans antialiased">
         <GoogleAnalytics />
         <AppShell>{children}</AppShell>

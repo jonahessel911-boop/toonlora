@@ -1,11 +1,8 @@
 "use client";
 
-import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-
-const GA_MEASUREMENT_ID =
-  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-9E17B20LZ4";
+import { GA_MEASUREMENT_ID } from "@/lib/analytics/ga-measurement-id";
 
 declare global {
   interface Window {
@@ -14,6 +11,7 @@ declare global {
   }
 }
 
+/** Sends SPA route changes to GA4 after the base tag loads in layout.tsx. */
 export default function GoogleAnalytics() {
   const pathname = usePathname();
 
@@ -24,22 +22,5 @@ export default function GoogleAnalytics() {
     });
   }, [pathname]);
 
-  if (!GA_MEASUREMENT_ID) return null;
-
-  return (
-    <>
-      <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-        strategy="afterInteractive"
-      />
-      <Script id="google-analytics" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', '${GA_MEASUREMENT_ID}');
-        `}
-      </Script>
-    </>
-  );
+  return null;
 }
