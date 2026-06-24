@@ -176,7 +176,7 @@ export default function CreateStoryWizard() {
               Create your story
             </h1>
             <p className="hidden truncate text-xs text-[#667085] sm:block md:text-sm">
-              Pick a vibe, describe your idea, and turn it into a cartoon episode.
+              In-depth business stories in a cartoon — describe yours and we&apos;ll draw it.
             </p>
           </div>
           <div className="flex shrink-0 gap-2">

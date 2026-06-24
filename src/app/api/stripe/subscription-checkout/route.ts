@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/api/session";
+import { isServerDatabaseConfigured } from "@/lib/config";
+import { recordAnalyticsEventToDb } from "@/lib/services/analytics-repository";
 import {
   getSubscriptionPlan,
   subscriptionStripePriceData,
 } from "@/lib/payments/subscription-plans";
+import { STRIPE_SUBSCRIPTION_PAYMENT_METHODS } from "@/lib/payments/stripe-payment-methods";
 import { getSiteUrl, getStripe, isStripeConfigured } from "@/lib/services/stripe";
 
 export async function POST(request: Request) {
@@ -29,9 +32,21 @@ export async function POST(request: Request) {
     const siteUrl = getSiteUrl();
     const safePath = returnPath.startsWith("/") ? returnPath : "/";
 
+    if (isServerDatabaseConfigured()) {
+      try {
+        await recordAnalyticsEventToDb(sessionId, {
+          eventType: "checkout_started",
+          planId: plan.id,
+          properties: { source: "subscription_checkout_api" },
+        });
+      } catch {
+        /* analytics must not block checkout */
+      }
+    }
+
     const checkout = await stripe.checkout.sessions.create({
       mode: "subscription",
-      payment_method_types: ["card"],
+      payment_method_types: [...STRIPE_SUBSCRIPTION_PAYMENT_METHODS],
       billing_address_collection: "auto",
       locale: "nl",
       line_items: [

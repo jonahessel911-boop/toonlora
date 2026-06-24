@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import RegisterPageClient from "@/components/onboarding/RegisterPageClient";
+
+export const metadata: Metadata = {
+  title: "Start reading — Toonlora",
+};
 
 function RegisterLoading() {
   return (

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/api/session";
 import { getCoinPackage } from "@/lib/payments/coin-packages";
+import { STRIPE_ONE_TIME_PAYMENT_METHODS } from "@/lib/payments/stripe-payment-methods";
 import { getSiteUrl, getStripe, isStripeConfigured } from "@/lib/services/stripe";
 
 export async function POST(request: Request) {
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
 
     const checkout = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card", "ideal", "klarna"],
+      payment_method_types: [...STRIPE_ONE_TIME_PAYMENT_METHODS],
       billing_address_collection: "auto",
       locale: "nl",
       line_items: [

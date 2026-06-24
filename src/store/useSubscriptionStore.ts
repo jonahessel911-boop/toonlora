@@ -2,6 +2,11 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  getPlanTier,
+  isPaidTier,
+  type SubscriptionTierId,
+} from "@/lib/payments/subscription-plans";
 import { apiFetch } from "@/lib/session";
 
 interface SubscriptionState {
@@ -15,7 +20,11 @@ interface SubscriptionState {
     periodEnd?: string | null;
   }) => void;
   hydrate: () => Promise<void>;
+  getTier: () => SubscriptionTierId;
   isSubscriber: () => boolean;
+  isAchiever: () => boolean;
+  isEntrepreneur: () => boolean;
+  hasPaidAccess: () => boolean;
   clear: () => void;
 }
 
@@ -42,6 +51,7 @@ export const useSubscriptionStore = create<SubscriptionState>()(
             planId: string | null;
             periodEnd: string | null;
             status: string | null;
+            tier?: SubscriptionTierId;
           };
           set({
             status: data.active
@@ -57,12 +67,21 @@ export const useSubscriptionStore = create<SubscriptionState>()(
           set({ hydrated: true });
         }
       },
-      isSubscriber: () => {
-        const { status, periodEnd } = get();
-        if (status !== "active") return false;
-        if (!periodEnd) return true;
-        return new Date(periodEnd).getTime() > Date.now();
+      getTier: () => {
+        const { status, planId, periodEnd } = get();
+        if (status !== "active") return "free";
+        if (periodEnd && new Date(periodEnd).getTime() <= Date.now()) {
+          return "free";
+        }
+        return getPlanTier(planId);
       },
+      isSubscriber: () => get().hasPaidAccess(),
+      isAchiever: () => {
+        const tier = get().getTier();
+        return tier === "achiever" || tier === "entrepreneur";
+      },
+      isEntrepreneur: () => get().getTier() === "entrepreneur",
+      hasPaidAccess: () => isPaidTier(get().getTier()),
       clear: () =>
         set({
           status: "none",

@@ -5,9 +5,38 @@ interface ToonloraLogoProps {
   variant?: "full" | "compact" | "icon" | "nav";
   className?: string;
   iconSize?: number;
+  /** Light background — navy TOON + blue LORA */
+  onLight?: boolean;
 }
 
 const LOGO_SRC = "/images/toonlora-logo.png";
+
+function WordmarkLogo({
+  className = "",
+  onLight = false,
+  size = "nav",
+}: {
+  className?: string;
+  onLight?: boolean;
+  size?: "nav" | "compact" | "full";
+}) {
+  const sizeClass =
+    size === "full"
+      ? "text-3xl sm:text-4xl"
+      : size === "compact"
+        ? "text-xl sm:text-2xl"
+        : "text-xl sm:text-2xl md:text-[1.75rem]";
+
+  return (
+    <span
+      className={`tl-logo-wordmark inline-flex items-baseline ${onLight ? "tl-logo-wordmark-light" : ""} ${sizeClass} ${className}`}
+      aria-label={APP_NAME}
+    >
+      <span className="tl-logo-toon">TOON</span>
+      <span className="tl-logo-lora">LORA</span>
+    </span>
+  );
+}
 
 /** Official Toonlora wordmark — compact icon uses scaled wordmark */
 export function ToonloraIcon({
@@ -34,31 +63,29 @@ export default function ToonloraLogo({
   variant = "full",
   className = "",
   iconSize,
+  onLight = false,
 }: ToonloraLogoProps) {
   if (variant === "nav") {
+    return <WordmarkLogo className={className} onLight={onLight} size="nav" />;
+  }
+
+  if (variant === "compact") {
     return (
-      <Image
-        src={LOGO_SRC}
-        alt={APP_NAME}
-        width={480}
-        height={144}
-        priority
-        className={`h-11 w-auto max-w-[148px] object-contain object-left sm:h-12 sm:max-w-[168px] md:h-14 md:max-w-[196px] ${className}`}
+      <WordmarkLogo
+        className={className}
+        onLight={onLight}
+        size="compact"
       />
     );
   }
 
-  const height =
-    variant === "icon"
-      ? (iconSize ?? 32)
-      : variant === "compact"
-        ? (iconSize ?? 40)
-        : (iconSize ?? 52);
+  if (variant === "full") {
+    return (
+      <WordmarkLogo className={className} onLight={onLight} size="full" />
+    );
+  }
 
-  const maxWidth =
-    variant === "compact"
-      ? "max-w-[200px] sm:max-w-[220px]"
-      : "max-w-[200px] sm:max-w-[240px]";
+  const height = iconSize ?? 32;
 
   return (
     <Image
@@ -66,8 +93,7 @@ export default function ToonloraLogo({
       alt={APP_NAME}
       width={480}
       height={144}
-      priority={variant === "full"}
-      className={`w-auto object-contain object-left ${maxWidth} ${className}`}
+      className={`w-auto object-contain object-left ${className}`}
       style={{ height }}
     />
   );

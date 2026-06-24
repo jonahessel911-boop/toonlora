@@ -9,7 +9,6 @@ import { useEffect } from "react";
 const tabs = [
   { href: "/", label: "Home", icon: "🏠" },
   { href: "/create", label: "Create", icon: "✨" },
-  { href: "/library", label: "Library", icon: "📚" },
   { href: "/profile", label: "Profile", icon: "👤" },
 ];
 
@@ -61,12 +60,9 @@ export function AppHeader({ showCredits = true }: { showCredits?: boolean }) {
       </Link>
       <div className="flex items-center gap-2">
         {showCredits && (
-          <Link
-            href="/library"
-            className="flex items-center gap-1.5 rounded-full bg-groen-mint px-3 py-1.5 text-xs font-bold text-groen-deep"
-          >
+          <span className="flex items-center gap-1.5 rounded-full bg-groen-mint px-3 py-1.5 text-xs font-bold text-groen-deep">
             ✦ {credits}
-          </Link>
+          </span>
         )}
         <Link
           href="/profile"

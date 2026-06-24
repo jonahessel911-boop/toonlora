@@ -15,7 +15,8 @@ export default function SubscribePageClient() {
   const storyTitleParam = searchParams.get("storyTitle");
   const nextEpisode = Math.max(2, Number(searchParams.get("ep") ?? 2) || 2);
   const { getStoryById } = useStoryStore();
-  const { status, hydrate: hydrateSubscription } = useSubscriptionStore();
+  const { status, hydrate: hydrateSubscription, isSubscriber } =
+    useSubscriptionStore();
   const [storyTitle, setStoryTitle] = useState(storyTitleParam ?? "");
   const [coverArtUrl, setCoverArtUrl] = useState<string | undefined>();
 
@@ -48,34 +49,35 @@ export default function SubscribePageClient() {
   }, [storyId, getStoryById]);
 
   useEffect(() => {
-    if (status === "active" && storyId) {
+    if (status !== "active" && !isSubscriber()) return;
+
+    if (storyId) {
       router.replace(
         `/story/${storyId}/read${nextEpisode > 1 ? `?ep=${nextEpisode}` : ""}`
       );
+      return;
     }
-  }, [status, storyId, nextEpisode, router]);
 
-  if (!storyId) {
-    return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-[#08040F] text-white">
-        <p className="text-sm text-white/70">Missing story. Go back and try again.</p>
-      </div>
-    );
-  }
+    router.replace("/profile");
+  }, [status, storyId, nextEpisode, router, isSubscriber]);
 
-  const displayTitle = storyTitle || storyTitleParam || "this story";
-  const returnPath = `/story/${storyId}/read?ep=${nextEpisode}`;
+  const displayTitle =
+    storyTitle || storyTitleParam || "Toonlora Originals";
+  const returnPath = storyId
+    ? `/story/${storyId}/read?ep=${nextEpisode}`
+    : "/profile";
+  const closePath = storyId ? `/story/${storyId}/read` : "/profile";
 
   return (
     <SubscriptionPaywall
       variant="page"
       storyName={displayTitle}
       open
-      onClose={() => router.push(`/story/${storyId}/read`)}
+      onClose={() => router.push(closePath)}
       returnPath={returnPath}
       coverArtUrl={coverArtUrl}
-      storyId={storyId}
-      episodeNumber={nextEpisode}
+      storyId={storyId || undefined}
+      episodeNumber={storyId ? nextEpisode : undefined}
     />
   );
 }

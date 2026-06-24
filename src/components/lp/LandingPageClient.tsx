@@ -15,12 +15,17 @@ import {
   type LPCategory,
 } from "@/lib/lpStories";
 import { useCatalog } from "@/hooks/useCatalog";
+import {
+  BRAND_HEADLINE,
+  BRAND_SUBHEADLINE,
+  BRAND_TAGLINE,
+} from "@/lib/brand";
 
 type FunnelStep = 1 | 2;
 
 const TRUST_ITEMS = [
-  "Read for free",
-  "Episode 1 free",
+  "Chapter 1 free",
+  "In-depth business stories",
   "First story free",
 ];
 
@@ -40,7 +45,7 @@ export default function LandingPageClient() {
 
   if (step === 1) {
     return (
-      <div className="flex min-h-[100dvh] flex-col bg-lp-purple">
+      <div className="flex min-h-[100dvh] flex-col bg-nav-bg">
         {/* Purple hero — fills viewport */}
         <div className="flex flex-1 flex-col pb-6 lp-hero-curve">
           <LPTopBar onRead={goToRead} />
@@ -50,13 +55,10 @@ export default function LandingPageClient() {
 
             <div className="text-center">
               <h1 className="text-[1.625rem] font-black leading-[1.15] tracking-tight text-white sm:text-[2rem]">
-                <span className="text-white">Read</span> or{" "}
-                <span className="text-lp-yellow">create</span> the story of
-                your dreams.
+                {BRAND_HEADLINE}
               </h1>
               <p className="mx-auto mt-3 max-w-[18rem] text-[0.8125rem] leading-relaxed text-white/80 sm:max-w-sm sm:text-sm">
-                Read free cartoon stories from the community, or turn your own
-                idea into a shareable episode in minutes.
+                {BRAND_SUBHEADLINE}
               </p>
             </div>
 
@@ -70,7 +72,7 @@ export default function LandingPageClient() {
                 <ChoiceCard
                   variant="read"
                   title="Read stories"
-                  subtitle="Explore free cartoon stories from creators."
+                  subtitle="Explore in-depth business stories in cartoon form."
                   badge="Free"
                   cta="Start reading"
                   primary
@@ -79,7 +81,7 @@ export default function LandingPageClient() {
                 <ChoiceCard
                   variant="create"
                   title="Create story"
-                  subtitle="Make your own cartoon episode in minutes."
+                  subtitle="Turn a business story into a cartoon chapter."
                   badge="First story free"
                   cta="Start creating"
                   onSelect={() => router.push("/create")}
@@ -104,7 +106,7 @@ export default function LandingPageClient() {
               ))}
             </ul>
             <p className="mt-6 text-center text-[11px] font-medium text-gray-400">
-              Toonlora — Read for free. Create with credits.
+              Toonlora — {BRAND_TAGLINE}
             </p>
           </div>
         </div>
@@ -114,7 +116,7 @@ export default function LandingPageClient() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-white">
-      <div className="bg-lp-purple pb-5 lp-hero-curve">
+      <div className="bg-nav-bg pb-5 lp-hero-curve">
         <LPTopBar onRead={() => setStep(2)} />
         <div className="mx-auto w-full max-w-[640px] px-4 pt-1">
           <FunnelProgress step={progressStep} onPurple />
@@ -130,7 +132,7 @@ export default function LandingPageClient() {
               What do you want to read?
             </h2>
             <p className="mt-2 text-sm text-white/80">
-              Choose a category and start with a free first episode.
+              Choose a category and start with a free first chapter.
             </p>
           </div>
         </div>
@@ -158,7 +160,7 @@ export default function LandingPageClient() {
         <StoryGrid stories={stories} />
 
         <p className="mt-5 text-center text-xs text-gray-400">
-          Episode 1 is free · Account needed to continue
+          Chapter 1 is free · Account needed to continue
         </p>
 
         <div className="mt-4">

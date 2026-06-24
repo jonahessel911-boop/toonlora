@@ -5,7 +5,10 @@ import type { ProfileRow } from "@/lib/supabase/types";
 export interface RegisterProfileInput {
   fullName: string;
   email: string;
+  countryCode?: string;
   wantsRecommendations?: boolean;
+  wantsWeeklyNewsletter?: boolean;
+  newsletterTopics?: string[];
 }
 
 export async function registerProfileInDb(
@@ -33,15 +36,20 @@ export async function registerProfileInDb(
 
   const existing = bySession ?? byEmail;
 
+  const profilePayload = {
+    session_id: sessionId,
+    email,
+    full_name: fullName,
+    wants_recommendations: input.wantsRecommendations ?? true,
+    wants_weekly_newsletter: input.wantsWeeklyNewsletter ?? false,
+    newsletter_topics: input.newsletterTopics ?? [],
+    country_code: input.countryCode ?? null,
+  };
+
   if (existing) {
     const { data: updated, error } = await supabase
       .from("profiles")
-      .update({
-        session_id: sessionId,
-        email,
-        full_name: fullName,
-        wants_recommendations: input.wantsRecommendations ?? true,
-      })
+      .update(profilePayload)
       .eq("id", existing.id)
       .select()
       .single();
@@ -52,12 +60,7 @@ export async function registerProfileInDb(
 
   const { data, error } = await supabase
     .from("profiles")
-    .insert({
-      session_id: sessionId,
-      email,
-      full_name: fullName,
-      wants_recommendations: input.wantsRecommendations ?? true,
-    })
+    .insert(profilePayload)
     .select()
     .single();
 

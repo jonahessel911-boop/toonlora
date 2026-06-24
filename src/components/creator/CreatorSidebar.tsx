@@ -88,6 +88,18 @@ export default function CreatorSidebar({
         })}
       </nav>
 
+      <div className="px-2 py-1">
+        <Link
+          href="/creator/episode-builder"
+          className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-[#667085] transition hover:bg-[#F3ECFF] hover:text-[#2A114B]"
+        >
+          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#F3ECFF] text-xs text-[#5340FF]">
+            ✦
+          </span>
+          Episode Builder
+        </Link>
+      </div>
+
       <div className="mt-auto shrink-0 border-t border-[#E7D8FF] p-4">
         <CreditsBadge onBuyCoins={() => onNavigate("settings")} />
       </div>

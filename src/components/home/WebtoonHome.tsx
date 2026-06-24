@@ -135,7 +135,7 @@ export default function WebtoonHome() {
               title="Newly Released Originals"
               stories={newest.map((s) => ({ ...s, isNew: true }))}
               variant="vertical"
-              viewAllHref="/library"
+              viewAllHref="/"
               mintBg
             />
           )}

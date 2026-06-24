@@ -88,7 +88,7 @@ export default function StoryReaderApp({ id, isPublic = false }: StoryReaderAppP
     <div className="mx-auto min-h-[100dvh] max-w-lg bg-white pb-8">
       <header className="flex items-center justify-between border-b border-border/50 px-4 py-3">
         <Link
-          href={isPublic ? "/" : "/library"}
+          href={isPublic ? "/" : "/creator"}
           className="flex h-9 w-9 items-center justify-center rounded-full text-gray-600"
         >
           ←
@@ -140,7 +140,7 @@ export default function StoryReaderApp({ id, isPublic = false }: StoryReaderAppP
           </div>
         ) : (
           <div className="rounded-2xl bg-groen-mint/30 p-6 text-center text-sm text-gray-600">
-            No episode panels found.
+            No chapter panels found.
           </div>
         )}
       </div>
@@ -152,7 +152,7 @@ export default function StoryReaderApp({ id, isPublic = false }: StoryReaderAppP
               className={`h-12 w-10 flex-shrink-0 rounded-lg bg-gradient-to-br ${story.coverGradient}`}
             />
             <div className="flex-1">
-              <p className="text-sm font-bold text-gray-800">Episode 1</p>
+              <p className="text-sm font-bold text-gray-800">Chapter 1</p>
               <p className="text-xs text-gray-500">
                 Page {totalPages} of {totalPages}
               </p>
@@ -175,7 +175,7 @@ export default function StoryReaderApp({ id, isPublic = false }: StoryReaderAppP
               disabled={generating}
               className="rounded-full bg-groen-primary px-4 py-2 text-xs font-bold text-white shadow-md disabled:opacity-50"
             >
-              {generating ? "…" : "Next episode →"}
+              {generating ? "…" : "Next chapter →"}
             </button>
           </div>
 
@@ -193,14 +193,14 @@ export default function StoryReaderApp({ id, isPublic = false }: StoryReaderAppP
               disabled={generating}
               className="flex items-center justify-center gap-2 rounded-full bg-groen-primary py-3.5 text-sm font-bold text-white shadow-md disabled:opacity-50"
             >
-              ✨ Generate next episode
+              ✨ Generate next chapter
             </button>
           </div>
 
           <div className="mx-4 mt-4 flex items-center justify-between rounded-2xl bg-groen-mint px-4 py-3">
             <p className="text-xs font-medium text-groen-deep">
               Amazing! You&apos;ve completed this story. Keep the adventure going
-              with a new episode.
+              with a new chapter.
             </p>
             <span className="text-groen-primary">↗</span>
           </div>

@@ -181,6 +181,94 @@ export async function deleteSeriesFromDb(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function incrementSeriesViewCount(
+  seriesId: string
+): Promise<number | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data: current } = await supabase
+    .from("series")
+    .select("views_count")
+    .eq("id", seriesId)
+    .or("status.eq.published,is_public.eq.true")
+    .maybeSingle();
+
+  if (!current) return null;
+
+  const next = (current.views_count ?? 0) + 1;
+  const { data, error } = await supabase
+    .from("series")
+    .update({ views_count: next })
+    .eq("id", seriesId)
+    .select("views_count")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return (data as { views_count: number }).views_count;
+}
+
+export async function getSeriesViewCount(
+  seriesId: string
+): Promise<number | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("series")
+    .select("views_count")
+    .eq("id", seriesId)
+    .or("status.eq.published,is_public.eq.true")
+    .maybeSingle();
+
+  if (!data) return null;
+  return data.views_count ?? 0;
+}
+
+export async function incrementSeriesLikeCount(
+  seriesId: string
+): Promise<number | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data: current } = await supabase
+    .from("series")
+    .select("likes_count")
+    .eq("id", seriesId)
+    .or("status.eq.published,is_public.eq.true")
+    .maybeSingle();
+
+  if (!current) return null;
+
+  const next = (current.likes_count ?? 0) + 1;
+  const { data, error } = await supabase
+    .from("series")
+    .update({ likes_count: next })
+    .eq("id", seriesId)
+    .select("likes_count")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return (data as { likes_count: number }).likes_count;
+}
+
+export async function getSeriesLikeCount(
+  seriesId: string
+): Promise<number | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("series")
+    .select("likes_count")
+    .eq("id", seriesId)
+    .or("status.eq.published,is_public.eq.true")
+    .maybeSingle();
+
+  if (!data) return null;
+  return data.likes_count ?? 0;
+}
+
 export async function getCatalogSeriesById(
   id: string
 ): Promise<CatalogSeries | null> {

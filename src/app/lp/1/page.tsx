@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import LandingPageClient from "@/components/lp/LandingPageClient";
+import { BRAND_HEADLINE, BRAND_SUBHEADLINE } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Toonlora — Read or Create Your Dream Story",
-  description:
-    "Discover free cartoon stories from the community, or turn your idea into a shareable episode in minutes.",
+  title: `Toonlora — ${BRAND_HEADLINE}`,
+  description: BRAND_SUBHEADLINE,
 };
 
 export default function LandingPage1() {

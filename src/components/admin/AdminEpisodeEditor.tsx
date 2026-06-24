@@ -4,14 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Story } from "@/types/story";
 import { getEpisodePanelUrls } from "@/lib/admin/uploadedStoryBuilder";
 import {
-  ADMIN_GRADIENTS,
   AdminAlert,
   AdminField,
   AdminGenreSelect,
   AdminInput,
   AdminPrimaryButton,
   AdminTextarea,
-  GradientPicker,
 } from "@/components/admin/adminUi";
 
 type EditorPanel =
@@ -41,7 +39,6 @@ export default function AdminEpisodeEditor({
   const [synopsis, setSynopsis] = useState("");
   const [creatorName, setCreatorName] = useState("Toonlora Official");
   const [featuredRank, setFeaturedRank] = useState("");
-  const [coverGradient, setCoverGradient] = useState<string>(ADMIN_GRADIENTS[0].class);
   const [panels, setPanels] = useState<EditorPanel[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,7 +79,6 @@ export default function AdminEpisodeEditor({
         setFeaturedRank(
           story.featuredRank != null ? String(story.featuredRank) : ""
         );
-        setCoverGradient(story.coverGradient || ADMIN_GRADIENTS[0].class);
 
         const urls = episode ? getEpisodePanelUrls(episode) : [];
         setPanels(
@@ -174,7 +170,6 @@ export default function AdminEpisodeEditor({
       formData.set("genre", genre);
       formData.set("synopsis", synopsis.trim());
       formData.set("creator_display_name", creatorName.trim());
-      formData.set("cover_gradient", coverGradient);
       formData.set("episode_number", String(episodeNumber));
       formData.set("panels", JSON.stringify(slots));
       if (featuredRank.trim()) {
@@ -264,16 +259,16 @@ export default function AdminEpisodeEditor({
         />
 
         <div>
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs font-semibold text-[#323130]">
-              Panels ({panels.length})
+              Panels ({panels.length}) — use ↑ ↓ to change reading order
             </p>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-xs font-semibold text-[#0078D4] hover:underline"
+              className="rounded-md bg-[#0078D4] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#106EBE]"
             >
-              + Add images
+              + Add panel
             </button>
           </div>
 
@@ -290,68 +285,102 @@ export default function AdminEpisodeEditor({
               setDragOver(false);
               addFiles(e.dataTransfer.files);
             }}
-            className={`mb-3 flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-5 text-center transition ${
+            className={`mb-3 flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-4 text-center transition ${
               dragOver
                 ? "border-[#0078D4] bg-[#EFF6FC]"
                 : "border-[#D2D0CE] bg-[#FAF9F8]"
             }`}
           >
             <p className="text-sm font-semibold text-[#323130]">
-              Drop new panel images here
+              Drop images here to add panels
+            </p>
+            <p className="mt-1 text-xs text-[#605E5C]">
+              New panels are added at the end — reorder with the arrows
             </p>
           </button>
 
           {panels.length > 0 ? (
-            <div className="max-h-[min(55vh,480px)] space-y-2 overflow-y-auto rounded-xl border border-[#EDEBE9] bg-[#08040F] p-2">
+            <ul className="max-h-[min(60vh,520px)] space-y-2 overflow-y-auto rounded-lg border border-[#EDEBE9] bg-[#FAF9F8] p-2">
               {panels.map((panel, index) => (
-                <div
+                <li
                   key={panel.id}
-                  className="group relative overflow-hidden rounded-lg bg-[#1a1028]"
+                  className="flex items-center gap-3 rounded-lg border border-[#EDEBE9] bg-white p-2 shadow-sm"
                 >
-                  <img
-                    src={panel.previewUrl}
-                    alt={`Panel ${index + 1}`}
-                    className="block w-full"
-                  />
-                  <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/75 to-transparent p-2">
-                    <span className="rounded-md bg-[#0078D4] px-2 py-0.5 text-[11px] font-bold text-white">
-                      {index + 1}
-                      {panel.kind === "new" ? " · new" : ""}
-                    </span>
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        disabled={index === 0}
-                        onClick={() => movePanel(index, -1)}
-                        className="rounded bg-white/90 px-2 py-0.5 text-xs font-bold disabled:opacity-40"
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        disabled={index === panels.length - 1}
-                        onClick={() => movePanel(index, 1)}
-                        className="rounded bg-white/90 px-2 py-0.5 text-xs font-bold disabled:opacity-40"
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removePanel(panel.id)}
-                        className="rounded bg-[#A4262C] px-2 py-0.5 text-xs font-bold text-white"
-                      >
-                        Remove
-                      </button>
-                    </div>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0078D4] text-[11px] font-bold text-white">
+                    {index + 1}
+                  </span>
+
+                  <div className="relative h-[72px] w-[52px] shrink-0 overflow-hidden rounded-md border border-[#EDEBE9] bg-[#1a1028]">
+                    <img
+                      src={panel.previewUrl}
+                      alt={`Panel ${index + 1}`}
+                      className="h-full w-full object-cover object-top"
+                    />
                   </div>
-                </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-[#323130]">
+                      Panel {index + 1}
+                    </p>
+                    <p className="truncate text-[11px] text-[#605E5C]">
+                      {panel.kind === "new"
+                        ? panel.file.name
+                        : "Saved image"}
+                    </p>
+                    {panel.kind === "new" ? (
+                      <span className="mt-0.5 inline-block rounded bg-[#EFF6FC] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0078D4]">
+                        New
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="flex shrink-0 flex-col gap-1">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => movePanel(index, -1)}
+                      title="Move up"
+                      className="flex h-7 w-7 items-center justify-center rounded border border-[#EDEBE9] bg-[#FAF9F8] text-xs font-bold text-[#323130] hover:bg-[#F3F2F1] disabled:opacity-30"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === panels.length - 1}
+                      onClick={() => movePanel(index, 1)}
+                      title="Move down"
+                      className="flex h-7 w-7 items-center justify-center rounded border border-[#EDEBE9] bg-[#FAF9F8] text-xs font-bold text-[#323130] hover:bg-[#F3F2F1] disabled:opacity-30"
+                    >
+                      ↓
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => removePanel(panel.id)}
+                    title="Remove panel"
+                    className="shrink-0 rounded px-2 py-1 text-[11px] font-semibold text-[#A4262C] hover:bg-[#FDE7E9]"
+                  >
+                    Remove
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : (
             <p className="text-center text-xs text-[#605E5C]">
-              No panels — add at least one image.
+              No panels yet — add at least one image.
             </p>
           )}
+
+          {panels.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-2 w-full rounded-lg border border-dashed border-[#D2D0CE] bg-white py-2.5 text-xs font-semibold text-[#0078D4] hover:border-[#0078D4] hover:bg-[#EFF6FC]"
+            >
+              + Add another panel
+            </button>
+          ) : null}
         </div>
 
         <button
@@ -363,18 +392,15 @@ export default function AdminEpisodeEditor({
         </button>
 
         {showAdvanced ? (
-          <div className="grid gap-4 rounded-lg border border-[#EDEBE9] bg-[#FAF9F8] p-4 md:grid-cols-2">
+          <div className="rounded-lg border border-[#EDEBE9] bg-[#FAF9F8] p-4">
             <AdminField label="Featured rank">
               <AdminInput
                 type="number"
                 min={1}
                 value={featuredRank}
                 onChange={(e) => setFeaturedRank(e.target.value)}
-                placeholder="Optional"
+                placeholder="Optional — lower numbers appear first on homepage"
               />
-            </AdminField>
-            <AdminField label="Cover gradient">
-              <GradientPicker value={coverGradient} onChange={setCoverGradient} />
             </AdminField>
           </div>
         ) : null}

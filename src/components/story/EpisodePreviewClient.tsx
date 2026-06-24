@@ -97,7 +97,7 @@ export default function EpisodePreviewClient({ id }: { id: string }) {
               {episode?.title ?? story.title}
             </h1>
             <div className="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-white/90">
-              <span>📚 {story.episodes?.length ?? 1} episode</span>
+              <span>📚 {story.episodes?.length ?? 1} chapter{story.episodes?.length === 1 ? "" : "s"}</span>
               <span>📑 {panelCount} panels</span>
               <span>🕐 ~{Math.ceil(panelCount * 0.7)} min</span>
             </div>

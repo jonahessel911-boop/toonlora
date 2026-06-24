@@ -90,7 +90,7 @@ export default function StoryReaderClient({
   const handleNextEpisode = async () => {
     if (!story?.userInput || !story.continuityMemory) return;
     if (!canGenerate()) {
-      alert("Not enough credits. Buy more in your library.");
+      alert("Not enough credits. Buy more in your profile.");
       return;
     }
 
@@ -172,7 +172,7 @@ export default function StoryReaderClient({
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-4 text-center text-white">
         <h1 className="font-heading text-2xl font-bold">Series not found</h1>
         <p className="mt-2 text-sm text-white/60">
-          This episode may be unpublished or unavailable.
+          This chapter may be unpublished or unavailable.
         </p>
         <Link href="/" className="btn-coral mt-6 rounded-full px-6 py-3 text-sm">
           Back to home
@@ -190,8 +190,8 @@ export default function StoryReaderClient({
         <p className="mt-2 text-sm text-white/60">
           This series is still a draft.
         </p>
-        <Link href="/library" className="btn-coral mt-6 rounded-full px-6 py-3 text-sm">
-          Go to library
+        <Link href="/" className="btn-coral mt-6 rounded-full px-6 py-3 text-sm">
+          Back to home
         </Link>
       </div>
     );

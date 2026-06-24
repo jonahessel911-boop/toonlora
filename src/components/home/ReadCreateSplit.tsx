@@ -1,15 +1,15 @@
 import Link from "next/link";
+import { BRAND_HEADLINE, BRAND_SUBHEADLINE } from "@/lib/brand";
 
 export default function ReadCreateSplit() {
   return (
     <section className="py-12 sm:py-16">
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-black text-gray-900 sm:text-3xl">
-          Read for free. Create with credits.
+          {BRAND_HEADLINE}
         </h2>
         <p className="mt-2 text-sm text-gray-500 sm:text-base">
-          Discover community stories at no cost — bring your own ideas to life when
-          you&apos;re ready.
+          {BRAND_SUBHEADLINE}
         </p>
       </div>
 
@@ -22,11 +22,11 @@ export default function ReadCreateSplit() {
             📖
           </span>
           <h3 className="mt-4 text-lg font-black text-gray-900">
-            Read stories from the community
+            Read in-depth business stories
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
-            Browse trending episodes, Toonlora Originals, and creator series — all
-            free to read.
+            Browse researched chapters on founders, empires, and the deals that
+            changed everything.
           </p>
           <span className="mt-4 inline-flex text-sm font-bold text-groen-deep group-hover:underline">
             Explore stories →
@@ -41,11 +41,11 @@ export default function ReadCreateSplit() {
             ✨
           </span>
           <h3 className="mt-4 text-lg font-black text-gray-900">
-            Create your own story in minutes
+            Create your own business cartoon
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
-            Turn your idea into a cartoon episode. Your first story is free —
-            then creation uses credits.
+            Turn a real business story into a cartoon chapter. Your first story
+            is free — then creation uses credits.
           </p>
           <span className="mt-4 inline-flex text-sm font-bold text-groen-deep group-hover:underline">
             Start creating →

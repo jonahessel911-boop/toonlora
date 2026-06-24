@@ -2,44 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { AdminReportingMetrics } from "@/lib/services/analytics-repository";
+import AdminAffiliatesPanel from "@/components/admin/AdminAffiliatesPanel";
 import AdminComicsPanel from "@/components/admin/AdminComicsPanel";
 import AdminEngagementCharts from "@/components/admin/AdminEngagementCharts";
 
-function MetricTile({
-  label,
-  value,
-  sub,
-  accent = "#0078D4",
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: string;
-}) {
-  return (
-    <div className="border border-[#EDEBE9] bg-white shadow-[0_1.6px_3.6px_rgba(0,0,0,0.13)]">
-      <div className="h-1" style={{ backgroundColor: accent }} />
-      <div className="px-3 py-3 sm:px-4 sm:py-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#605E5C] sm:text-[11px]">
-          {label}
-        </p>
-        <p className="mt-1.5 text-2xl font-semibold leading-none text-[#323130] sm:mt-2 sm:text-[32px]">
-          {value}
-        </p>
-        {sub ? (
-          <p className="mt-1.5 text-[11px] leading-relaxed text-[#605E5C] sm:mt-2 sm:text-xs">
-            {sub}
-          </p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"reporting" | "content">(
-    "reporting"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "reporting" | "content" | "affiliates"
+  >("reporting");
   const [metrics, setMetrics] = useState<AdminReportingMetrics | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,10 +35,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     void loadMetrics();
   }, [loadMetrics]);
-
-  const readerRate = metrics?.totalVisitors
-    ? Math.round((metrics.readersCount / metrics.totalVisitors) * 1000) / 10
-    : 0;
 
   return (
     <div
@@ -119,6 +85,15 @@ export default function AdminDashboard() {
           >
             Comics
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("affiliates")}
+            className={`shrink-0 rounded px-3 py-1 text-[11px] font-semibold ${
+              activeTab === "affiliates" ? "bg-white/20" : "text-white/60"
+            }`}
+          >
+            Affiliates
+          </button>
         </nav>
       </header>
 
@@ -152,11 +127,26 @@ export default function AdminDashboard() {
               <span aria-hidden>📁</span>
               Comics &amp; publish
             </button>
+            <p className="px-4 pb-2 pt-4 text-[11px] font-semibold uppercase tracking-wide text-[#605E5C]">
+              Partners
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveTab("affiliates")}
+              className={`flex w-full items-center gap-2 border-l-2 px-4 py-2 text-sm ${
+                activeTab === "affiliates"
+                  ? "border-[#0078D4] bg-white font-semibold text-[#0078D4]"
+                  : "border-transparent text-[#323130] hover:bg-white/60"
+              }`}
+            >
+              <span aria-hidden>🤝</span>
+              Affiliates
+            </button>
           </nav>
         </aside>
 
-        <main className="min-w-0 flex-1">
-          <div className="border-b border-[#EDEBE9] bg-white px-3 py-3 sm:px-6">
+        <main className="min-w-0 flex-1 bg-[#F8FAFC]">
+          <div className="border-b border-[#EDEBE9] bg-white px-4 py-4 sm:px-6 sm:py-5">
             <p className="hidden text-xs text-[#605E5C] sm:block">
               Home <span className="mx-1">›</span>{" "}
               {activeTab === "reporting" ? (
@@ -164,78 +154,81 @@ export default function AdminDashboard() {
                   Reporting <span className="mx-1">›</span>{" "}
                   <span className="text-[#323130]">User engagement</span>
                 </>
-              ) : (
+              ) : activeTab === "content" ? (
                 <>
                   Content <span className="mx-1">›</span>{" "}
                   <span className="text-[#323130]">Comics & publishing</span>
                 </>
+              ) : (
+                <>
+                  Partners <span className="mx-1">›</span>{" "}
+                  <span className="text-[#323130]">Affiliates</span>
+                </>
               )}
             </p>
-            <h1 className="text-lg font-semibold text-[#323130] sm:mt-1 sm:text-xl">
-              {activeTab === "reporting"
-                ? "User engagement report"
-                : "Comics & publishing"}
-            </h1>
-            {activeTab === "reporting" && metrics ? (
-              <p className="mt-1 text-[11px] text-[#605E5C] sm:text-xs">
-                Updated {new Date(metrics.generatedAt).toLocaleString()}
-              </p>
-            ) : activeTab === "content" ? (
-              <p className="mt-1 text-[11px] text-[#605E5C] sm:text-xs">
-                Upload panel art or generate comics with AI, then manage your
-                catalog.
-              </p>
-            ) : null}
+            <div className="flex flex-wrap items-start justify-between gap-3 sm:mt-1">
+              <div>
+                <h1 className="text-xl font-semibold text-[#323130] sm:text-2xl">
+                  {activeTab === "reporting"
+                    ? "Platform analytics"
+                    : activeTab === "content"
+                      ? "Comics & publishing"
+                      : "Affiliate program"}
+                </h1>
+                {activeTab === "reporting" && metrics ? (
+                  <p className="mt-1.5 text-xs text-[#605E5C] sm:text-sm">
+                    Views, completion, conversions, subscriptions &amp; revenue · Last updated{" "}
+                    <time dateTime={metrics.generatedAt}>
+                      {new Date(metrics.generatedAt).toLocaleString()}
+                    </time>
+                  </p>
+                ) : activeTab === "content" ? (
+                  <p className="mt-1.5 text-xs text-[#605E5C] sm:text-sm">
+                    Upload panel art or generate comics with AI, then manage your
+                    catalog.
+                  </p>
+                ) : activeTab === "affiliates" ? (
+                  <p className="mt-1.5 text-xs text-[#605E5C] sm:text-sm">
+                    Manage partner links, signups, purchases, and monthly payouts.
+                  </p>
+                ) : null}
+              </div>
+              {activeTab === "reporting" ? (
+                <button
+                  type="button"
+                  onClick={() => void loadMetrics()}
+                  disabled={loading}
+                  className="rounded-lg border border-[#EDEBE9] bg-white px-4 py-2 text-sm font-semibold text-[#0078D4] shadow-sm hover:bg-[#EFF6FC] disabled:opacity-50"
+                >
+                  {loading ? "Refreshing…" : "Refresh data"}
+                </button>
+              ) : null}
+            </div>
           </div>
 
-          <div className="space-y-4 p-3 sm:space-y-5 sm:p-6">
+          <div className="space-y-6 p-4 sm:p-6">
             {activeTab === "content" ? (
               <AdminComicsPanel />
+            ) : activeTab === "affiliates" ? (
+              <AdminAffiliatesPanel />
             ) : (
               <>
             {error ? (
-              <div className="border border-[#F1BBBC] bg-[#FDE7E9] px-3 py-2.5 text-sm text-[#A4262C] sm:px-4 sm:py-3">
+              <div className="rounded-xl border border-[#F1BBBC] bg-[#FDE7E9] px-4 py-3 text-sm text-[#A4262C]">
                 {error}
               </div>
             ) : null}
 
             {loading && !metrics ? (
-              <div className="border border-[#EDEBE9] bg-white px-4 py-8 text-center text-sm text-[#605E5C]">
-                Loading reporting data…
+              <div className="rounded-xl border border-[#EDEBE9] bg-white px-6 py-16 text-center shadow-sm">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#EDEBE9] border-t-[#0078D4]" />
+                <p className="mt-4 text-sm text-[#605E5C]">
+                  Loading engagement data…
+                </p>
               </div>
             ) : null}
 
-            {metrics ? (
-              <>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
-                  <MetricTile
-                    label="Visitors"
-                    value={metrics.totalVisitors.toLocaleString()}
-                    sub={`${metrics.totalUsers} registered`}
-                  />
-                  <MetricTile
-                    label="Story readers"
-                    value={metrics.readersCount.toLocaleString()}
-                    sub={`${readerRate}% of visitors`}
-                    accent="#8764B8"
-                  />
-                  <MetricTile
-                    label="Episode 1 finished"
-                    value={metrics.episodeCompletedCount.toLocaleString()}
-                    sub={`${metrics.firstThreePagesCount} reached page 3+`}
-                    accent="#107C10"
-                  />
-                  <MetricTile
-                    label="Avg. session time"
-                    value={metrics.avgTimeOnPlatformFormatted}
-                    sub={`${metrics.resignRate}% week-1 re-sign`}
-                    accent="#CA5010"
-                  />
-                </div>
-
-                <AdminEngagementCharts metrics={metrics} />
-              </>
-            ) : null}
+            {metrics ? <AdminEngagementCharts metrics={metrics} /> : null}
               </>
             )}
           </div>

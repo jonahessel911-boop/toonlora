@@ -25,8 +25,7 @@ export default function LPTopBar({ onRead }: LPTopBarProps) {
   const menuItems = [
     { label: "Read", href: "#", action: onRead },
     { label: "Create", href: "/create" },
-    { label: "My Studio", href: "/library" },
-    { label: "Library", href: "/library" },
+    { label: "My Studio", href: "/creator" },
     { label: "Settings", href: "/signup/register" },
   ];
 

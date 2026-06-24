@@ -35,7 +35,7 @@ export function buildEpisodeFromPanelUrls(params: {
   const episodeNumber = params.episodeNumber;
 
   const script: EpisodeScript = {
-    episode_title: params.episodeTitle ?? `Episode ${episodeNumber}`,
+    episode_title: params.episodeTitle ?? `Chapter ${episodeNumber}`,
     episode_number: episodeNumber,
     episode_summary: params.synopsis ?? "",
     emotional_goal: "",
@@ -83,7 +83,7 @@ export function buildEpisodeFromPanelUrls(params: {
   return {
     id: params.episodeId ?? `story-upload-${params.storyId}-ep-${episodeNumber}`,
     episodeNumber,
-    title: params.episodeTitle ?? `Episode ${episodeNumber}`,
+    title: params.episodeTitle ?? `Chapter ${episodeNumber}`,
     script,
     panelBreakdown,
     imagePrompt,
@@ -128,7 +128,7 @@ export function buildUploadedStory(params: {
     chapters: [
       {
         id: `${params.id}-ch-1`,
-        title: "Episode 1",
+        title: "Chapter 1",
         pageStart: 1,
       },
     ],

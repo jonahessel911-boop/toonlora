@@ -46,13 +46,14 @@ export default function SigninPageClient() {
       setProfile({
         email: data.profile.email,
         fullName: data.profile.fullName,
+        countryCode: data.profile.countryCode ?? "",
         wantsRecommendations: data.profile.wantsRecommendations,
         agreedToTerms: true,
         onboarded: true,
       });
       completeOnboarding();
       trackLogin();
-      router.push(returnTo ?? "/library");
+      router.push(returnTo ?? "/");
     } catch {
       setError("Could not sign in. Check your connection.");
     } finally {
@@ -71,7 +72,7 @@ export default function SigninPageClient() {
               Welcome back
             </h2>
             <p className="mt-2 text-sm text-[#667085]">
-              Sign in to continue your stories and saved episodes.
+              Sign in to continue your stories and saved chapters.
             </p>
 
             <form className="mt-6 space-y-4" onSubmit={handleSubmit}>

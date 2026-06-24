@@ -21,7 +21,7 @@ export default function RegisterForm() {
 
   const handleContinue = () => {
     setProfile({ onboarded: true });
-    router.push("/library");
+    router.push("/");
   };
 
   return (

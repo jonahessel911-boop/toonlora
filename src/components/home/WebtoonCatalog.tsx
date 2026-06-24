@@ -88,7 +88,7 @@ export default function WebtoonCatalog() {
             title="Newly Released Originals"
             stories={newest.map((s) => ({ ...s, isNew: true }))}
             variant="vertical"
-            viewAllHref="/library"
+            viewAllHref="/"
             mintBg
           />
         ) : (
@@ -175,7 +175,7 @@ export default function WebtoonCatalog() {
             title="Canvas — stories from indie creators"
             stories={community}
             variant="square"
-            viewAllHref="/library"
+            viewAllHref="/"
           />
         ) : (
           <div className="border-b border-gs-border py-8">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import CreatorSidebar from "@/components/creator/CreatorSidebar";
 import CreatorTopbar from "@/components/creator/CreatorTopbar";
@@ -125,10 +126,10 @@ export default function CreatorStudioApp() {
           <div className="space-y-8">
             <div className="rounded-[32px] border border-[#E7D8FF] bg-gradient-to-br from-white via-[#F3ECFF]/50 to-[#E9D8FD]/40 p-6 md:p-8">
               <h2 className="font-heading text-2xl font-extrabold text-[#2A114B] md:text-3xl">
-                Create your webtoon in three steps.
+                In-depth business stories in a cartoon.
               </h2>
               <p className="mt-2 max-w-2xl text-sm text-[#667085] md:text-base">
-                Create characters, start a story, and edit your panels.
+                Create characters, research a story, and publish panel by panel.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
@@ -145,6 +146,12 @@ export default function CreatorStudioApp() {
                 >
                   Create character
                 </button>
+                <Link
+                  href="/creator/episode-builder"
+                  className="rounded-2xl border border-[#5340FF]/30 bg-[#F3ECFF] px-5 py-3 text-sm font-bold text-[#5340FF]"
+                >
+                  Episode Builder
+                </Link>
               </div>
             </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import CoverArt from "@/components/ui/CoverArt";
 import { trackNextEpisodePromptView } from "@/lib/analytics/gtag";
+import { formatChapterTitle } from "@/lib/brand";
 
 export interface NextEpisodeInfo {
   number: number;
@@ -81,7 +82,7 @@ export default function EpisodeCompleteCard({
   const catalogNextOnly = isCatalog && Boolean(nextEpisode);
   const showEpisodeTitle =
     nextEpisode?.title &&
-    nextEpisode.title !== `Episode ${nextEpisode.number}`;
+    nextEpisode.title !== formatChapterTitle(nextEpisode.number);
 
   return (
     <section className="overflow-hidden">
@@ -98,11 +99,11 @@ export default function EpisodeCompleteCard({
 
           <div className="relative mx-auto max-w-[480px] text-center">
             <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white/90">
-              Episode {episodeNumber} is free
+              Chapter {episodeNumber} is free
             </span>
 
             <h2 className="font-heading mt-4 text-2xl font-extrabold text-white sm:text-3xl">
-              Episode complete ✨
+              Chapter complete ✨
             </h2>
 
             {seriesTitle ? (
@@ -112,7 +113,7 @@ export default function EpisodeCompleteCard({
             <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/75">
               {nextEpisode
                 ? "Continue reading or create your own version."
-                : "You reached the latest episode."}
+                : "You reached the latest chapter."}
             </p>
 
             <div className="mt-8 flex flex-col gap-3">
@@ -134,8 +135,8 @@ export default function EpisodeCompleteCard({
                   className="btn-coral h-12 w-full text-sm font-bold disabled:opacity-50 sm:h-14 sm:text-base"
                 >
                   {generating
-                    ? "Creating next episode…"
-                    : `Next episode · ${credits} credits`}
+                    ? "Creating next chapter…"
+                    : `Next chapter · ${credits} credits`}
                 </button>
               ) : null}
 
@@ -166,7 +167,7 @@ export default function EpisodeCompleteCard({
       {nextEpisode ? (
         <div ref={nextEpisodeRef} className="bg-[#08040F] px-4 py-8 sm:px-6">
           <p className="text-center text-sm font-semibold text-white/90">
-            Read next episode
+            Read next chapter
           </p>
 
           <div className="mx-auto mt-4 max-w-[520px]">
@@ -179,7 +180,7 @@ export default function EpisodeCompleteCard({
                 {nextEpisode.coverArtUrl ? (
                   <img
                     src={nextEpisode.coverArtUrl}
-                    alt={`Episode ${nextEpisode.number} cover`}
+                    alt={`Chapter ${nextEpisode.number} cover`}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -195,7 +196,7 @@ export default function EpisodeCompleteCard({
 
               <div className="min-w-0 flex-1">
                 <p className="font-heading text-lg font-extrabold text-white sm:text-xl">
-                  Episode {nextEpisode.number}
+                  Chapter {nextEpisode.number}
                 </p>
                 {showEpisodeTitle ? (
                   <p className="truncate text-sm font-medium text-white/75">

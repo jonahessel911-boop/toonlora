@@ -172,10 +172,51 @@ export function SignupInput({
           {label}
         </label>
       )}
-      <input
-        {...props}
-        className={`${inputClass} ${className ?? ""}`}
-      />
+      <input {...props} className={`${inputClass} ${className ?? ""}`} />
+    </div>
+  );
+}
+
+export function SignupSelect({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = "Select…",
+  required,
+}: {
+  label?: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { code: string; name: string }[];
+  placeholder?: string;
+  required?: boolean;
+}) {
+  return (
+    <div>
+      {label ? (
+        <label className="mb-1.5 block px-1 text-xs font-bold text-[#667085]">
+          {label}
+        </label>
+      ) : null}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        className="w-full appearance-none rounded-2xl border-2 border-[#E7D8FF] bg-white bg-[length:16px] bg-[right_1rem_center] bg-no-repeat px-4 py-3.5 text-sm text-[#101828] outline-none transition focus:border-[#5340FF] focus:bg-[#FCFAFF] focus:ring-4 focus:ring-[#5340FF]/10"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%23667085'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+        }}
+      >
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        {options.map((option) => (
+          <option key={option.code} value={option.code}>
+            {option.name}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

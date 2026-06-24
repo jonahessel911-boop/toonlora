@@ -8,15 +8,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import ProfileMenu from "@/components/nav/ProfileMenu";
 import ToonloraLogo from "@/components/ui/ToonloraLogo";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
-import { useCreditsStore } from "@/store/useCreditsStore";
 import { useUserStore } from "@/store/useUserStore";
 
 const browseNav = [
-  { href: "/#originals", label: "Originals" },
-  { href: "/#trending", label: "Trending" },
-  { href: "/#categories", label: "Genres" },
-  { href: "/#community", label: "Community" },
-  { href: "/creator", label: "Lora Studio" },
+  { href: "/#this-week", label: "This Week" },
+  { href: "/#sagas", label: "Sagas" },
+  { href: "/#founders", label: "Founders" },
+  { href: "/#companies", label: "Companies" },
+  { href: "/#playbooks", label: "Playbooks" },
 ] as const;
 
 function isHashLink(href: string) {
@@ -87,7 +86,7 @@ function BrowseTab({
         }
       }}
       className={`nav-tab shrink-0 snap-start px-1 pb-3 pt-1 text-[13px] font-bold uppercase tracking-[0.06em] transition-colors sm:text-sm ${
-        active ? "nav-tab-active text-lp-purple" : "text-gs-muted hover:text-lp-purple"
+        active ? "nav-tab-active text-accent" : "text-white/60 hover:text-accent"
       }`}
     >
       {label}
@@ -100,13 +99,8 @@ export default function Navbar() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const { hash: activeHash, navigateToSection } = useActiveHash();
-  const { credits, hydrate } = useCreditsStore();
   const { email, fullName, logout } = useUserStore();
   const loggedIn = Boolean(email);
-
-  useEffect(() => {
-    void hydrate();
-  }, [hydrate]);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -116,10 +110,9 @@ export default function Navbar() {
   }, [open]);
 
   const isBrowseActive = (href: string) => {
-    if (href === "/creator") return pathname.startsWith("/creator");
     if (pathname !== "/") return false;
     const target = href.includes("#") ? href.slice(href.indexOf("#")) : "";
-    if (!activeHash && target === "#originals") return true;
+    if (!activeHash && target === "#this-week") return true;
     return activeHash === target;
   };
 
@@ -131,17 +124,13 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-border/70 bg-white/95 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-nav-bg">
         <div className={`${PAGE_CONTAINER_CLASS} flex h-16 items-center justify-between gap-3`}>
           <Link href="/" className="flex shrink-0 items-center">
             <ToonloraLogo variant="nav" />
           </Link>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            {loggedIn && (
-              <span className="tl-nav-credits hidden md:inline-flex">{credits} ✦</span>
-            )}
-
             {!loggedIn && (
               <Link href="/signin" className="tl-nav-login hidden sm:inline-flex">
                 Log in
@@ -151,8 +140,8 @@ export default function Navbar() {
             <ProfileMenu />
 
             <Link
-              href="/#trending"
-              className="hidden h-10 w-10 items-center justify-center rounded-full text-gs-text transition hover:bg-surface-soft sm:flex"
+              href="/#sagas"
+              className="hidden h-10 w-10 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white sm:flex"
               aria-label="Search stories"
             >
               <SearchIcon />
@@ -161,7 +150,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-gs-text transition hover:bg-surface-soft md:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white md:hidden"
               aria-label="Menu"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -171,7 +160,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="hidden border-t border-border/50 md:block">
+        <div className="hidden border-t border-white/10 md:block">
           <nav
             className={`${PAGE_CONTAINER_CLASS} flex gap-6 overflow-x-auto scrollbar-hide sm:gap-8`}
             aria-label="Browse sections"
@@ -226,7 +215,6 @@ function MobileDrawer({
   onBrowseNavigate: (href: string) => void;
   onLogout: () => void;
 }) {
-  const { credits } = useCreditsStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -244,7 +232,7 @@ function MobileDrawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-lp-purple-deep/40 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-[60] bg-primary/50 backdrop-blur-sm md:hidden"
             onClick={onClose}
             aria-label="Close menu"
           />
@@ -256,7 +244,7 @@ function MobileDrawer({
             className="fixed inset-y-0 right-0 z-[70] flex w-[min(100%,320px)] flex-col bg-white shadow-2xl md:hidden"
           >
             <div className="flex h-14 items-center justify-between border-b border-border px-4">
-              <ToonloraLogo variant="nav" />
+              <ToonloraLogo variant="nav" onLight />
               <button
                 type="button"
                 onClick={onClose}
@@ -270,12 +258,11 @@ function MobileDrawer({
             </div>
 
             {loggedIn && (
-              <div className="border-b border-[#E7D8FF] bg-gradient-to-br from-[#F3ECFF] to-white px-4 py-4">
-                <p className="font-heading font-extrabold text-[#2A114B]">
+              <div className="border-b border-border bg-surface-soft px-4 py-4">
+                <p className="font-heading font-extrabold text-primary">
                   {fullName || "Toonlora reader"}
                 </p>
-                <p className="text-xs text-[#667085]">{email}</p>
-                <p className="mt-2 text-sm font-bold text-[#5340FF]">{credits} credits ✦</p>
+                <p className="text-xs text-muted">{email}</p>
               </div>
             )}
 
@@ -294,7 +281,7 @@ function MobileDrawer({
                     }}
                     className={`block rounded-xl px-3 py-3 text-base font-bold ${
                       isBrowseActive(link.href)
-                        ? "bg-surface-soft text-lp-purple"
+                        ? "bg-primary-soft text-accent"
                         : "text-gs-text hover:bg-surface-soft/60"
                     }`}
                   >
@@ -306,48 +293,15 @@ function MobileDrawer({
               <div className="my-5 h-px bg-border" />
 
               {loggedIn ? (
-                <>
-                  <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wide text-[#667085]">
-                    Your stories
-                  </p>
-                  <nav className="space-y-1">
-                    <Link
-                      href="/library?view=creations"
-                      onClick={onClose}
-                      className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
-                    >
-                      ✨ My creations
-                    </Link>
-                    <Link
-                      href="/library?view=saved"
-                      onClick={onClose}
-                      className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
-                    >
-                      📚 Saved library
-                    </Link>
-                    <Link
-                      href="/profile"
-                      onClick={onClose}
-                      className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
-                    >
-                      ⚙️ Settings & profile
-                    </Link>
-                    <Link
-                      href="/creator"
-                      onClick={onClose}
-                      className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
-                    >
-                      🎨 Toonlora Studio
-                    </Link>
-                    <Link
-                      href="/create"
-                      onClick={onClose}
-                      className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
-                    >
-                      🎬 Create a story
-                    </Link>
-                  </nav>
-                </>
+                <nav className="space-y-1">
+                  <Link
+                    href="/profile"
+                    onClick={onClose}
+                    className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
+                  >
+                    My Library
+                  </Link>
+                </nav>
               ) : (
                 <nav className="space-y-1">
                   <Link
@@ -376,7 +330,7 @@ function MobileDrawer({
                     onLogout();
                     onClose();
                   }}
-                  className="flex w-full items-center justify-center rounded-full border border-[#E7D8FF] py-3 text-sm font-bold text-[#667085]"
+                  className="flex w-full items-center justify-center rounded-full border border-border py-3 text-sm font-bold text-muted"
                 >
                   Log out
                 </button>

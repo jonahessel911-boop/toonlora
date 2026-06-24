@@ -1,5 +1,9 @@
 import { ensureSession } from "@/lib/services/story-repository";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import {
+  getSubscriptionPlan,
+  planMonthlyRevenueCents,
+} from "@/lib/payments/subscription-plans";
 import type {
   LoginEventRow,
   PlatformSessionRow,
@@ -10,8 +14,20 @@ import type {
 export interface AdminReportingMetrics {
   totalUsers: number;
   totalVisitors: number;
-  episodeCompletionRate: number;
+  totalSeriesViews: number;
+  totalEpisodeOpens: number;
   episodeCompletedCount: number;
+  episodeCompletionRate: number;
+  nextEpisodeClickCount: number;
+  nextEpisodeClickRate: number;
+  checkoutsStarted: number;
+  checkoutConversionRate: number;
+  activeSubscriptions: number;
+  mrrCents: number;
+  mrrFormatted: string;
+  wau: number;
+  mau: number;
+  paywallViewCount: number;
   readersCount: number;
   noStoryInteractionCount: number;
   noStoryInteractionRate: number;
@@ -23,6 +39,14 @@ export interface AdminReportingMetrics {
   avgTimeOnPlatformSeconds: number;
   avgTimeOnPlatformFormatted: string;
   generatedAt: string;
+}
+
+export interface AnalyticsEventInput {
+  eventType: string;
+  seriesId?: string;
+  episodeNumber?: number;
+  planId?: string;
+  properties?: Record<string, string | number | boolean>;
 }
 
 export interface ReadingProgressInput {
@@ -188,6 +212,38 @@ export async function recordLoginEvent(
   return data as LoginEventRow;
 }
 
+export async function recordAnalyticsEventToDb(
+  sessionId: string,
+  input: AnalyticsEventInput
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  await ensureSession(sessionId);
+  const profileId = await resolveProfileId(sessionId);
+
+  const { error } = await supabase.from("analytics_events").insert({
+    session_id: sessionId,
+    profile_id: profileId,
+    event_type: input.eventType,
+    series_id: input.seriesId ?? null,
+    episode_number: input.episodeNumber ?? null,
+    plan_id: input.planId ?? null,
+    properties: input.properties ?? {},
+  });
+
+  if (error) {
+    // Non-fatal: table is created by migration 009; checkout must not break without it.
+    if (
+      error.code === "PGRST205" ||
+      error.message.includes("analytics_events")
+    ) {
+      return;
+    }
+    throw new Error(error.message);
+  }
+}
+
 export async function getProfileByEmailFromDb(
   email: string
 ): Promise<ProfileRow | null> {
@@ -220,9 +276,48 @@ function pct(numerator: number, denominator: number): number {
   return Math.round((numerator / denominator) * 1000) / 10;
 }
 
+function countDistinctActiveRegisteredUsers(
+  platformActivity: Array<{
+    session_id: string;
+    profile_id: string | null;
+    last_active_at: string;
+  }>,
+  readingActivity: Array<{
+    session_id: string;
+    profile_id: string | null;
+    updated_at: string;
+  }>,
+  loginActivity: Array<{ profile_id: string; logged_in_at: string }>,
+  sessionToProfile: Map<string, string>,
+  days: number
+): number {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const active = new Set<string>();
+
+  for (const row of platformActivity) {
+    if (new Date(row.last_active_at).getTime() < cutoff) continue;
+    const profileId = row.profile_id ?? sessionToProfile.get(row.session_id);
+    if (profileId) active.add(profileId);
+  }
+  for (const row of readingActivity) {
+    if (new Date(row.updated_at).getTime() < cutoff) continue;
+    const profileId = row.profile_id ?? sessionToProfile.get(row.session_id);
+    if (profileId) active.add(profileId);
+  }
+  for (const row of loginActivity) {
+    if (new Date(row.logged_in_at).getTime() >= cutoff) {
+      active.add(row.profile_id);
+    }
+  }
+
+  return active.size;
+}
+
 export async function getAdminReportingMetrics(): Promise<AdminReportingMetrics> {
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("Database not configured");
+
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     profilesRes,
@@ -230,12 +325,31 @@ export async function getAdminReportingMetrics(): Promise<AdminReportingMetrics>
     progressRes,
     platformRes,
     loginRes,
+    seriesViewsRes,
+    eventsRes,
+    subscriptionsRes,
+    platformActivityRes,
+    readingActivityRes,
   ] = await Promise.all([
-    supabase.from("profiles").select("id, created_at"),
+    supabase.from("profiles").select("id, session_id, created_at"),
     supabase.from("platform_sessions").select("session_id"),
     supabase.from("reading_progress").select("session_id, max_panel_reached, total_panels, completed_at"),
     supabase.from("platform_sessions").select("duration_seconds"),
     supabase.from("login_events").select("profile_id, logged_in_at"),
+    supabase.from("series").select("views_count"),
+    supabase.from("analytics_events").select("event_type"),
+    supabase
+      .from("user_sessions")
+      .select("subscription_status, subscription_plan_id, subscription_period_end")
+      .eq("subscription_status", "active"),
+    supabase
+      .from("platform_sessions")
+      .select("session_id, profile_id, last_active_at")
+      .gte("last_active_at", monthAgo),
+    supabase
+      .from("reading_progress")
+      .select("session_id, profile_id, updated_at")
+      .gte("updated_at", monthAgo),
   ]);
 
   if (profilesRes.error) throw new Error(profilesRes.error.message);
@@ -243,10 +357,23 @@ export async function getAdminReportingMetrics(): Promise<AdminReportingMetrics>
   if (progressRes.error) throw new Error(progressRes.error.message);
   if (platformRes.error) throw new Error(platformRes.error.message);
   if (loginRes.error) throw new Error(loginRes.error.message);
+  if (seriesViewsRes.error) throw new Error(seriesViewsRes.error.message);
+
+  const events = eventsRes.error
+    ? []
+    : ((eventsRes.data ?? []) as { event_type: string }[]);
+
+  const subscriptions = subscriptionsRes.error
+    ? []
+    : ((subscriptionsRes.data ?? []) as {
+        subscription_status: string | null;
+        subscription_plan_id: string | null;
+        subscription_period_end: string | null;
+      }[]);
 
   const profiles = (profilesRes.data ?? []) as Pick<
     ProfileRow,
-    "id" | "created_at"
+    "id" | "session_id" | "created_at"
   >[];
   const progress = (progressRes.data ?? []) as Pick<
     ReadingProgressRow,
@@ -319,11 +446,87 @@ export async function getAdminReportingMetrics(): Promise<AdminReportingMetrics>
         )
       : 0;
 
+  const totalSeriesViews = (seriesViewsRes.data ?? []).reduce(
+    (sum, row) => sum + ((row as { views_count: number }).views_count ?? 0),
+    0
+  );
+  const totalEpisodeOpens = progress.length;
+
+  const nextEpisodeClickCount = events.filter(
+    (e) => e.event_type === "next_episode_click"
+  ).length;
+  const checkoutsStarted = events.filter(
+    (e) => e.event_type === "checkout_started"
+  ).length;
+  const paywallViewCount = events.filter(
+    (e) => e.event_type === "paywall_view"
+  ).length;
+
+  const now = Date.now();
+  const activeSubs = subscriptions.filter((sub) => {
+    if (sub.subscription_status !== "active") return false;
+    if (!sub.subscription_period_end) return true;
+    return new Date(sub.subscription_period_end).getTime() > now;
+  });
+
+  let mrrCents = 0;
+  for (const sub of activeSubs) {
+    const plan = sub.subscription_plan_id
+      ? getSubscriptionPlan(sub.subscription_plan_id)
+      : undefined;
+    if (plan) mrrCents += planMonthlyRevenueCents(plan);
+  }
+
+  const platformActivity = (platformActivityRes.data ?? []) as Array<{
+    session_id: string;
+    profile_id: string | null;
+    last_active_at: string;
+  }>;
+  const readingActivity = (readingActivityRes.data ?? []) as Array<{
+    session_id: string;
+    profile_id: string | null;
+    updated_at: string;
+  }>;
+  const loginActivity = loginEvents.map((e) => ({
+    profile_id: e.profile_id,
+    logged_in_at: e.logged_in_at,
+  }));
+
+  const sessionToProfile = new Map(
+    profiles.map((p) => [p.session_id, p.id])
+  );
+  const wau = countDistinctActiveRegisteredUsers(
+    platformActivity,
+    readingActivity,
+    loginActivity,
+    sessionToProfile,
+    7
+  );
+  const mau = countDistinctActiveRegisteredUsers(
+    platformActivity,
+    readingActivity,
+    loginActivity,
+    sessionToProfile,
+    30
+  );
+
   return {
     totalUsers,
     totalVisitors,
-    episodeCompletionRate: pct(episodeCompletedCount, readersCount),
+    totalSeriesViews,
+    totalEpisodeOpens,
     episodeCompletedCount,
+    episodeCompletionRate: pct(episodeCompletedCount, totalEpisodeOpens),
+    nextEpisodeClickCount,
+    nextEpisodeClickRate: pct(nextEpisodeClickCount, episodeCompletedCount),
+    checkoutsStarted,
+    checkoutConversionRate: pct(checkoutsStarted, paywallViewCount),
+    activeSubscriptions: activeSubs.length,
+    mrrCents,
+    mrrFormatted: `€${(mrrCents / 100).toFixed(2)}`,
+    wau,
+    mau,
+    paywallViewCount,
     readersCount,
     noStoryInteractionCount,
     noStoryInteractionRate: pct(noStoryInteractionCount, totalVisitors),

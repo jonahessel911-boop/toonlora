@@ -33,6 +33,18 @@ export async function persistStudioPanelArt(
   );
 }
 
+/** Upload episode builder scene art. */
+export async function persistEpisodeBuilderArt(
+  imageData: string,
+  planId: string,
+  sceneId: string
+): Promise<string> {
+  return persistImageToBucket(
+    imageData,
+    `episode-builder/${planId}/${sceneId}-${crypto.randomUUID()}.png`
+  );
+}
+
 /** Upload admin-provided panel image bytes. */
 export async function persistAdminPanelUpload(
   bytes: Buffer,

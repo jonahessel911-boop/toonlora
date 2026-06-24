@@ -3,6 +3,7 @@
 import Link from "next/link";
 import StoryCoverImage from "@/components/ui/StoryCoverImage";
 import { getCoverPreset } from "@/components/ui/CoverArt";
+import { CHAPTER_LABEL, CHAPTERS_LABEL } from "@/lib/brand";
 import { trackStoryClick } from "@/lib/analytics/gtag";
 import type { CatalogSeries } from "@/types/catalog";
 
@@ -41,7 +42,7 @@ export default function StoryCard({
   const href = story.href ?? `/story/${story.id}`;
   const views = story.readers ?? "0";
   const likes = story.likes ?? "0";
-  const episodes = story.episodes ?? story.episodeCount ?? 1;
+  const chapters = story.episodes ?? story.episodeCount ?? 1;
   const creator = story.creator ?? story.creatorDisplayName;
   const seed = story.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
 
@@ -63,7 +64,7 @@ export default function StoryCard({
           })
         }
       >
-        <div className="relative overflow-hidden rounded-[20px] shadow-[0_4px_20px_rgba(42,17,75,0.08)] ring-1 ring-[#E7D8FF]/80 transition duration-300 active:scale-[0.98] sm:rounded-[18px] sm:group-hover:-translate-y-1 sm:group-hover:shadow-[0_12px_32px_rgba(83,64,255,0.14)]">
+        <div className="relative overflow-hidden rounded-xl bg-surface shadow-[0_4px_20px_rgba(10,22,40,0.06)] ring-1 ring-border transition duration-300 active:scale-[0.98] sm:group-hover:-translate-y-1 sm:group-hover:shadow-[0_12px_32px_rgba(10,22,40,0.1)]">
           <StoryCoverImage
             coverArtUrl={story.coverArtUrl}
             title={story.title}
@@ -72,12 +73,12 @@ export default function StoryCard({
             seed={seed}
           />
 
-          <span className="absolute left-2.5 top-2.5 rounded-md bg-[#5340FF]/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:text-[10px]">
+          <span className="absolute left-2.5 top-2.5 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-sm sm:text-[10px]">
             {story.genre}
           </span>
 
           {story.isNew ? (
-            <span className="absolute right-2.5 top-2.5 rounded-full bg-[#FFE033] px-2 py-0.5 text-[9px] font-bold text-[#2A114B] shadow-sm sm:text-[10px]">
+            <span className="absolute right-2.5 top-2.5 rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-white shadow-sm sm:text-[10px]">
               New
             </span>
           ) : null}
@@ -102,23 +103,28 @@ export default function StoryCard({
         </div>
 
         <div className="mt-3 flex flex-1 flex-col px-0.5">
-          <h3 className="line-clamp-2 min-h-[2.75rem] font-heading text-[15px] font-bold leading-snug text-[#101828] sm:min-h-[2.5rem] sm:text-sm">
+          <h3 className="line-clamp-2 min-h-[2.75rem] font-heading text-[15px] font-bold leading-snug text-primary sm:min-h-[2.5rem] sm:text-sm">
             {story.title}
           </h3>
-          <p className="mt-1 line-clamp-1 min-h-[1.125rem] text-xs text-[#667085]">
+          <p className="mt-1 line-clamp-1 min-h-[1.125rem] text-xs text-muted">
             {creator ? `by ${creator}` : "\u00A0"}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-[#667085] sm:mt-1.5 sm:text-[11px]">
-            <span className="text-[#5340FF]">{views} views</span>
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-muted sm:mt-1.5 sm:text-[11px]">
+            <span className="text-accent">{views} views</span>
             <span>♥ {likes}</span>
             <span>
-              {episodes} ep{episodes !== 1 ? "s" : ""}
+              {chapters} {chapters !== 1 ? CHAPTERS_LABEL : CHAPTER_LABEL}
             </span>
           </div>
         </div>
       </Link>
     </article>
   );
+}
+
+/** Published stories with generated cover art (hide gradient placeholders). */
+export function withRealCoverArt<T extends CatalogSeries>(stories: T[]): T[] {
+  return stories.filter((story) => Boolean(story.coverArtUrl));
 }
 
 /** Prefer series with real cover art for curated rails. */

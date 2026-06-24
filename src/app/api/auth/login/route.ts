@@ -47,6 +47,7 @@ export async function POST(request: Request) {
         email: profile.email,
         fullName: profile.full_name,
         wantsRecommendations: profile.wants_recommendations,
+        countryCode: profile.country_code ?? "",
       },
     });
   } catch (err) {

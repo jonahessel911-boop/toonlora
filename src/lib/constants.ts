@@ -93,4 +93,9 @@ export const STORAGE_KEYS = {
   credits: "toonlora-credits",
   freeUsed: "toonlora-free-used",
   readingHistory: "toonlora-reading-history",
+  readingProgress: "toonlora-reading-progress",
+  freeReadSeriesId: "toonlora-free-read-series",
+  followingStories: "toonlora-following-stories",
+  notificationPrefs: "toonlora-notification-prefs",
+  affiliateSlug: "toonlora-affiliate-slug",
 } as const;

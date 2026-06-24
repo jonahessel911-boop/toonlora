@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import CoverArt from "@/components/ui/CoverArt";
 import EpisodeCharactersSection from "@/components/reader/EpisodeCharactersSection";
+import { formatChapterShort } from "@/lib/brand";
 import { isDatabaseEnabled } from "@/lib/config";
 import {
   listCommentsFromClient,
@@ -51,7 +52,7 @@ function EpisodeCarousel({
           const label =
             ep.number === 0
               ? "Prologue"
-              : `Ep. ${ep.number} - ${ep.title.replace(/^Episode \d+\s*-?\s*/i, "").slice(0, 12)}`;
+              : `${formatChapterShort(ep.number)} - ${ep.title.replace(/^Chapter \d+\s*-?\s*/i, "").slice(0, 12)}`;
 
           return (
             <Link

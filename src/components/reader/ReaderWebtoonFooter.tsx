@@ -74,7 +74,7 @@ export default function ReaderWebtoonFooter({
               type="button"
               onClick={onLike}
               className={`flex items-center gap-1.5 text-white/90 ${liked ? "text-[#FF4FA3]" : ""}`}
-              aria-label="Like episode"
+              aria-label="Like chapter"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
@@ -109,7 +109,7 @@ export default function ReaderWebtoonFooter({
               <Link
                 href={epHref(prevEp.number)}
                 className="flex h-8 w-8 items-center justify-center"
-                aria-label="Previous episode"
+                aria-label="Previous chapter"
               >
                 ‹
               </Link>
@@ -123,7 +123,7 @@ export default function ReaderWebtoonFooter({
               <Link
                 href={epHref(nextEp.number)}
                 className="flex h-8 w-8 items-center justify-center"
-                aria-label="Next episode"
+                aria-label="Next chapter"
               >
                 ›
               </Link>

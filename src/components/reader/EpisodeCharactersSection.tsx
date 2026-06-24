@@ -40,7 +40,7 @@ export default function EpisodeCharactersSection({
   return (
     <section className="border-b border-[#E8E8E8] bg-white px-4 py-5 sm:px-6 sm:py-6">
       <div className="mx-auto max-w-6xl">
-        <h3 className="text-sm font-bold text-[#222]">Characters in this Episode</h3>
+        <h3 className="text-sm font-bold text-[#222]">Characters in this Chapter</h3>
         <p className="mt-1 text-xs text-[#888]">
           Tap a character to see other stories they appear in.
         </p>

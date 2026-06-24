@@ -20,10 +20,10 @@ export default function CreatorCTACard({ embedded = false }: CreatorCTACardProps
           <div className="flex flex-col sm:flex-row">
             <div className="flex flex-1 flex-col justify-center px-6 py-8 sm:px-10 sm:py-10">
               <p className="text-[11px] font-bold uppercase tracking-wide text-[#5340FF]">
-                Create when you&apos;re ready
+                For creators
               </p>
               <h2 className="font-heading mt-2 text-xl font-extrabold text-[#101828] sm:text-2xl">
-                Turn your idea into a cartoon episode
+                Turn business stories into cartoons
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-[#667085]">
                 {CREATOR_CTA} {CREDIT_COPY}

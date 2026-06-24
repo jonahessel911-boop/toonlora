@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import { formatChapterShort } from "@/lib/brand";
+
 interface ReaderWebtoonHeaderProps {
   seriesId: string;
   episodeNumber: number;
@@ -17,7 +19,7 @@ export default function ReaderWebtoonHeader({
   onShare,
   onMenu,
 }: ReaderWebtoonHeaderProps) {
-  const label = `Ep. ${episodeNumber} - ${episodeTitle}`;
+  const label = `${formatChapterShort(episodeNumber)} - ${episodeTitle}`;
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#1a1a1a] pt-[env(safe-area-inset-top)]">
@@ -26,7 +28,7 @@ export default function ReaderWebtoonHeader({
           type="button"
           onClick={onMenu}
           className="flex h-9 w-9 shrink-0 items-center justify-center text-white/90"
-          aria-label="Episode list"
+          aria-label="Chapter list"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path
@@ -49,7 +51,7 @@ export default function ReaderWebtoonHeader({
           type="button"
           onClick={onShare}
           className="flex h-9 w-9 shrink-0 items-center justify-center text-white/90"
-          aria-label="Share episode"
+          aria-label="Share chapter"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path

@@ -1,13 +1,28 @@
 import type { Category } from "@/types/story";
 
-export const BRAND_TAGLINE = "Read for free. Create when you're ready.";
+export const BRAND_TAGLINE =
+  "Business stories, told like a cinematic series.";
 export const BRAND_HEADLINE =
-  "Start reading cartoon stories for free. Create your own when you're ready.";
+  "Business stories you actually want to binge.";
 export const BRAND_SUBHEADLINE =
-  "Explore community-made episodes, follow your favorite stories, and turn your own ideas into cartoon episodes later.";
-export const CREATOR_CTA = "Create a story when inspiration hits.";
+  "Weekly illustrated chapters about founders, companies, money, failure, and billion-dollar decisions.";
+export const CREATOR_CTA =
+  "Turn real business stories into illustrated chapters.";
 export const CREDIT_COPY =
-  "Episode 1 is free. Creating stories uses credits.";
+  "Chapter 1 is free. Creating stories uses credits.";
+export const WEEKLY_HEADLINE =
+  "New business chapters every week. Follow the sagas of founders, companies, and billion-dollar decisions.";
+export const CHAPTER_LABEL = "chapter";
+export const CHAPTERS_LABEL = "chapters";
+export const SAGA_LABEL = "Saga";
+
+export function formatChapterTitle(n: number): string {
+  return `Chapter ${n}`;
+}
+
+export function formatChapterShort(n: number): string {
+  return `Ch. ${n}`;
+}
 
 export const GENRE_COLORS: Record<
   Category | "Spicy" | "default",
@@ -54,9 +69,9 @@ export const GENRE_COLORS: Record<
     gradient: "from-[#FF4FA3] via-[#F43F5E] to-[#FB7185]",
   },
   default: {
-    bg: "bg-primary",
+    bg: "bg-accent",
     text: "text-white",
-    gradient: "from-[#5340FF] via-[#6D5BFF] to-[#8B7CFF]",
+    gradient: "from-[#0A1628] via-[#1e3a5f] to-[#3B9EFF]",
   },
 };
 

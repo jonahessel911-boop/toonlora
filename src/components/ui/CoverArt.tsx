@@ -129,7 +129,7 @@ export const COVER_PRESETS: Record<
   },
   Spicy: { gradient: "from-[#FF4FA3] via-[#F43F5E] to-[#FB7185]", emoji: "🔥" },
   default: {
-    gradient: "from-[#7C3AED] via-[#8B5CF6] to-[#A78BFA]",
+    gradient: "from-[#0A1628] via-[#1e3a5f] to-[#3B9EFF]",
     emoji: "✨",
   },
 };

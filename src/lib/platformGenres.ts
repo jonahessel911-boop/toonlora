@@ -33,6 +33,7 @@ export const PLATFORM_GENRE_GROUPS = [
       "Mystery",
       "Historical",
       "History",
+      "Business",
       "War",
       "Western",
       "Biography",

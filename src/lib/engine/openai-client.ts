@@ -2,7 +2,8 @@
  * OpenAI client — story generation requires OPENAI_API_KEY in .env.local
  */
 
-import { persistComicArt, persistCharacterPortrait, persistStudioPanelArt } from "@/lib/services/comic-art-storage";
+import { persistComicArt, persistCharacterPortrait, persistStudioPanelArt, persistEpisodeBuilderArt } from "@/lib/services/comic-art-storage";
+import { finalizeEpisodeImagePrompt } from "@/lib/episode-builder/prompts";
 
 export function hasOpenAIKey(): boolean {
   return Boolean(process.env.OPENAI_API_KEY?.trim());
@@ -355,4 +356,60 @@ export async function callOpenAIStudioPanel(
   }
 
   throw new Error(`OpenAI studio panel failed: ${lastError}`);
+}
+
+export async function callOpenAIEpisodeBuilderScene(
+  prompt: string,
+  planId: string,
+  sceneId: string,
+  referenceImageUrl?: string,
+  model = getOpenAIImageModel(),
+  addTextInImage = false
+): Promise<string> {
+  requireOpenAIKey();
+
+  const finalPrompt = finalizeEpisodeImagePrompt(prompt, addTextInImage);
+  let lastError = "OpenAI episode builder scene generation failed";
+  const models = imageModelsToTry(model);
+
+  for (const candidate of models) {
+    try {
+      let result: { b64?: string; url?: string };
+      if (referenceImageUrl) {
+        try {
+          result = await requestOpenAIImageEdit(
+            finalPrompt,
+            referenceImageUrl,
+            candidate
+          );
+        } catch {
+          result = await requestOpenAIImage(finalPrompt, candidate);
+        }
+      } else {
+        result = await requestOpenAIImage(finalPrompt, candidate);
+      }
+
+      const { b64, url } = result;
+
+      if (!b64 && !url) {
+        lastError = "OpenAI image generation returned no image data";
+        continue;
+      }
+      return persistEpisodeBuilderArt(
+        b64 ? `data:image/png;base64,${b64}` : url!,
+        planId,
+        sceneId
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      lastError = message;
+      if (!referenceImageUrl || !isUnknownImageModelError(message)) {
+        if (!isUnknownImageModelError(message)) {
+          throw new Error(`OpenAI episode builder scene failed: ${message}`);
+        }
+      }
+    }
+  }
+
+  throw new Error(`OpenAI episode builder scene failed: ${lastError}`);
 }

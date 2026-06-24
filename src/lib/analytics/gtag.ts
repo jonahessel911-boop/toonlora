@@ -1,3 +1,5 @@
+import { recordAnalyticsEvent } from "@/lib/analytics/recordEvent";
+
 type GtagParams = Record<string, string | number | boolean | undefined>;
 
 function gtagEvent(eventName: string, params?: GtagParams) {
@@ -72,6 +74,15 @@ export function trackNextEpisodeClick(params: {
     next_episode_number: params.nextEpisodeNumber,
     gate: params.gate,
   });
+  recordAnalyticsEvent({
+    eventType: "next_episode_click",
+    seriesId: params.seriesId,
+    episodeNumber: params.episodeNumber,
+    properties: {
+      gate: params.gate,
+      next_episode_number: params.nextEpisodeNumber,
+    },
+  });
 }
 
 export function trackSignupFormView(params: {
@@ -112,6 +123,12 @@ export function trackPaywallView(params: {
     story_title: params.storyTitle,
     variant: params.variant,
     episode_number: params.episodeNumber,
+  });
+  recordAnalyticsEvent({
+    eventType: "paywall_view",
+    seriesId: params.storyId,
+    episodeNumber: params.episodeNumber,
+    properties: { variant: params.variant },
   });
 }
 

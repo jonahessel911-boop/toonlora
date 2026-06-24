@@ -1,40 +1,103 @@
 "use client";
 
-import { useEffect } from "react";
-import BrowseByGenre from "@/components/home/BrowseByGenre";
-import ContinueReadingSection from "@/components/home/ContinueReadingSection";
+import HomeBrandHero from "@/components/home/HomeBrandHero";
 import HomeSection from "@/components/home/HomeSection";
-import StoryRail from "@/components/home/StoryRail";
-import { prioritizeCoverArt } from "@/components/home/StoryCard";
+import SagaRail from "@/components/home/SagaRail";
+import { prioritizeCoverArt, withRealCoverArt } from "@/components/home/StoryCard";
 import { useCatalog } from "@/hooks/useCatalog";
 import { useUserStore } from "@/store/useUserStore";
+import {
+  getCompanyCategory,
+  getFounderCategory,
+  getTrendingMockStories,
+  MOCK_PLAYBOOKS,
+} from "@/lib/mock/businessStoryCatalog";
+import {
+  mockCategoryToCatalogSeries,
+  mockPlaybookToCatalogSeries,
+  mockStoryToCatalogSeries,
+} from "@/lib/mock/mockCatalogCards";
+import {
+  fetchPublishedStory,
+  getStoryCoverArtUrl,
+} from "@/lib/fetchPublishedStory";
+import {
+  getReadingHistory,
+  pruneReadingHistory,
+  type ReadingHistoryEntry,
+} from "@/lib/readingHistory";
+import { catalogToCard } from "@/types/catalog";
+import type { CatalogSeries } from "@/types/catalog";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-const RANK_CHANGES = [35, 2, -1, 5, 12, 8, 4, 3];
+async function hydrateEntry(
+  entry: ReadingHistoryEntry
+): Promise<CatalogSeries | null> {
+  const story = await fetchPublishedStory(entry.seriesId);
+  if (!story) return null;
 
-/** Premium read-first browse homepage. */
+  const coverArtUrl = getStoryCoverArtUrl(story) ?? entry.coverArtUrl;
+  if (!coverArtUrl) return null;
+
+  return catalogToCard({
+    id: story.id,
+    title: story.title,
+    genre: String(story.genre),
+    coverGradient: story.coverGradient,
+    source: story.source === "admin" ? "admin" : "creator",
+    status: "published",
+    creatorDisplayName:
+      story.creatorDisplayName ?? entry.creatorDisplayName ?? "Toonlora",
+    synopsis: story.synopsis ?? "",
+    episodeCount: story.episodes?.length ?? entry.episodeNumber,
+    viewsCount: story.viewsCount ?? 0,
+    likesCount: story.likesCount ?? 0,
+    featuredRank: story.featuredRank ?? null,
+    publishedAt: story.publishedAt ?? null,
+    createdAt: story.createdAt,
+    coverArtUrl,
+    href: entry.href,
+    chapterProgress: entry.episodeNumber,
+    sagaLabel: String(story.genre),
+    readMinutes: 8,
+  });
+}
+
+/** Light premium homepage — dark hero, white cards on beige. */
 export default function BrowseHome() {
   const { email } = useUserStore();
   const loggedIn = Boolean(email);
 
-  const { series: featured, loading: loadingFeatured } = useCatalog({
-    sort: "featured",
+  const { series: catalogTrending, loading: loadingTrending } = useCatalog({
+    sort: "popular",
     limit: 8,
   });
-  const { series: trending, loading: loadingTrending } = useCatalog({
-    sort: "popular",
-    limit: 12,
-  });
-  const { series: community, loading: loadingCommunity } = useCatalog({
-    source: "creator",
-    sort: "newest",
-    limit: 12,
-  });
 
-  const featuredStories = prioritizeCoverArt(featured).slice(0, 6);
-  const trendingRanked = trending.map((s, i) => ({ ...s, rank: i + 1 }));
+  const [continueStories, setContinueStories] = useState<CatalogSeries[]>([]);
 
-  const initialLoad =
-    loadingFeatured && loadingTrending && featured.length === 0 && trending.length === 0;
+  const refreshContinue = useCallback(async () => {
+    const entries = getReadingHistory().slice(0, 8);
+    if (entries.length === 0) {
+      setContinueStories([]);
+      return;
+    }
+    const cards = (
+      await Promise.all(entries.map((entry) => hydrateEntry(entry)))
+    ).filter((card): card is CatalogSeries => card !== null);
+    pruneReadingHistory(cards.map((card) => card.id));
+    setContinueStories(cards);
+  }, []);
+
+  useEffect(() => {
+    void refreshContinue();
+    const onStorage = () => void refreshContinue();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("tl-reading-history", onStorage);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("tl-reading-history", onStorage);
+    };
+  }, [refreshContinue]);
 
   useEffect(() => {
     const scrollToHash = () => {
@@ -52,88 +115,105 @@ export default function BrowseHome() {
     return () => window.removeEventListener("hashchange", scrollToHash);
   }, []);
 
-  if (initialLoad) {
-    return (
-      <div className="min-h-[50vh] bg-[#FCFAFF]">
-        <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-20 text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#E7D8FF] border-t-[#5340FF]" />
-          <p className="mt-4 text-sm text-[#667085]">Loading stories…</p>
-        </div>
-      </div>
-    );
-  }
+  const trendingMock = useMemo(
+    () => getTrendingMockStories().map((s) => mockStoryToCatalogSeries(s)),
+    []
+  );
+  const founderSagas = useMemo(
+    () => mockCategoryToCatalogSeries(getFounderCategory()),
+    []
+  );
+  const companyBreakdowns = useMemo(
+    () => mockCategoryToCatalogSeries(getCompanyCategory()),
+    []
+  );
+  const playbooks = useMemo(
+    () => MOCK_PLAYBOOKS.map((p) => mockPlaybookToCatalogSeries(p)),
+    []
+  );
 
-  const catalogEmpty =
-    !loadingFeatured &&
-    !loadingTrending &&
-    featuredStories.length === 0 &&
-    trendingRanked.length === 0;
+  const catalogWithArt = withRealCoverArt(prioritizeCoverArt(catalogTrending));
+  const trendingSagas: CatalogSeries[] =
+    catalogWithArt.length > 0
+      ? catalogWithArt.map((s, i) => ({
+          ...s,
+          sagaLabel: s.genre,
+          readMinutes: 8,
+          sagaBadges: i < 3 ? ["trending" as const] : undefined,
+          rank: i + 1,
+        }))
+      : trendingMock;
 
-  if (catalogEmpty) {
-    return (
-      <div className="min-h-[50vh] bg-[#FCFAFF] px-4 py-20 text-center">
-        <h1 className="font-heading text-2xl font-extrabold text-[#101828]">
-          Stories are on the way
-        </h1>
-        <p className="mt-2 text-sm text-[#667085]">
-          New cartoon episodes publish here soon.
-        </p>
-      </div>
-    );
-  }
+  const continueProgress = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const story of continueStories) {
+      if (story.chapterProgress) map[story.id] = story.chapterProgress;
+    }
+    return map;
+  }, [continueStories]);
 
   return (
-    <div className="bg-[#FCFAFF] pb-16 pt-6 md:pt-8">
-      {loggedIn ? <ContinueReadingSection /> : null}
+    <div className="bg-background pb-16">
+      <HomeBrandHero />
 
-      {featuredStories.length > 0 || loadingFeatured ? (
+      <div className="space-y-2 md:space-y-4">
+        {loggedIn && continueStories.length > 0 ? (
+          <HomeSection
+            id="continue"
+            title="Continue Reading"
+            subtitle="Pick up where you left off."
+            tone="clear"
+          >
+            <div className="rounded-2xl bg-surface p-5 shadow-[0_4px_24px_rgba(10,22,40,0.05)] ring-1 ring-border md:p-6">
+              <SagaRail
+                stories={continueStories}
+                listSection="continue_reading"
+                progressMap={continueProgress}
+              />
+            </div>
+          </HomeSection>
+        ) : null}
+
         <HomeSection
-          id="originals"
-          title="Featured Toonlora Originals"
-          subtitle="Handpicked stories to start reading."
-          viewAllHref="/library"
+          id="sagas"
+          title="Trending Business Stories"
+          subtitle="The stories readers can't stop opening."
+          tone="clear"
         >
-          <StoryRail
-            stories={featuredStories}
-            size="featured"
-            loading={loadingFeatured}
-            skeletonCount={6}
-            listSection="featured_originals"
+          <SagaRail
+            stories={trendingSagas}
+            loading={loadingTrending && catalogWithArt.length === 0}
+            listSection="trending_stories"
           />
         </HomeSection>
-      ) : null}
 
-      {trendingRanked.length > 0 || loadingTrending ? (
         <HomeSection
-          id="trending"
-          title="Trending Now"
-          subtitle="What readers are opening this week."
-          viewAllHref="/library"
-          tone="soft"
+          id="founders"
+          title="Founder Sagas"
+          subtitle={getFounderCategory().subtitle}
+          tone="clear"
         >
-          <StoryRail
-            stories={trendingRanked}
-            size="ranked"
-            showRank
-            rankChanges={RANK_CHANGES}
-            loading={loadingTrending}
-            listSection="trending"
-          />
+          <SagaRail stories={founderSagas} listSection="founder_sagas" />
         </HomeSection>
-      ) : null}
 
-      <BrowseByGenre fallbackStories={trending} />
-
-      {!loadingCommunity && community.length > 0 ? (
         <HomeSection
-          id="community"
-          title="Created by the Community"
-          subtitle="Cartoon stories from indie creators on Toonlora."
-          viewAllHref="/library"
+          id="companies"
+          title="Company Breakdowns"
+          subtitle={getCompanyCategory().subtitle}
+          tone="clear"
         >
-          <StoryRail stories={community} size="standard" listSection="community" />
+          <SagaRail stories={companyBreakdowns} listSection="company_breakdowns" />
         </HomeSection>
-      ) : null}
+
+        <HomeSection
+          id="playbooks"
+          title="Business Playbooks"
+          subtitle="Short strategy lessons distilled from the sagas."
+          tone="clear"
+        >
+          <SagaRail stories={playbooks} listSection="playbooks" />
+        </HomeSection>
+      </div>
     </div>
   );
 }

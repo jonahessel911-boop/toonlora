@@ -42,3 +42,15 @@ export function saveReadingProgress(entry: Omit<ReadingHistoryEntry, "updatedAt"
   );
   window.dispatchEvent(new Event("tl-reading-history"));
 }
+
+export function pruneReadingHistory(validSeriesIds: string[]): void {
+  if (!isBrowser()) return;
+  const valid = new Set(validSeriesIds);
+  const pruned = getReadingHistory().filter((entry) =>
+    valid.has(entry.seriesId)
+  );
+  localStorage.setItem(
+    STORAGE_KEYS.readingHistory,
+    JSON.stringify(pruned)
+  );
+}

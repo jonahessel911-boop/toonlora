@@ -65,7 +65,7 @@ export default function ReaderTopBar({
           </Link>
           <div className="mt-0.5 flex items-center gap-1.5 sm:gap-2">
             <span className="inline-flex flex-shrink-0 rounded-full bg-[#5340FF] px-1.5 py-0.5 text-[9px] font-bold text-white sm:px-2 sm:text-[11px]">
-              Ep {episodeNumber}
+              Ch {episodeNumber}
             </span>
             <span
               className={`hidden truncate text-[10px] min-[400px]:block sm:text-xs ${

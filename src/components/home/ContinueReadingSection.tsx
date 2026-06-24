@@ -8,46 +8,42 @@ import {
   fetchPublishedStory,
   getStoryCoverArtUrl,
 } from "@/lib/fetchPublishedStory";
-import { getReadingHistory, type ReadingHistoryEntry } from "@/lib/readingHistory";
+import {
+  getReadingHistory,
+  pruneReadingHistory,
+  type ReadingHistoryEntry,
+} from "@/lib/readingHistory";
 import { catalogToCard } from "@/types/catalog";
 import type { CatalogSeries } from "@/types/catalog";
 
-function entryToCard(entry: ReadingHistoryEntry, coverArtUrl?: string): CatalogSeries {
-  return catalogToCard({
-    id: entry.seriesId,
-    title: entry.title,
-    genre: entry.genre,
-    coverGradient: entry.coverGradient,
-    source: "creator",
-    status: "published",
-    creatorDisplayName: entry.creatorDisplayName ?? "Toonlora",
-    synopsis: "",
-    episodeCount: entry.episodeNumber,
-    viewsCount: 0,
-    likesCount: 0,
-    featuredRank: null,
-    publishedAt: null,
-    createdAt: entry.updatedAt,
-    coverArtUrl: coverArtUrl ?? entry.coverArtUrl,
-    href: entry.href,
-  });
-}
-
-async function hydrateEntry(entry: ReadingHistoryEntry): Promise<CatalogSeries> {
+async function hydrateEntry(
+  entry: ReadingHistoryEntry
+): Promise<CatalogSeries | null> {
   const story = await fetchPublishedStory(entry.seriesId);
-  if (!story) return entryToCard(entry);
+  if (!story) return null;
 
   const coverArtUrl = getStoryCoverArtUrl(story) ?? entry.coverArtUrl;
-  return entryToCard(
-    {
-      ...entry,
-      title: story.title,
-      genre: String(story.genre),
-      coverGradient: story.coverGradient,
-      creatorDisplayName: story.creatorDisplayName ?? entry.creatorDisplayName,
-    },
-    coverArtUrl
-  );
+  if (!coverArtUrl) return null;
+
+  return catalogToCard({
+    id: story.id,
+    title: story.title,
+    genre: String(story.genre),
+    coverGradient: story.coverGradient,
+    source: story.source === "admin" ? "admin" : "creator",
+    status: "published",
+    creatorDisplayName:
+      story.creatorDisplayName ?? entry.creatorDisplayName ?? "Toonlora",
+    synopsis: story.synopsis ?? "",
+    episodeCount: story.episodes?.length ?? entry.episodeNumber,
+    viewsCount: story.viewsCount ?? 0,
+    likesCount: story.likesCount ?? 0,
+    featuredRank: story.featuredRank ?? null,
+    publishedAt: story.publishedAt ?? null,
+    createdAt: story.createdAt,
+    coverArtUrl,
+    href: entry.href,
+  });
 }
 
 export default function ContinueReadingSection() {
@@ -59,7 +55,12 @@ export default function ContinueReadingSection() {
       setStories([]);
       return;
     }
-    const cards = await Promise.all(entries.map((entry) => hydrateEntry(entry)));
+
+    const cards = (
+      await Promise.all(entries.map((entry) => hydrateEntry(entry)))
+    ).filter((card): card is CatalogSeries => card !== null);
+
+    pruneReadingHistory(cards.map((card) => card.id));
     setStories(cards);
   }, []);
 

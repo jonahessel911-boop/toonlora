@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import EpisodeCompleteCard from "@/components/reader/EpisodeCompleteCard";
+import BeginnerLevelUpOverlay from "@/components/reader/BeginnerLevelUpOverlay";
 import PanelBlock from "@/components/reader/PanelBlock";
 import ReaderBackButton from "@/components/reader/ReaderBackButton";
 import { trackReadingProgress } from "@/components/analytics/AnalyticsProvider";
@@ -9,11 +10,23 @@ import {
   trackEpisodeComplete,
   trackNextEpisodeClick,
 } from "@/lib/analytics/gtag";
+import { formatChapterTitle } from "@/lib/brand";
 import {
   buildPaywallPath,
   buildReaderSignupPath,
 } from "@/lib/reader/nextEpisodeGate";
+import {
+  buildFreeEpisodeLimitSignupPath,
+  checkEpisodeReadAccess,
+  claimEpisodeRead,
+} from "@/lib/reader/episodeAccessGate";
 import { saveReadingProgress } from "@/lib/readingHistory";
+import {
+  markBeginnerCelebrationShown,
+  recordEpisodeComplete,
+  shouldShowBeginnerLevelUp,
+} from "@/lib/readingProgress";
+import { trackSeriesView } from "@/lib/trackSeriesView";
 import { useUserStore } from "@/store/useUserStore";
 import { useSubscriptionStore } from "@/store/useSubscriptionStore";
 import type { ReaderPanelData } from "@/lib/readerPanels";
@@ -63,20 +76,23 @@ export default function WebtoonReader({
 }: WebtoonReaderProps) {
   const [maxPanelIndex, setMaxPanelIndex] = useState(0);
   const [showEndCard, setShowEndCard] = useState(false);
+  const [showBeginnerLevelUp, setShowBeginnerLevelUp] = useState(false);
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const lastPanelRef = useRef<HTMLElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
   const episodeCompleteTracked = useRef(false);
+  const viewTracked = useRef(false);
   const { email } = useUserStore();
-  const { isSubscriber, hydrate: hydrateSubscription } = useSubscriptionStore();
+  const { getTier, hasPaidAccess, hydrate: hydrateSubscription } = useSubscriptionStore();
   const loggedIn = Boolean(email);
-  const hasVipAccess = isSubscriber();
+  const paidAccess = hasPaidAccess();
   const needsSignup = isCatalog && !loggedIn;
-  const needsSubscription = isCatalog && loggedIn && !hasVipAccess;
+  const needsSubscription = isCatalog && loggedIn && !paidAccess;
   const gatedNextEpisode = needsSignup || needsSubscription;
   const returnPath = `/story/${seriesId}/read${episodeNumber > 1 ? `?ep=${episodeNumber}` : ""}`;
   const total = panels.length;
 
+  const totalEpisodesInSeries = episodes?.length ?? episodeNumber;
   const nextEpisodeFromList = episodes?.find((e) => e.number === episodeNumber + 1);
   const panelsWithImages = panels.filter((p) => p.imageUrl);
   const isMultiPanelUpload = panelsWithImages.length > 1;
@@ -86,7 +102,7 @@ export default function WebtoonReader({
     (gatedNextEpisode
       ? {
           number: episodeNumber + 1,
-          title: `Episode ${episodeNumber + 1}`,
+          title: formatChapterTitle(episodeNumber + 1),
           coverGradient,
           coverArtUrl:
             episodes?.[0]?.coverArtUrl ?? coverArtUrl ?? panelCoverUrl,
@@ -95,17 +111,7 @@ export default function WebtoonReader({
 
   const stripUrl = isMultiPanelUpload ? undefined : panelCoverUrl;
 
-  const handleStartNextEpisode = useCallback(() => {
-    if (isCatalog) {
-      trackNextEpisodeClick({
-        seriesId,
-        title: seriesTitle,
-        episodeNumber,
-        nextEpisodeNumber: episodeNumber + 1,
-        gate: needsSignup ? "signup" : needsSubscription ? "subscribe" : "open",
-      });
-    }
-
+  const proceedToNextEpisode = useCallback(() => {
     if (needsSignup) {
       window.location.href = buildReaderSignupPath(
         seriesId,
@@ -127,7 +133,6 @@ export default function WebtoonReader({
       window.location.href = href;
     }
   }, [
-    isCatalog,
     needsSignup,
     needsSubscription,
     nextEpisodeFromList,
@@ -136,9 +141,81 @@ export default function WebtoonReader({
     episodeNumber,
   ]);
 
+  const handleStartNextEpisode = useCallback(() => {
+    if (isCatalog) {
+      trackNextEpisodeClick({
+        seriesId,
+        title: seriesTitle,
+        episodeNumber,
+        nextEpisodeNumber: episodeNumber + 1,
+        gate: needsSignup ? "signup" : needsSubscription ? "subscribe" : "open",
+      });
+    }
+
+    if (
+      shouldShowBeginnerLevelUp(episodeNumber, isCatalog, loggedIn)
+    ) {
+      setShowBeginnerLevelUp(true);
+      return;
+    }
+
+    proceedToNextEpisode();
+  }, [
+    isCatalog,
+    needsSignup,
+    needsSubscription,
+    seriesId,
+    seriesTitle,
+    episodeNumber,
+    loggedIn,
+    proceedToNextEpisode,
+  ]);
+
+  const handleCreateAccountFromLevelUp = useCallback(() => {
+    markBeginnerCelebrationShown();
+    setShowBeginnerLevelUp(false);
+    proceedToNextEpisode();
+  }, [proceedToNextEpisode]);
+
   useEffect(() => {
     void hydrateSubscription();
   }, [hydrateSubscription]);
+
+  useEffect(() => {
+    if (!isCatalog || viewTracked.current) return;
+    viewTracked.current = true;
+    void trackSeriesView(seriesId);
+  }, [isCatalog, seriesId]);
+
+  useEffect(() => {
+    if (!isCatalog) return;
+
+    let cancelled = false;
+    void checkEpisodeReadAccess(seriesId, episodeNumber).then(async (result) => {
+      if (cancelled) return;
+
+      if (result.allowed) {
+        if (result.tier === "free") {
+          await claimEpisodeRead(seriesId, episodeNumber);
+        }
+        return;
+      }
+
+      if (result.reason === "weekly_free_used" || result.reason === "not_released") {
+        if (!loggedIn) {
+          window.location.replace(buildFreeEpisodeLimitSignupPath(seriesId, seriesTitle));
+          return;
+        }
+        window.location.replace(
+          buildPaywallPath(seriesId, episodeNumber, seriesTitle)
+        );
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isCatalog, loggedIn, seriesId, episodeNumber, seriesTitle]);
 
   useEffect(() => {
     if (episodeNumber > 1 && needsSignup) {
@@ -234,6 +311,7 @@ export default function WebtoonReader({
     if (episodeCompleteTracked.current || total === 0) return;
     if (maxPanelIndex >= total - 1) {
       episodeCompleteTracked.current = true;
+      recordEpisodeComplete(seriesId, episodeNumber, totalEpisodesInSeries);
       trackEpisodeComplete({
         seriesId,
         title: seriesTitle,
@@ -249,6 +327,7 @@ export default function WebtoonReader({
     seriesTitle,
     episodeNumber,
     isCatalog,
+    totalEpisodesInSeries,
   ]);
 
   useEffect(() => {
@@ -287,6 +366,10 @@ export default function WebtoonReader({
 
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#08040F]">
+      <BeginnerLevelUpOverlay
+        open={showBeginnerLevelUp}
+        onCreateAccount={handleCreateAccountFromLevelUp}
+      />
       <ReaderBackButton seriesId={seriesId} />
 
       <main className="mx-auto w-full max-w-[720px] pt-12">
@@ -301,7 +384,7 @@ export default function WebtoonReader({
             >
               <img
                 src={stripUrl}
-                alt={`${seriesTitle} — episode ${episodeNumber}`}
+                alt={`${seriesTitle} — chapter ${episodeNumber}`}
                 className="block h-auto w-full"
                 draggable={false}
               />
@@ -347,7 +430,7 @@ export default function WebtoonReader({
             onClick={() => setShowEndCard(true)}
             className="w-full bg-gradient-to-b from-[#08040F] to-[#2A114B] px-4 py-8 text-center text-sm font-semibold text-white/80 transition hover:text-white"
           >
-            Episode complete — see what&apos;s next
+            Chapter complete — see what&apos;s next
           </button>
         )}
       </main>

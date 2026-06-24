@@ -1,4 +1,12 @@
 /** Published series card for browse surfaces (homepage, LP, admin). */
+export type SagaBadge =
+  | "trending"
+  | "new-drop"
+  | "founder-saga"
+  | "billion-dollar"
+  | "company"
+  | "playbook";
+
 export interface CatalogSeries {
   id: string;
   title: string;
@@ -22,6 +30,13 @@ export interface CatalogSeries {
   likes?: string;
   episodes?: number;
   creator?: string;
+  /** Premium saga card fields */
+  sagaSubtitle?: string;
+  sagaLabel?: string;
+  readMinutes?: number;
+  sagaBadges?: SagaBadge[];
+  chapterProgress?: number;
+  isPlaybook?: boolean;
 }
 
 export function formatCatalogViews(count: number): string {

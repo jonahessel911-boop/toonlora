@@ -6,7 +6,10 @@ import { persist } from "zustand/middleware";
 interface UserProfile {
   fullName: string;
   email: string;
+  countryCode: string;
   wantsRecommendations: boolean;
+  wantsWeeklyNewsletter: boolean;
+  newsletterTopics: string[];
   agreedToTerms: boolean;
   onboarded: boolean;
 }
@@ -22,7 +25,10 @@ export const useUserStore = create<UserStore>()(
     (set) => ({
       fullName: "",
       email: "",
+      countryCode: "",
       wantsRecommendations: true,
+      wantsWeeklyNewsletter: false,
+      newsletterTopics: [],
       agreedToTerms: false,
       onboarded: false,
       setProfile: (data) => set((s) => ({ ...s, ...data })),
@@ -31,7 +37,10 @@ export const useUserStore = create<UserStore>()(
         set({
           fullName: "",
           email: "",
+          countryCode: "",
           wantsRecommendations: true,
+          wantsWeeklyNewsletter: false,
+          newsletterTopics: [],
           agreedToTerms: false,
           onboarded: false,
         }),

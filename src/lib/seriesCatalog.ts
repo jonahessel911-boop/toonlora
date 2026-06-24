@@ -20,6 +20,8 @@ export interface SeriesDetail {
   creators: string[];
   views: string;
   likes: string;
+  viewsCount: number;
+  likesCount: number;
   schedule: string;
   synopsis: string;
   episodes: SeriesEpisodeListing[];
@@ -65,6 +67,8 @@ export function storyToSeriesDetail(story: Story): SeriesDetail {
     creators: [creatorName, story.loveInterest].filter(Boolean) as string[],
     views: formatCatalogViews(story.viewsCount ?? 0),
     likes: formatCatalogViews(story.likesCount ?? 0),
+    viewsCount: story.viewsCount ?? 0,
+    likesCount: story.likesCount ?? 0,
     schedule,
     synopsis:
       story.synopsis ??

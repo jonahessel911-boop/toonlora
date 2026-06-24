@@ -4,6 +4,10 @@ import { addCreditsInDb } from "@/lib/services/story-repository";
 import {
   setSubscriptionInDb,
 } from "@/lib/services/subscription-repository";
+import {
+  getProfileIdBySessionId,
+  recordAffiliatePurchaseConversion,
+} from "@/lib/services/affiliate-repository";
 import { getStripe, isStripeConfigured } from "@/lib/services/stripe";
 import { getSubscriptionPeriodEnd } from "@/lib/payments/stripe-subscription";
 
@@ -90,11 +94,34 @@ export async function POST(request: Request) {
 
     if (session.mode === "subscription") {
       await activateSubscriptionFromCheckout(session);
+      const userSessionId = session.metadata?.sessionId;
+      if (userSessionId) {
+        const profileId = await getProfileIdBySessionId(userSessionId);
+        if (profileId) {
+          await recordAffiliatePurchaseConversion({
+            profileId,
+            sessionId: userSessionId,
+            purchaseType: "subscription",
+            amountCents: session.amount_total ?? undefined,
+            stripeSessionId: session.id,
+          });
+        }
+      }
     } else {
       const userSessionId = session.metadata?.sessionId;
       const coins = Number(session.metadata?.coins ?? 0);
       if (userSessionId && coins > 0) {
         await addCreditsInDb(userSessionId, coins);
+        const profileId = await getProfileIdBySessionId(userSessionId);
+        if (profileId) {
+          await recordAffiliatePurchaseConversion({
+            profileId,
+            sessionId: userSessionId,
+            purchaseType: "coins",
+            amountCents: session.amount_total ?? undefined,
+            stripeSessionId: session.id,
+          });
+        }
       }
     }
   }

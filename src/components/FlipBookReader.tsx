@@ -194,10 +194,10 @@ export default function FlipBookReader({
           )}
           {showLibraryLink && (
             <a
-              href="/library"
+              href="/"
               className="rounded-full px-5 py-2 text-sm font-bold text-gray-500 transition hover:text-groen-deep"
             >
-              Back to library
+              Back to home
             </a>
           )}
         </div>

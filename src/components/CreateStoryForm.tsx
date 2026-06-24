@@ -112,7 +112,7 @@ export default function CreateStoryForm() {
     return (
       <PipelineProgress
         steps={steps}
-        currentMessage="Your webtoon episode is being created…"
+        currentMessage="Your webtoon chapter is being created…"
       />
     );
   }
@@ -125,7 +125,7 @@ export default function CreateStoryForm() {
       >
         <div className="mb-8 rounded-2xl bg-gradient-to-r from-groen-mint to-surface-soft px-5 py-4">
           <p className="text-sm font-bold text-groen-deep">
-            {freeUsed ? "✨ Each episode uses 1 credit" : "🎉 First story is free"}
+            {freeUsed ? "✨ Each chapter uses 1 credit" : "🎉 First story is free"}
           </p>
           <p className="mt-1 text-xs text-gray-500">
             Story-to-Webtoon Engine: Bible → Script → Panels → Art → Bubbles
@@ -255,7 +255,7 @@ export default function CreateStoryForm() {
 
             <div>
               <label className="mb-2 block text-sm font-bold text-gray-700">
-                Episode length
+                Chapter length
               </label>
               <select
                 value={form.episode_length}
@@ -298,7 +298,7 @@ export default function CreateStoryForm() {
           type="submit"
           className="mt-8 w-full rounded-full bg-groen-deep py-4 text-base font-black text-white shadow-xl shadow-primary/20 transition hover:scale-[1.01] hover:opacity-90"
         >
-          Generate Episode 1
+          Generate Chapter 1
         </button>
       </form>
 

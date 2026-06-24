@@ -34,12 +34,12 @@ export default function LPStoryCard({ story }: LPStoryCardProps) {
             </p>
           )}
           <div className="mt-2 flex flex-wrap gap-x-2 text-[11px] text-gray-500">
-            <span>{story.episodeCount} ep</span>
+            <span>{story.episodeCount} ch</span>
             {story.readers && <span>👁 {story.readers}</span>}
             {story.likes && <span>♥ {story.likes}</span>}
           </div>
           <span className="lp-pill-btn mt-3 py-2.5 text-xs">
-            Read episode 1
+            Read chapter 1
           </span>
         </div>
       </Link>

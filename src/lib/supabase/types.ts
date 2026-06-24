@@ -116,6 +116,10 @@ export interface Database {
           email: string;
           full_name: string;
           wants_recommendations: boolean;
+          wants_weekly_newsletter: boolean;
+          newsletter_topics: string[];
+          country_code: string | null;
+          referred_by_affiliate_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -124,11 +128,114 @@ export interface Database {
           email: string;
           full_name: string;
           wants_recommendations?: boolean;
+          wants_weekly_newsletter?: boolean;
+          newsletter_topics?: string[];
+          country_code?: string | null;
+          referred_by_affiliate_id?: string | null;
         };
         Update: {
           session_id?: string;
           full_name?: string;
           wants_recommendations?: boolean;
+          wants_weekly_newsletter?: boolean;
+          newsletter_topics?: string[];
+          country_code?: string | null;
+          referred_by_affiliate_id?: string | null;
+        };
+      };
+      affiliates: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          email: string | null;
+          company: string | null;
+          is_active: boolean;
+          payment_method: "iban" | "paypal" | null;
+          payment_details: Record<string, unknown>;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          name: string;
+          email?: string | null;
+          company?: string | null;
+          is_active?: boolean;
+          payment_method?: "iban" | "paypal" | null;
+          payment_details?: Record<string, unknown>;
+          notes?: string | null;
+        };
+        Update: {
+          slug?: string;
+          name?: string;
+          email?: string | null;
+          company?: string | null;
+          is_active?: boolean;
+          payment_method?: "iban" | "paypal" | null;
+          payment_details?: Record<string, unknown>;
+          notes?: string | null;
+          updated_at?: string;
+        };
+      };
+      affiliate_applications: {
+        Row: {
+          id: string;
+          email: string;
+          company: string | null;
+          description: string | null;
+          traffic_sources: string[];
+          affiliate_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          email: string;
+          company?: string | null;
+          description?: string | null;
+          traffic_sources?: string[];
+          affiliate_id?: string | null;
+        };
+        Update: {
+          affiliate_id?: string | null;
+        };
+      };
+      affiliate_signups: {
+        Row: {
+          id: string;
+          affiliate_id: string;
+          profile_id: string;
+          country_code: string;
+          commission_region: "eu" | "us" | "other";
+          commission_cents: number;
+          converted_at: string;
+        };
+        Insert: {
+          affiliate_id: string;
+          profile_id: string;
+          country_code: string;
+          commission_region: "eu" | "us" | "other";
+          commission_cents?: number;
+        };
+      };
+      affiliate_purchases: {
+        Row: {
+          id: string;
+          affiliate_id: string;
+          profile_id: string | null;
+          session_id: string | null;
+          purchase_type: "subscription" | "coins";
+          amount_cents: number | null;
+          stripe_session_id: string | null;
+          purchased_at: string;
+        };
+        Insert: {
+          affiliate_id: string;
+          profile_id?: string | null;
+          session_id?: string | null;
+          purchase_type: "subscription" | "coins";
+          amount_cents?: number | null;
+          stripe_session_id?: string | null;
         };
       };
       reading_progress: {
@@ -239,3 +346,10 @@ export type PlatformSessionRow =
 export type LoginEventRow = Database["public"]["Tables"]["login_events"]["Row"];
 export type EpisodeCommentRow =
   Database["public"]["Tables"]["episode_comments"]["Row"];
+export type AffiliateRow = Database["public"]["Tables"]["affiliates"]["Row"];
+export type AffiliateApplicationRow =
+  Database["public"]["Tables"]["affiliate_applications"]["Row"];
+export type AffiliateSignupRow =
+  Database["public"]["Tables"]["affiliate_signups"]["Row"];
+export type AffiliatePurchaseRow =
+  Database["public"]["Tables"]["affiliate_purchases"]["Row"];
