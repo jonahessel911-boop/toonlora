@@ -1,22 +1,19 @@
 "use client";
 
-import Link from "next/link";
+import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import ProfileMenu from "@/components/nav/ProfileMenu";
 import ToonloraLogo from "@/components/ui/ToonloraLogo";
+import { getStoredAffiliateSlug } from "@/lib/affiliate/client-tracking";
+import { AFFILIATE_QUERY_PARAM } from "@/lib/affiliate/links";
+import { HOME_BROWSE_NAV } from "@/lib/homeBrowseNav";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 import { useUserStore } from "@/store/useUserStore";
 
-const browseNav = [
-  { href: "/#this-week", label: "This Week" },
-  { href: "/#sagas", label: "Sagas" },
-  { href: "/#founders", label: "Founders" },
-  { href: "/#companies", label: "Companies" },
-  { href: "/#playbooks", label: "Playbooks" },
-] as const;
+const browseNav = HOME_BROWSE_NAV;
 
 function isHashLink(href: string) {
   return href.startsWith("/#");
@@ -41,7 +38,13 @@ function useActiveHash() {
     const hashPart = href.includes("#") ? href.slice(href.indexOf("#")) : "";
     if (!hashPart) return;
 
-    const url = `${window.location.pathname}${hashPart}`;
+    const aff =
+      new URLSearchParams(window.location.search).get(AFFILIATE_QUERY_PARAM) ??
+      getStoredAffiliateSlug();
+    const search = aff
+      ? `?${AFFILIATE_QUERY_PARAM}=${encodeURIComponent(aff)}`
+      : "";
+    const url = `${window.location.pathname}${search}${hashPart}`;
     window.history.pushState(null, "", url);
     setHash(hashPart);
 
@@ -77,7 +80,7 @@ function BrowseTab({
   onNavigate: (href: string) => void;
 }) {
   return (
-    <Link
+    <AffiliateLink
       href={href}
       onClick={(e) => {
         if (isHashLink(href) && window.location.pathname === "/") {
@@ -90,7 +93,7 @@ function BrowseTab({
       }`}
     >
       {label}
-    </Link>
+    </AffiliateLink>
   );
 }
 
@@ -126,26 +129,26 @@ export default function Navbar() {
     <>
       <header className="sticky top-0 z-50 border-b border-white/10 bg-nav-bg">
         <div className={`${PAGE_CONTAINER_CLASS} flex h-16 items-center justify-between gap-3`}>
-          <Link href="/" className="flex shrink-0 items-center">
+          <AffiliateLink href="/" className="flex shrink-0 items-center">
             <ToonloraLogo variant="nav" />
-          </Link>
+          </AffiliateLink>
 
           <div className="flex items-center gap-1 sm:gap-2">
             {!loggedIn && (
-              <Link href="/signin" className="tl-nav-login hidden sm:inline-flex">
+              <AffiliateLink href="/signin" className="tl-nav-login hidden sm:inline-flex">
                 Log in
-              </Link>
+              </AffiliateLink>
             )}
 
             <ProfileMenu />
 
-            <Link
-              href="/#sagas"
+            <AffiliateLink
+              href="/#this-week"
               className="hidden h-10 w-10 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white sm:flex"
               aria-label="Search stories"
             >
               <SearchIcon />
-            </Link>
+            </AffiliateLink>
 
             <button
               type="button"
@@ -269,7 +272,7 @@ function MobileDrawer({
             <div className="flex-1 overflow-y-auto px-4 py-5">
               <nav className="space-y-1">
                 {browseNav.map((link) => (
-                  <Link
+                  <AffiliateLink
                     key={link.href}
                     href={link.href}
                     onClick={(e) => {
@@ -286,7 +289,7 @@ function MobileDrawer({
                     }`}
                   >
                     {link.label}
-                  </Link>
+                  </AffiliateLink>
                 ))}
               </nav>
 
@@ -294,30 +297,30 @@ function MobileDrawer({
 
               {loggedIn ? (
                 <nav className="space-y-1">
-                  <Link
+                  <AffiliateLink
                     href="/profile"
                     onClick={onClose}
                     className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
                   >
                     My Library
-                  </Link>
+                  </AffiliateLink>
                 </nav>
               ) : (
                 <nav className="space-y-1">
-                  <Link
+                  <AffiliateLink
                     href="/signin"
                     onClick={onClose}
                     className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
                   >
                     Log in
-                  </Link>
-                  <Link
+                  </AffiliateLink>
+                  <AffiliateLink
                     href="/signup/register"
                     onClick={onClose}
                     className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
                   >
                     Create free account
-                  </Link>
+                  </AffiliateLink>
                 </nav>
               )}
             </div>

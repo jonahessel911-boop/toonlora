@@ -52,3 +52,55 @@ export function clearStoredAffiliateSlug(): void {
   if (!isBrowser()) return;
   localStorage.removeItem(STORAGE_KEYS.affiliateSlug);
 }
+
+/** Append ?aff=slug to internal paths (preserves existing query + hash). */
+export function appendAffiliateToHref(
+  href: string,
+  slug: string | null | undefined
+): string {
+  if (!slug || !isValidAffiliateSlug(slug)) return href;
+  if (
+    href.startsWith("mailto:") ||
+    href.startsWith("tel:") ||
+    href.startsWith("javascript:")
+  ) {
+    return href;
+  }
+
+  if (href.startsWith("http://") || href.startsWith("https://")) {
+    try {
+      const origin =
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "https://toonlora.com";
+      const url = new URL(href);
+      if (url.origin !== origin) return href;
+    } catch {
+      return href;
+    }
+  }
+
+  try {
+    const base =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://toonlora.com";
+    const url = new URL(href, base);
+    if (url.searchParams.has(AFFILIATE_QUERY_PARAM)) return href;
+    url.searchParams.set(AFFILIATE_QUERY_PARAM, slug);
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return href;
+  }
+}
+
+export function syncAffiliateFromSearchParams(
+  searchParams: URLSearchParams
+): string | null {
+  const fromUrl = captureAffiliateFromUrl(searchParams);
+  if (fromUrl) {
+    persistAffiliateSlug(fromUrl);
+    return fromUrl;
+  }
+  return getStoredAffiliateSlug();
+}

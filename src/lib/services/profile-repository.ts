@@ -6,6 +6,7 @@ export interface RegisterProfileInput {
   fullName: string;
   email: string;
   countryCode?: string;
+  signupIp?: string | null;
   wantsRecommendations?: boolean;
   wantsWeeklyNewsletter?: boolean;
   newsletterTopics?: string[];
@@ -60,7 +61,10 @@ export async function registerProfileInDb(
 
   const { data, error } = await supabase
     .from("profiles")
-    .insert(profilePayload)
+    .insert({
+      ...profilePayload,
+      signup_ip: input.signupIp?.trim() || null,
+    })
     .select()
     .single();
 

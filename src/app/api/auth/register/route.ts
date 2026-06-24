@@ -3,11 +3,12 @@ import { getSessionFromRequest } from "@/lib/api/session";
 import { isValidAffiliateSlug, normalizeAffiliateSlug } from "@/lib/affiliate/slug";
 import { isServerDatabaseConfigured } from "@/lib/config";
 import { sendSignupWelcomeEmail } from "@/lib/email/sendSignupWelcome";
-import { isValidCountryCode } from "@/lib/countries";
+import { resolveSignupCountryCode } from "@/lib/signup/country";
 import {
   getActiveAffiliateBySlug,
   recordAffiliateSignupConversion,
 } from "@/lib/services/affiliate-repository";
+import { getClientIp } from "@/lib/request/client-ip";
 import { registerProfileInDb } from "@/lib/services/profile-repository";
 import { recordLoginEvent } from "@/lib/services/analytics-repository";
 
@@ -27,7 +28,10 @@ export async function POST(request: Request) {
     const fullName = String(body.fullName ?? "").trim();
     const email = String(body.email ?? "").trim().toLowerCase();
 
-    const countryCode = String(body.countryCode ?? "").trim().toUpperCase();
+    const countryCode = resolveSignupCountryCode(
+      request,
+      body.countryCode ? String(body.countryCode) : null
+    );
 
     if (!fullName || !email) {
       return NextResponse.json(
@@ -36,18 +40,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!countryCode || !isValidCountryCode(countryCode)) {
-      return NextResponse.json(
-        { error: "Please select a valid country." },
-        { status: 400 }
-      );
-    }
-
     const sessionId = getSessionFromRequest(request);
+    const signupIp = getClientIp(request);
     const { profile, isNew } = await registerProfileInDb(sessionId, {
       fullName,
       email,
-      countryCode,
+      countryCode: countryCode ?? undefined,
+      signupIp,
       wantsRecommendations: body.wantsRecommendations !== false,
       wantsWeeklyNewsletter: Boolean(body.wantsWeeklyNewsletter),
       newsletterTopics: Array.isArray(body.newsletterTopics)
@@ -70,7 +69,7 @@ export async function POST(request: Request) {
             await recordAffiliateSignupConversion({
               affiliateId: affiliate.id,
               profileId: profile.id,
-              countryCode,
+              countryCode: countryCode ?? "OTHER",
             });
           } catch (err) {
             console.error(

@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import SiteFooter from "@/components/layout/SiteFooter";
 import AnalyticsProvider from "@/components/analytics/AnalyticsProvider";
-import AffiliateCapture from "@/components/affiliate/AffiliateCapture";
+import AffiliateProvider from "@/components/affiliate/AffiliateProvider";
 
 const AUTH_ROUTES = ["/signup", "/signin", "/subscribe", "/partners"];
 const MINIMAL_ROUTES = ["/lp", "/admin"];
@@ -29,7 +29,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AnalyticsProvider>
-      <AffiliateCapture />
+      <AffiliateProvider>
       <div
         className={`flex flex-col ${
           fixedViewport ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
@@ -45,6 +45,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </main>
         {!hideNav && !fixedViewport && <SiteFooter />}
       </div>
+      </AffiliateProvider>
     </AnalyticsProvider>
   );
 }

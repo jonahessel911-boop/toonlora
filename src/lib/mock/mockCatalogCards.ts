@@ -2,7 +2,6 @@ import type { CatalogSeries } from "@/types/catalog";
 import { NAVY_COVER_GRADIENT } from "@/lib/theme/navy";
 import type {
   MockCatalogStory,
-  MockPlaybook,
   MockStoryCategory,
 } from "./businessStoryCatalog";
 
@@ -37,35 +36,6 @@ export function mockStoryToCatalogSeries(
     sagaLabel: story.sagaLabel,
     readMinutes: story.readMinutes,
     sagaBadges: story.badges,
-  };
-}
-
-export function mockPlaybookToCatalogSeries(playbook: MockPlaybook): CatalogSeries {
-  return {
-    id: playbook.id,
-    title: playbook.title,
-    genre: playbook.sagaLabel,
-    coverGradient: NAVY_COVER_GRADIENT,
-    source: "admin",
-    status: "published",
-    creatorDisplayName: "Toonlora Original",
-    synopsis: playbook.hook,
-    episodeCount: playbook.chapters,
-    viewsCount: 0,
-    likesCount: 0,
-    featuredRank: null,
-    publishedAt: null,
-    createdAt: new Date().toISOString(),
-    href: playbook.href,
-    readers: "Playbook",
-    likes: "0",
-    episodes: playbook.chapters,
-    creator: "Toonlora Original",
-    sagaSubtitle: playbook.subtitle,
-    sagaLabel: playbook.sagaLabel,
-    readMinutes: playbook.readMinutes,
-    sagaBadges: ["playbook"],
-    isPlaybook: true,
   };
 }
 

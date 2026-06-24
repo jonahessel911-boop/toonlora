@@ -119,6 +119,7 @@ export interface Database {
           wants_weekly_newsletter: boolean;
           newsletter_topics: string[];
           country_code: string | null;
+          signup_ip: string | null;
           referred_by_affiliate_id: string | null;
           created_at: string;
           updated_at: string;
@@ -131,6 +132,7 @@ export interface Database {
           wants_weekly_newsletter?: boolean;
           newsletter_topics?: string[];
           country_code?: string | null;
+          signup_ip?: string | null;
           referred_by_affiliate_id?: string | null;
         };
         Update: {
@@ -140,6 +142,7 @@ export interface Database {
           wants_weekly_newsletter?: boolean;
           newsletter_topics?: string[];
           country_code?: string | null;
+          signup_ip?: string | null;
           referred_by_affiliate_id?: string | null;
         };
       };

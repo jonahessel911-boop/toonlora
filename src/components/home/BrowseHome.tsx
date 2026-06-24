@@ -5,17 +5,17 @@ import HomeSection from "@/components/home/HomeSection";
 import SagaRail from "@/components/home/SagaRail";
 import { prioritizeCoverArt, withRealCoverArt } from "@/components/home/StoryCard";
 import { useCatalog } from "@/hooks/useCatalog";
-import { useUserStore } from "@/store/useUserStore";
+import { HOME_BROWSE_NAV } from "@/lib/homeBrowseNav";
 import {
   getCompanyCategory,
+  getEmpiresCategory,
   getFounderCategory,
-  getTrendingMockStories,
-  MOCK_PLAYBOOKS,
+  getHeistsAndFraudsCategory,
+  getHistoryDropCategory,
+  getRiseAndFallCategory,
 } from "@/lib/mock/businessStoryCatalog";
 import {
   mockCategoryToCatalogSeries,
-  mockPlaybookToCatalogSeries,
-  mockStoryToCatalogSeries,
 } from "@/lib/mock/mockCatalogCards";
 import {
   fetchPublishedStory,
@@ -29,6 +29,7 @@ import {
 import { catalogToCard } from "@/types/catalog";
 import type { CatalogSeries } from "@/types/catalog";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useUserStore } from "@/store/useUserStore";
 
 async function hydrateEntry(
   entry: ReadingHistoryEntry
@@ -62,6 +63,15 @@ async function hydrateEntry(
     readMinutes: 8,
   });
 }
+
+const SECTION_CATEGORIES = {
+  "founder-stories": getFounderCategory,
+  "rise-and-fall": getRiseAndFallCategory,
+  empires: getEmpiresCategory,
+  "heists-and-frauds": getHeistsAndFraudsCategory,
+  "company-breakdowns": getCompanyCategory,
+  "history-drop": getHistoryDropCategory,
+} as const;
 
 /** Light premium homepage — dark hero, white cards on beige. */
 export default function BrowseHome() {
@@ -115,34 +125,34 @@ export default function BrowseHome() {
     return () => window.removeEventListener("hashchange", scrollToHash);
   }, []);
 
-  const trendingMock = useMemo(
-    () => getTrendingMockStories().map((s) => mockStoryToCatalogSeries(s)),
-    []
-  );
-  const founderSagas = useMemo(
-    () => mockCategoryToCatalogSeries(getFounderCategory()),
-    []
-  );
-  const companyBreakdowns = useMemo(
-    () => mockCategoryToCatalogSeries(getCompanyCategory()),
-    []
-  );
-  const playbooks = useMemo(
-    () => MOCK_PLAYBOOKS.map((p) => mockPlaybookToCatalogSeries(p)),
-    []
-  );
+  const sectionStories = useMemo(() => {
+    const catalogWithArt = withRealCoverArt(prioritizeCoverArt(catalogTrending));
+    const catalogStories: CatalogSeries[] =
+      catalogWithArt.length > 0
+        ? catalogWithArt.map((s, i) => ({
+            ...s,
+            sagaLabel: s.genre,
+            readMinutes: 8,
+            sagaBadges: i < 3 ? (["trending"] as const) : undefined,
+            rank: i + 1,
+          }))
+        : [];
 
-  const catalogWithArt = withRealCoverArt(prioritizeCoverArt(catalogTrending));
-  const trendingSagas: CatalogSeries[] =
-    catalogWithArt.length > 0
-      ? catalogWithArt.map((s, i) => ({
-          ...s,
-          sagaLabel: s.genre,
-          readMinutes: 8,
-          sagaBadges: i < 3 ? ["trending" as const] : undefined,
-          rank: i + 1,
-        }))
-      : trendingMock;
+    return Object.fromEntries(
+      Object.entries(SECTION_CATEGORIES).map(([id, getCategory]) => {
+        const category = getCategory();
+        const mockStories = mockCategoryToCatalogSeries(category);
+        const stories =
+          id === "founder-stories" && catalogStories.length > 0
+            ? catalogStories
+            : mockStories;
+        return [id, { category, stories }];
+      })
+    ) as Record<
+      keyof typeof SECTION_CATEGORIES,
+      { category: ReturnType<typeof getFounderCategory>; stories: CatalogSeries[] }
+    >;
+  }, [catalogTrending]);
 
   const continueProgress = useMemo(() => {
     const map: Record<string, number> = {};
@@ -151,6 +161,8 @@ export default function BrowseHome() {
     }
     return map;
   }, [continueStories]);
+
+  const browseSections = HOME_BROWSE_NAV.filter((item) => item.id !== "this-week");
 
   return (
     <div className="bg-background pb-16">
@@ -174,45 +186,30 @@ export default function BrowseHome() {
           </HomeSection>
         ) : null}
 
-        <HomeSection
-          id="sagas"
-          title="Trending Business Stories"
-          subtitle="The stories readers can't stop opening."
-          tone="clear"
-        >
-          <SagaRail
-            stories={trendingSagas}
-            loading={loadingTrending && catalogWithArt.length === 0}
-            listSection="trending_stories"
-          />
-        </HomeSection>
+        {browseSections.map(({ id, label }) => {
+          const section = sectionStories[id as keyof typeof SECTION_CATEGORIES];
+          if (!section) return null;
 
-        <HomeSection
-          id="founders"
-          title="Founder Sagas"
-          subtitle={getFounderCategory().subtitle}
-          tone="clear"
-        >
-          <SagaRail stories={founderSagas} listSection="founder_sagas" />
-        </HomeSection>
-
-        <HomeSection
-          id="companies"
-          title="Company Breakdowns"
-          subtitle={getCompanyCategory().subtitle}
-          tone="clear"
-        >
-          <SagaRail stories={companyBreakdowns} listSection="company_breakdowns" />
-        </HomeSection>
-
-        <HomeSection
-          id="playbooks"
-          title="Business Playbooks"
-          subtitle="Short strategy lessons distilled from the sagas."
-          tone="clear"
-        >
-          <SagaRail stories={playbooks} listSection="playbooks" />
-        </HomeSection>
+          return (
+            <HomeSection
+              key={id}
+              id={id}
+              title={label}
+              subtitle={section.category.subtitle}
+              tone="clear"
+            >
+              <SagaRail
+                stories={section.stories}
+                loading={
+                  id === "founder-stories" &&
+                  loadingTrending &&
+                  section.stories.length === 0
+                }
+                listSection={id.replace(/-/g, "_")}
+              />
+            </HomeSection>
+          );
+        })}
       </div>
     </div>
   );

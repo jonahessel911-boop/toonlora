@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import StoryCoverImage from "@/components/ui/StoryCoverImage";
 import { getCoverPreset } from "@/components/ui/CoverArt";
 import { trackStoryClick } from "@/lib/analytics/gtag";
@@ -9,10 +9,9 @@ import type { CatalogSeries, SagaBadge } from "@/types/catalog";
 const BADGE_LABELS: Record<SagaBadge, string> = {
   trending: "Trending",
   "new-drop": "New Drop",
-  "founder-saga": "Founder Saga",
+  "founder-saga": "Founder Story",
   "billion-dollar": "Billion-Dollar Story",
   company: "Company",
-  playbook: "Playbook",
 };
 
 interface SagaCardProps {
@@ -40,7 +39,7 @@ export default function SagaCard({
     <article
       className={`group flex h-full w-[200px] min-w-[200px] max-w-[200px] snap-start flex-col sm:w-[220px] sm:min-w-[220px] sm:max-w-[220px] md:w-[240px] md:min-w-[240px] md:max-w-[240px] ${className}`}
     >
-      <Link
+      <AffiliateLink
         href={href}
         className="flex h-full flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_4px_24px_rgba(10,22,40,0.06)] ring-1 ring-border transition duration-300 active:scale-[0.98] sm:group-hover:-translate-y-1 sm:group-hover:shadow-[0_12px_36px_rgba(10,22,40,0.1)]"
         onClick={() =>
@@ -124,7 +123,7 @@ export default function SagaCard({
             Read Now
           </span>
         </div>
-      </Link>
+      </AffiliateLink>
     </article>
   );
 }

@@ -4,8 +4,7 @@ export type SagaBadge =
   | "new-drop"
   | "founder-saga"
   | "billion-dollar"
-  | "company"
-  | "playbook";
+  | "company";
 
 export interface CatalogSeries {
   id: string;
@@ -36,7 +35,6 @@ export interface CatalogSeries {
   readMinutes?: number;
   sagaBadges?: SagaBadge[];
   chapterProgress?: number;
-  isPlaybook?: boolean;
 }
 
 export function formatCatalogViews(count: number): string {

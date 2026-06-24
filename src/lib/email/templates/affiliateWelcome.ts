@@ -1,15 +1,36 @@
 import { EMAIL_BRAND } from "@/lib/email/brand";
 import { wrapEmailHtml } from "@/lib/email/layout";
+import {
+  formatCommissionCents,
+  SIGNUP_COMMISSION_CENTS,
+} from "@/lib/affiliate/commission";
 
-const EARNINGS_ROWS = [
-  { scenario: "Conservative", signups: 150, eu: "€75", us: "$105" },
-  { scenario: "Base case", signups: 500, eu: "€250", us: "$350" },
-  { scenario: "Strong", signups: 1500, eu: "€750", us: "$1,050" },
-  { scenario: "Viral / high intent", signups: 2250, eu: "€1,125", us: "$1,575" },
+const EARNINGS_SIGNUP_COUNTS = [150, 500, 1500, 2250] as const;
+
+const EARNINGS_SCENARIO_LABELS = [
+  "Conservative",
+  "Base case",
+  "Strong",
+  "Viral / high intent",
 ] as const;
 
+function buildEarningsRows() {
+  return EARNINGS_SIGNUP_COUNTS.map((signups, index) => ({
+    scenario: EARNINGS_SCENARIO_LABELS[index],
+    signups,
+    eu: formatCommissionCents(signups * SIGNUP_COMMISSION_CENTS.eu),
+    us: formatCommissionCents(signups * SIGNUP_COMMISSION_CENTS.us, "us"),
+  }));
+}
+
+const EU_SIGNUP_RATE = formatCommissionCents(SIGNUP_COMMISSION_CENTS.eu);
+const US_SIGNUP_RATE = formatCommissionCents(
+  SIGNUP_COMMISSION_CENTS.us,
+  "us"
+);
+
 function earningsTableHtml(): string {
-  const rows = EARNINGS_ROWS.map(
+  const rows = buildEarningsRows().map(
     (row) => `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid ${EMAIL_BRAND.border};font-size:13px;color:${EMAIL_BRAND.purpleDark};">${row.scenario}</td>
@@ -56,8 +77,8 @@ export function buildAffiliateWelcomeEmail(): {
       Commission per signup
     </h2>
     <ul style="margin:0;padding-left:20px;font-size:15px;line-height:1.8;color:${EMAIL_BRAND.purpleDark};">
-      <li><strong>EU:</strong> €0.50 per signup</li>
-      <li><strong>US:</strong> $0.70 per signup</li>
+      <li><strong>EU:</strong> ${EU_SIGNUP_RATE} per signup</li>
+      <li><strong>US:</strong> ${US_SIGNUP_RATE} per signup</li>
       <li><strong>Other regions:</strong> Not supported at this time</li>
     </ul>
 
@@ -87,13 +108,21 @@ export function buildAffiliateWelcomeEmail(): {
     body,
   });
 
+  const earningsRows = buildEarningsRows();
+  const earningsText = earningsRows
+    .map(
+      (row) =>
+        `${row.scenario} — ${row.signups.toLocaleString()} signups — ${row.eu} EU / ${row.us} US`
+    )
+    .join("\n");
+
   const text = `Thank you for signing up for the Toonlora affiliate program!
 
 An account manager will contact you within 5 business days to set up your affiliate account, referral link, and tracking.
 
 Commission per signup:
-- EU: €0.50 per signup
-- US: $0.70 per signup
+- EU: ${EU_SIGNUP_RATE} per signup
+- US: ${US_SIGNUP_RATE} per signup
 - Other regions: Not supported
 
 Realistic funnel per 1M views:
@@ -101,10 +130,7 @@ Realistic funnel per 1M views:
 - 5%–15% of visitors sign up → 150–2,250 signups
 
 Earnings per 1M views (estimate):
-Conservative — 150 signups — €75 EU / $105 US
-Base case — 500 signups — €250 EU / $350 US
-Strong — 1,500 signups — €750 EU / $1,050 US
-Viral/high intent — 2,250 signups — €1,125 EU / $1,575 US
+${earningsText}
 
 — The Toonlora team`;
 

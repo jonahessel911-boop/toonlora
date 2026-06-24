@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import StoryCoverImage from "@/components/ui/StoryCoverImage";
 import { findMockStory } from "@/lib/mock/businessStoryCatalog";
 import { mockStoryToCatalogSeries } from "@/lib/mock/mockCatalogCards";
@@ -28,7 +28,7 @@ export default function SimilarStories({ seriesId }: SimilarStoriesProps) {
             const seed = id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
 
             return (
-              <Link
+              <AffiliateLink
                 key={id}
                 href={`/story/${id}`}
                 className="group w-[140px] min-w-[140px] flex-shrink-0 sm:w-[160px] sm:min-w-[160px]"
@@ -48,7 +48,7 @@ export default function SimilarStories({ seriesId }: SimilarStoriesProps) {
                 {mock.subtitle ? (
                   <p className="line-clamp-1 text-xs text-muted">{mock.subtitle}</p>
                 ) : null}
-              </Link>
+              </AffiliateLink>
             );
           })}
         </div>

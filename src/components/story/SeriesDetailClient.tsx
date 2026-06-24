@@ -6,6 +6,7 @@ import CoverArt, { getCoverPreset } from "@/components/ui/CoverArt";
 import SimilarStories from "@/components/story/SimilarStories";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
+import { appendAffiliateToHref, getStoredAffiliateSlug } from "@/lib/affiliate/client-tracking";
 import { buildPaywallPath } from "@/lib/reader/nextEpisodeGate";
 import {
   buildFreeEpisodeLimitSignupPath,
@@ -174,6 +175,10 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
     href: `/story/${id}`,
   };
 
+  const navigateWithAffiliate = (path: string) => {
+    window.location.href = appendAffiliateToHref(path, getStoredAffiliateSlug());
+  };
+
   const openEpisode = async (episodeNumber: number) => {
     const badge = getChapterAccessBadge(
       episodeNumber,
@@ -186,15 +191,15 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
 
     if (!access.allowed) {
       if (!loggedIn) {
-        window.location.href = buildFreeEpisodeLimitSignupPath(id, series.title);
+        navigateWithAffiliate(buildFreeEpisodeLimitSignupPath(id, series.title));
         return;
       }
-      window.location.href = buildPaywallPath(id, episodeNumber, series.title);
+      navigateWithAffiliate(buildPaywallPath(id, episodeNumber, series.title));
       return;
     }
 
     const href = `${readHref}${episodeNumber > 1 ? `?ep=${episodeNumber}` : ""}`;
-    window.location.href = href;
+    navigateWithAffiliate(href);
   };
 
   const toggleFollow = () => {

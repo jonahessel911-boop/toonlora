@@ -11,10 +11,12 @@ export const CREATOR_CTA =
 export const CREDIT_COPY =
   "Chapter 1 is free. Creating stories uses credits.";
 export const WEEKLY_HEADLINE =
-  "New business chapters every week. Follow the sagas of founders, companies, and billion-dollar decisions.";
+  "New business chapters every week. Follow founder stories, companies, and billion-dollar decisions.";
 export const CHAPTER_LABEL = "chapter";
 export const CHAPTERS_LABEL = "chapters";
-export const SAGA_LABEL = "Saga";
+export const FOUNDER_STORY_LABEL = "Founder Story";
+/** @deprecated Use FOUNDER_STORY_LABEL */
+export const SAGA_LABEL = FOUNDER_STORY_LABEL;
 
 export function formatChapterTitle(n: number): string {
   return `Chapter ${n}`;

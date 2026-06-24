@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import { formatChapterShort, formatChapterTitle } from "@/lib/brand";
 import { withRealCoverArt } from "@/components/home/StoryCard";
 import CoverArt, { getCoverPreset } from "@/components/ui/CoverArt";
@@ -65,7 +65,7 @@ export default function HeroFeaturedStories({ stories = [] }: HeroFeaturedStorie
 
       <div className="relative px-2 sm:px-3">
         {sideStories[0] ? (
-          <Link
+          <AffiliateLink
             href={`/story/${sideStories[0].id}`}
             className="absolute left-0 top-6 z-[1] w-[24%] min-w-[72px] max-w-[108px] overflow-hidden rounded-2xl shadow-[0_12px_32px_rgba(42,17,75,0.28)] ring-2 ring-white/30 transition hover:-translate-y-0.5 sm:top-8 sm:max-w-[120px]"
             style={{ transform: "rotate(-7deg)" }}
@@ -76,11 +76,11 @@ export default function HeroFeaturedStories({ stories = [] }: HeroFeaturedStorie
             <span className="absolute left-1.5 top-1.5 rounded-md bg-black/45 px-1.5 py-0.5 text-[8px] font-bold text-white backdrop-blur-sm">
               {sideStories[0].genre}
             </span>
-          </Link>
+          </AffiliateLink>
         ) : null}
 
         {sideStories[1] ? (
-          <Link
+          <AffiliateLink
             href={`/story/${sideStories[1].id}`}
             className="absolute right-0 top-10 z-[1] w-[22%] min-w-[68px] max-w-[100px] overflow-hidden rounded-2xl shadow-[0_12px_32px_rgba(42,17,75,0.28)] ring-2 ring-white/30 transition hover:-translate-y-0.5 sm:max-w-[112px]"
             style={{ transform: "rotate(6deg)" }}
@@ -91,11 +91,11 @@ export default function HeroFeaturedStories({ stories = [] }: HeroFeaturedStorie
             <span className="absolute left-1.5 top-1.5 rounded-md bg-black/45 px-1.5 py-0.5 text-[8px] font-bold text-white backdrop-blur-sm">
               {sideStories[1].genre}
             </span>
-          </Link>
+          </AffiliateLink>
         ) : null}
 
         {sideStories[2] ? (
-          <Link
+          <AffiliateLink
             href={`/story/${sideStories[2].id}`}
             className="absolute bottom-[88px] right-[4%] z-[1] hidden w-[20%] max-w-[92px] overflow-hidden rounded-xl shadow-[0_10px_28px_rgba(42,17,75,0.25)] ring-2 ring-white/25 sm:block"
             style={{ transform: "rotate(-4deg)" }}
@@ -106,10 +106,10 @@ export default function HeroFeaturedStories({ stories = [] }: HeroFeaturedStorie
             <span className="absolute left-1 top-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-bold text-white">
               {sideStories[2].genre}
             </span>
-          </Link>
+          </AffiliateLink>
         ) : null}
 
-        <Link
+        <AffiliateLink
           href={featuredHref}
           className="relative z-10 mx-auto block w-[min(88%,340px)] overflow-hidden rounded-[28px] shadow-[0_24px_56px_rgba(42,17,75,0.4)] ring-2 ring-white/25 transition hover:ring-white/40 sm:w-[82%] sm:max-w-[380px] sm:rounded-[32px]"
         >
@@ -138,7 +138,7 @@ export default function HeroFeaturedStories({ stories = [] }: HeroFeaturedStorie
               </p>
             </div>
           </div>
-        </Link>
+        </AffiliateLink>
 
         <div className="relative z-10 mx-auto mt-4 w-[min(94%,400px)] rounded-2xl bg-white/10 p-2.5 ring-1 ring-white/20 backdrop-blur-md sm:mt-5 sm:p-3">
           <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-white/70">
@@ -146,7 +146,7 @@ export default function HeroFeaturedStories({ stories = [] }: HeroFeaturedStorie
           </p>
           <div className="grid grid-cols-3 gap-2">
             {chapterThumbs.map((ep) => (
-              <Link
+              <AffiliateLink
                 key={ep.n}
                 href={
                   ep.n === 1
@@ -170,7 +170,7 @@ export default function HeroFeaturedStories({ stories = [] }: HeroFeaturedStorie
                 <p className="truncate px-1.5 py-1 text-[9px] font-semibold text-white/85">
                   {ep.label}
                 </p>
-              </Link>
+              </AffiliateLink>
             ))}
           </div>
         </div>

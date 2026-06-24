@@ -318,7 +318,7 @@ export default function ProfileApp() {
             Sign in to your library
           </h2>
           <p className="mt-2 text-sm text-muted">
-            Save reading progress, follow sagas, and manage notifications.
+            Save reading progress, follow founder stories, and manage notifications.
           </p>
           <div className="mt-6 space-y-3">
             <Link
@@ -415,8 +415,8 @@ export default function ProfileApp() {
             </ul>
           ) : (
             <p className="px-5 py-5 text-sm text-muted sm:px-6">
-              You&apos;re not following any sagas yet. Tap Follow Story on a saga
-              page to add it here.
+              You&apos;re not following any founder stories yet. Tap Follow Story on a
+              story page to add it here.
             </p>
           )}
         </LibraryCard>
@@ -425,7 +425,7 @@ export default function ProfileApp() {
           <div className="px-5 sm:px-6">
             <SettingRow
               label="New chapter digest"
-              description="One email listing new chapters across all sagas you follow — not one email per story."
+              description="One email listing new chapters across all founder stories you follow — not one email per story."
               checked={notifications.newChaptersDigest}
               onChange={(value) => {
                 setNotifications({ newChaptersDigest: value });
@@ -440,7 +440,7 @@ export default function ProfileApp() {
             ) : null}
             {notifications.newChaptersDigest && following.length === 0 ? (
               <p className="border-t border-border pb-4 pt-2 text-xs text-muted">
-                Follow at least one saga to receive chapter updates.
+                Follow at least one founder story to receive chapter updates.
               </p>
             ) : null}
           </div>

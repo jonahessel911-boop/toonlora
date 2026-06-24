@@ -32,7 +32,7 @@ export default function WeeklySagaHero({ featured = WEEKLY_HERO }: WeeklySagaHer
 
       <div className={`${PAGE_CONTAINER_CLASS} relative`}>
         <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-accent">
-          This Week&apos;s Business Saga
+          This Week&apos;s Founder Story
         </p>
 
         <div className="grid items-center gap-8 lg:grid-cols-[1fr_340px] lg:gap-12 xl:grid-cols-[1fr_380px]">

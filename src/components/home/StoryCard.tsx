@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import StoryCoverImage from "@/components/ui/StoryCoverImage";
 import { getCoverPreset } from "@/components/ui/CoverArt";
 import { CHAPTER_LABEL, CHAPTERS_LABEL } from "@/lib/brand";
@@ -52,7 +52,7 @@ export default function StoryCard({
         layout === "grid" ? "w-full min-w-0" : SIZE_WIDTH[size]
       } ${className}`}
     >
-      <Link
+      <AffiliateLink
         href={href}
         className="flex h-full flex-col touch-manipulation"
         onClick={() =>
@@ -117,7 +117,7 @@ export default function StoryCard({
             </span>
           </div>
         </div>
-      </Link>
+      </AffiliateLink>
     </article>
   );
 }

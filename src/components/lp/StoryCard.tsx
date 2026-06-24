@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import CoverArt, { getCoverPreset } from "@/components/ui/CoverArt";
 import type { CatalogSeries } from "@/types/catalog";
 
@@ -13,7 +13,7 @@ export default function LPStoryCard({ story }: LPStoryCardProps) {
 
   return (
     <article className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-lg">
-      <Link href={`/story/${story.id}?from=lp`} className="block">
+      <AffiliateLink href={`/story/${story.id}?from=lp`} className="block">
         <div className="relative">
           <CoverArt
             gradient={story.coverGradient || preset.gradient}
@@ -42,7 +42,7 @@ export default function LPStoryCard({ story }: LPStoryCardProps) {
             Read chapter 1
           </span>
         </div>
-      </Link>
+      </AffiliateLink>
     </article>
   );
 }

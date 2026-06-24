@@ -33,9 +33,14 @@ export function buildReaderSignupPath(
 
 export function buildAuthHref(
   path: "/signup/register" | "/signin",
-  returnTo: string
+  returnTo: string,
+  affiliateSlug?: string | null
 ): string {
-  return `${path}?returnTo=${encodeURIComponent(returnTo)}`;
+  const params = new URLSearchParams({ returnTo });
+  if (affiliateSlug) {
+    params.set("aff", affiliateSlug);
+  }
+  return `${path}?${params.toString()}`;
 }
 
 export function sanitizeReturnTo(value: string | null): string | null {

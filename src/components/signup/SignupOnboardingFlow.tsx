@@ -6,7 +6,6 @@ import CoverArt from "@/components/ui/CoverArt";
 import SignupLogo, {
   SignupInput,
   SignupPageBackground,
-  SignupSelect,
   SignupStepIndicator,
 } from "@/components/signup/SignupScreen";
 import { SignupCtaButton } from "@/components/signup/SignupOnboardingUi";
@@ -18,9 +17,9 @@ import {
   normalizeNewsletterTopics,
   type NewsletterTopic,
 } from "@/lib/newsletter";
-import { SIGNUP_COUNTRIES } from "@/lib/countries";
 import { buildAuthHref } from "@/lib/reader/nextEpisodeGate";
-import { getStoredAffiliateSlug, clearStoredAffiliateSlug } from "@/lib/affiliate/client-tracking";
+import { getStoredAffiliateSlug, clearStoredAffiliateSlug, appendAffiliateToHref } from "@/lib/affiliate/client-tracking";
+import { useAffiliateSlug } from "@/lib/affiliate/useAffiliateSlug";
 import { apiFetch } from "@/lib/session";
 import { useUserStore } from "@/store/useUserStore";
 
@@ -53,7 +52,6 @@ export default function SignupOnboardingFlow({
   const { setProfile, completeOnboarding } = useUserStore();
   const [step, setStep] = useState<FlowStep>(1);
   const [email, setEmail] = useState("");
-  const [countryCode, setCountryCode] = useState("");
   const [password, setPassword] = useState("");
   const [newsletterTopics, setNewsletterTopics] = useState<NewsletterTopic[]>(
     []
@@ -62,9 +60,11 @@ export default function SignupOnboardingFlow({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const signinHref =
+  const affiliateSlug = useAffiliateSlug();
+  const baseSigninHref =
     signinHrefProp ??
-    (returnTo ? buildAuthHref("/signin", returnTo) : "/signin");
+    (returnTo ? buildAuthHref("/signin", returnTo, affiliateSlug) : "/signin");
+  const signinHref = appendAffiliateToHref(baseSigninHref, affiliateSlug);
 
   useEffect(() => {
     trackSignupFormView({
@@ -75,7 +75,6 @@ export default function SignupOnboardingFlow({
   }, [formType, storyContext?.storyId, storyContext?.storyTitle]);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const countryValid = Boolean(countryCode);
   const passwordValid = password.length >= 8;
   const savedTopics = wantsWeeklyNewsletter
     ? normalizeNewsletterTopics(newsletterTopics)
@@ -89,12 +88,12 @@ export default function SignupOnboardingFlow({
     window.location.href = "/";
   };
 
-  const saveProfile = (address: string) => {
+  const saveProfile = (address: string, resolvedCountryCode = "") => {
     const fullName = deriveDisplayNameFromEmail(address);
     setProfile({
       fullName,
       email: address.trim(),
-      countryCode,
+      countryCode: resolvedCountryCode,
       onboarded: true,
       agreedToTerms: true,
       wantsWeeklyNewsletter,
@@ -110,7 +109,7 @@ export default function SignupOnboardingFlow({
 
   const handleStep1 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailValid || !countryValid) return;
+    if (!emailValid) return;
     setError(null);
     setStep(2);
   };
@@ -123,7 +122,7 @@ export default function SignupOnboardingFlow({
   };
 
   const handleSignup = async () => {
-    if (!emailValid || !countryValid || !passwordValid || submitting) return;
+    if (!emailValid || !passwordValid || submitting) return;
 
     setSubmitting(true);
     setError(null);
@@ -137,7 +136,6 @@ export default function SignupOnboardingFlow({
         body: JSON.stringify({
           fullName,
           email: trimmedEmail,
-          countryCode,
           wantsWeeklyNewsletter,
           newsletterTopics: savedTopics,
           affiliateSlug,
@@ -162,7 +160,7 @@ export default function SignupOnboardingFlow({
         throw new Error(data.error ?? "Could not create account.");
       }
 
-      saveProfile(trimmedEmail);
+      saveProfile(trimmedEmail, data.profile?.country_code ?? "");
       if (affiliateSlug) clearStoredAffiliateSlug();
       trackSignUp({ formType, seriesId: storyContext?.storyId });
       finishRedirect();
@@ -260,15 +258,6 @@ export default function SignupOnboardingFlow({
                   required
                 />
 
-                <SignupSelect
-                  label="Country"
-                  value={countryCode}
-                  onChange={setCountryCode}
-                  options={SIGNUP_COUNTRIES}
-                  placeholder="Where are you from?"
-                  required
-                />
-
                 {error ? (
                   <p className="rounded-xl bg-[#FFF1F0] px-3 py-2 text-sm text-[#B42318] ring-1 ring-[#FECDCA]">
                     {error}
@@ -277,7 +266,7 @@ export default function SignupOnboardingFlow({
 
                 <SignupStepIndicator step={1} total={3} />
 
-                <SignupCtaButton type="submit" disabled={!emailValid || !countryValid}>
+                <SignupCtaButton type="submit" disabled={!emailValid}>
                   Continue
                 </SignupCtaButton>
               </form>

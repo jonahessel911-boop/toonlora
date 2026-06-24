@@ -12,6 +12,10 @@ import {
 } from "@/lib/analytics/gtag";
 import { formatChapterTitle } from "@/lib/brand";
 import {
+  appendAffiliateToHref,
+  getStoredAffiliateSlug,
+} from "@/lib/affiliate/client-tracking";
+import {
   buildPaywallPath,
   buildReaderSignupPath,
 } from "@/lib/reader/nextEpisodeGate";
@@ -111,26 +115,31 @@ export default function WebtoonReader({
 
   const stripUrl = isMultiPanelUpload ? undefined : panelCoverUrl;
 
+  const navigateWithAffiliate = useCallback((path: string, replace = false) => {
+    const url = appendAffiliateToHref(path, getStoredAffiliateSlug());
+    if (replace) {
+      window.location.replace(url);
+      return;
+    }
+    window.location.href = url;
+  }, []);
+
   const proceedToNextEpisode = useCallback(() => {
     if (needsSignup) {
-      window.location.href = buildReaderSignupPath(
-        seriesId,
-        seriesTitle,
-        episodeNumber
+      navigateWithAffiliate(
+        buildReaderSignupPath(seriesId, seriesTitle, episodeNumber)
       );
       return;
     }
     if (needsSubscription) {
-      window.location.href = buildPaywallPath(
-        seriesId,
-        episodeNumber + 1,
-        seriesTitle
+      navigateWithAffiliate(
+        buildPaywallPath(seriesId, episodeNumber + 1, seriesTitle)
       );
       return;
     }
     if (nextEpisodeFromList) {
       const href = `/story/${seriesId}/read${nextEpisodeFromList.number > 1 ? `?ep=${nextEpisodeFromList.number}` : ""}`;
-      window.location.href = href;
+      navigateWithAffiliate(href);
     }
   }, [
     needsSignup,
@@ -139,6 +148,7 @@ export default function WebtoonReader({
     seriesId,
     seriesTitle,
     episodeNumber,
+    navigateWithAffiliate,
   ]);
 
   const handleStartNextEpisode = useCallback(() => {
@@ -203,11 +213,12 @@ export default function WebtoonReader({
 
       if (result.reason === "weekly_free_used" || result.reason === "not_released") {
         if (!loggedIn) {
-          window.location.replace(buildFreeEpisodeLimitSignupPath(seriesId, seriesTitle));
+          navigateWithAffiliate(buildFreeEpisodeLimitSignupPath(seriesId, seriesTitle), true);
           return;
         }
-        window.location.replace(
-          buildPaywallPath(seriesId, episodeNumber, seriesTitle)
+        navigateWithAffiliate(
+          buildPaywallPath(seriesId, episodeNumber, seriesTitle),
+          true
         );
       }
     });
@@ -215,23 +226,25 @@ export default function WebtoonReader({
     return () => {
       cancelled = true;
     };
-  }, [isCatalog, loggedIn, seriesId, episodeNumber, seriesTitle]);
+  }, [isCatalog, loggedIn, seriesId, episodeNumber, seriesTitle, navigateWithAffiliate]);
 
   useEffect(() => {
     if (episodeNumber > 1 && needsSignup) {
-      window.location.replace(
-        buildReaderSignupPath(seriesId, seriesTitle, episodeNumber - 1)
+      navigateWithAffiliate(
+        buildReaderSignupPath(seriesId, seriesTitle, episodeNumber - 1),
+        true
       );
     }
-  }, [episodeNumber, needsSignup, seriesId, seriesTitle]);
+  }, [episodeNumber, needsSignup, seriesId, seriesTitle, navigateWithAffiliate]);
 
   useEffect(() => {
     if (episodeNumber > 1 && needsSubscription) {
-      window.location.replace(
-        buildPaywallPath(seriesId, episodeNumber, seriesTitle)
+      navigateWithAffiliate(
+        buildPaywallPath(seriesId, episodeNumber, seriesTitle),
+        true
       );
     }
-  }, [episodeNumber, needsSubscription, seriesId, seriesTitle]);
+  }, [episodeNumber, needsSubscription, seriesId, seriesTitle, navigateWithAffiliate]);
 
   useEffect(() => {
     if (stripUrl) return;
