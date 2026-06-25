@@ -35,6 +35,8 @@ export interface CatalogSeries {
   readMinutes?: number;
   sagaBadges?: SagaBadge[];
   chapterProgress?: number;
+  panelIndex?: number;
+  totalPanels?: number;
 }
 
 export function formatCatalogViews(count: number): string {

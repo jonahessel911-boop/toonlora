@@ -66,7 +66,12 @@ export async function setSubscriptionInDb(
 }
 
 export function isActiveSubscription(record: SubscriptionRecord): boolean {
-  if (record.status !== "active") return false;
+  if (
+    record.status !== "active" &&
+    record.status !== "paused"
+  ) {
+    return false;
+  }
   if (!record.periodEnd) return true;
   return new Date(record.periodEnd).getTime() > Date.now();
 }

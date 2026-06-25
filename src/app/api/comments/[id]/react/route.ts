@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionFromRequest } from "@/lib/api/session";
 import {
   reactToComment,
   reactToCommentLocal,
@@ -16,12 +17,14 @@ export async function POST(request: Request, { params }: RouteParams) {
     const reaction = body.reaction === "dislike" ? "dislike" : "like";
     const seriesId = String(body.seriesId ?? "").trim();
     const episodeNumber = Number(body.episodeNumber ?? 1);
+    const sessionId = getSessionFromRequest(request);
 
     if (!isServerDatabaseConfigured()) {
       if (!seriesId) {
         return NextResponse.json({ error: "seriesId required" }, { status: 400 });
       }
       const comment = reactToCommentLocal(
+        sessionId,
         seriesId,
         episodeNumber,
         id,
@@ -33,7 +36,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ comment });
     }
 
-    const comment = await reactToComment(id, reaction);
+    const comment = await reactToComment(sessionId, id, reaction);
     return NextResponse.json({ comment });
   } catch (err) {
     return NextResponse.json(

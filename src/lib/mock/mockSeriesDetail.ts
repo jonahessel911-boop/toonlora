@@ -60,6 +60,37 @@ const CHAPTER_TITLES: Record<string, string[]> = {
   ],
 };
 
+const CHAPTER_DESCRIPTIONS: Record<string, string[]> = {
+  "elon-musk": [
+    "Christmas Eve 2008. Tesla is bleeding cash and SpaceX has failed three times. Musk faces personal bankruptcy.",
+    "With one rocket left, Musk bets everything on a fourth launch that will either save SpaceX or end it forever.",
+    "Tesla nearly dies again as production hell and investor pressure push the company to the edge.",
+    "SpaceX must prove reusable rockets work — or the entire space industry writes them off.",
+    "Musk buys Twitter in a move that shocks Wall Street and rewrites his public narrative overnight.",
+  ],
+  "steve-jobs": [
+    "At 30, Jobs is ousted from the company he built. What he does next will define modern computing.",
+    "NeXT struggles while Pixar quietly becomes the most important bet of Jobs' exile years.",
+    "Apple is dying. The board turns to the founder they once fired.",
+    "The iMac, iPod, and iPhone — how Jobs turned Apple into the most valuable company on earth.",
+  ],
+  ferrari: [
+    "Enzo Ferrari's rage at Fiat births a racing empire built on obsession, not compromise.",
+    "Ferrari limits production on purpose — scarcity becomes the product.",
+    "How a small Italian marque became the ultimate luxury status symbol.",
+  ],
+  "ray-kroc": [
+    "A 52-year-old milkshake machine salesman discovers a revolutionary restaurant in San Bernardino.",
+    "Kroc doesn't invent McDonald's — he builds the franchise machine that conquers the world.",
+    "Systems, consistency, and real estate: the playbook behind the golden arches.",
+  ],
+  soros: [
+    "George Soros sizes the biggest macro bet of his career against the British pound.",
+    "Black Wednesday: how one trader broke the Bank of England and made a billion dollars.",
+    "Reflexivity — Soros's theory that market perception shapes the reality it observes.",
+  ],
+};
+
 export function getSagaScheduleLabel(seriesId: string): string {
   return SCHEDULE_BY_ID[seriesId] ?? "New chapter every week";
 }
@@ -120,6 +151,43 @@ export function getChapterDisplayTitle(
   return titles?.[chapterNumber - 1] ?? `Chapter ${chapterNumber}`;
 }
 
+export function getChapterDescription(
+  seriesId: string,
+  chapterNumber: number,
+  seriesTitle?: string
+): string {
+  const descriptions = CHAPTER_DESCRIPTIONS[seriesId];
+  if (descriptions?.[chapterNumber - 1]) {
+    return descriptions[chapterNumber - 1];
+  }
+  const title = getChapterDisplayTitle(seriesId, chapterNumber);
+  const name = seriesTitle ?? "this saga";
+  return `${title} — a pivotal chapter in the ${name} story.`;
+}
+
+export function buildFullEpisodeList(
+  seriesId: string,
+  totalChapters: number,
+  existing: SeriesEpisodeListing[],
+  coverArtUrl?: string,
+  coverGradient?: string
+): SeriesEpisodeListing[] {
+  const byNumber = new Map(existing.map((ep) => [ep.number, ep]));
+  return Array.from({ length: totalChapters }, (_, i) => {
+    const number = i + 1;
+    const found = byNumber.get(number);
+    if (found) return found;
+    return {
+      number,
+      title: getChapterDisplayTitle(seriesId, number),
+      date: "",
+      likes: 0,
+      coverGradient: coverGradient ?? NAVY_COVER_GRADIENT,
+      coverArtUrl,
+    };
+  });
+}
+
 export function mockStoryToSeriesDetail(story: MockCatalogStory): SeriesDetail {
   const published = getPublishedChapterCount(story.id, story.chapters);
   const listCount = Math.max(3, Math.min(published + 1, story.chapters));
@@ -134,6 +202,7 @@ export function mockStoryToSeriesDetail(story: MockCatalogStory): SeriesDetail {
         date: "",
         likes: 0,
         coverGradient: NAVY_COVER_GRADIENT,
+        coverArtUrl: story.coverArtUrl,
       };
     }
   );
@@ -143,6 +212,7 @@ export function mockStoryToSeriesDetail(story: MockCatalogStory): SeriesDetail {
     title: story.title,
     genre: story.sagaLabel,
     coverGradient: NAVY_COVER_GRADIENT,
+    coverArtUrl: story.coverArtUrl,
     creators: ["Toonlora Original"],
     views: story.trending ? "12.4k" : "Soon",
     likes: story.trending ? "890" : "0",

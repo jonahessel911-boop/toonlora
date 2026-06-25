@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const planId = body.planId as string | undefined;
     const paymentMethodId = body.paymentMethodId as string | undefined;
     const email = body.email as string | undefined;
+    const fullName = body.fullName as string | undefined;
     const plan = planId ? getSubscriptionPlan(planId) : undefined;
 
     if (!plan || !paymentMethodId) {
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
 
     const customer = await stripe.customers.create({
       email: email || undefined,
+      name: fullName?.trim() || undefined,
       payment_method: paymentMethodId,
       invoice_settings: { default_payment_method: paymentMethodId },
       metadata: { sessionId },

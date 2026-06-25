@@ -14,6 +14,10 @@ export async function POST(request: Request) {
     const episodeNumber = Number(body.episodeNumber ?? 1);
     const panelIndex = Number(body.panelIndex ?? 0);
     const totalPanels = Number(body.totalPanels ?? 10);
+    const seriesTitle = body.seriesTitle
+      ? String(body.seriesTitle).trim()
+      : undefined;
+    const genre = body.genre ? String(body.genre).trim() : undefined;
 
     if (!seriesId) {
       return NextResponse.json({ error: "seriesId required" }, { status: 400 });
@@ -25,6 +29,8 @@ export async function POST(request: Request) {
       episodeNumber,
       panelIndex,
       totalPanels,
+      seriesTitle,
+      genre,
     });
 
     return NextResponse.json({ ok: true, progress });

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import ProfileApp from "@/components/profile/ProfileApp";
 
 export const metadata = {
@@ -6,8 +7,8 @@ export const metadata = {
 
 export default function ProfilePage() {
   return (
-    <div className="min-h-[100dvh] bg-background">
+    <Suspense fallback={null}>
       <ProfileApp />
-    </div>
+    </Suspense>
   );
 }

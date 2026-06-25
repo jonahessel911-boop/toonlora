@@ -54,9 +54,11 @@ export interface ReadingProgressInput {
   episodeNumber: number;
   panelIndex: number;
   totalPanels: number;
+  seriesTitle?: string;
+  genre?: string;
 }
 
-async function resolveProfileId(
+export async function resolveProfileId(
   sessionId: string
 ): Promise<string | null> {
   const supabase = getSupabaseAdmin();
@@ -107,6 +109,8 @@ export async function recordReadingProgress(
         max_panel_reached: nextMax,
         total_panels: totalPanels,
         completed_at: completedAt,
+        series_title: input.seriesTitle ?? (row as { series_title?: string | null }).series_title,
+        genre: input.genre ?? (row as { genre?: string | null }).genre,
         updated_at: now,
       })
       .eq("id", row.id)
@@ -127,6 +131,8 @@ export async function recordReadingProgress(
       max_panel_reached: maxPanel,
       total_panels: totalPanels,
       completed_at: isComplete ? now : null,
+      series_title: input.seriesTitle ?? null,
+      genre: input.genre ?? null,
     })
     .select()
     .single();

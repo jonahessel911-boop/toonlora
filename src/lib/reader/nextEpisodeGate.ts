@@ -2,7 +2,8 @@
 export function buildPaywallPath(
   seriesId: string,
   nextEpisode = 2,
-  storyTitle?: string
+  storyTitle?: string,
+  options?: { reason?: "weekly_limit" | "fast_pass" }
 ): string {
   const params = new URLSearchParams({
     storyId: seriesId,
@@ -10,6 +11,9 @@ export function buildPaywallPath(
   });
   if (storyTitle) {
     params.set("storyTitle", storyTitle);
+  }
+  if (options?.reason) {
+    params.set("reason", options.reason);
   }
   return `/subscribe?${params.toString()}`;
 }

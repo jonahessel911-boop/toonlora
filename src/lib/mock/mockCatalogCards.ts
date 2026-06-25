@@ -36,6 +36,7 @@ export function mockStoryToCatalogSeries(
     sagaLabel: story.sagaLabel,
     readMinutes: story.readMinutes,
     sagaBadges: story.badges,
+    coverArtUrl: story.coverArtUrl,
   };
 }
 

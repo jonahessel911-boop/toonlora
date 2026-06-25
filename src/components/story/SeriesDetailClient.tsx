@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import CoverArt, { getCoverPreset } from "@/components/ui/CoverArt";
+import NetflixChapterCard from "@/components/story/NetflixChapterCard";
+import NetflixChapterRow from "@/components/story/NetflixChapterRow";
 import SimilarStories from "@/components/story/SimilarStories";
+import SubscriptionPaywall from "@/components/reader/SubscriptionPaywall";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
 import { appendAffiliateToHref, getStoredAffiliateSlug } from "@/lib/affiliate/client-tracking";
-import { buildPaywallPath } from "@/lib/reader/nextEpisodeGate";
+import { buildPaywallPath, buildReaderSignupPath } from "@/lib/reader/nextEpisodeGate";
 import {
   buildFreeEpisodeLimitSignupPath,
   checkEpisodeReadAccess,
@@ -20,17 +22,20 @@ import {
 } from "@/lib/library/preferences";
 import { findMockStory } from "@/lib/mock/businessStoryCatalog";
 import {
-  chapterBadgeLabel,
+  buildFullEpisodeList,
   getChapterAccessBadge,
-  formatChapterListLabel,
+  getChapterDescription,
   getPublishedChapterCount,
   getSagaScheduleLabel,
   mockStoryToSeriesDetail,
+  resolveChapterListTitle,
 } from "@/lib/mock/mockSeriesDetail";
 import {
   getBusinessCaseFile,
   parseSagaTitle,
 } from "@/lib/mock/sagaMeta";
+import { getReadingHistory } from "@/lib/readingHistory";
+import { hasCompletedEpisode } from "@/lib/readingProgress";
 import { storyToSeriesDetail, type SeriesDetail } from "@/lib/seriesCatalog";
 import { trackSeriesView } from "@/lib/trackSeriesView";
 import { formatCatalogViews } from "@/types/catalog";
@@ -38,28 +43,61 @@ import { useStoryStore } from "@/store/useStoryStore";
 import { useSubscriptionStore } from "@/store/useSubscriptionStore";
 import { useUserStore } from "@/store/useUserStore";
 
-type DetailTab = "chapters" | "about";
+type DetailTab = "episodes" | "about" | "similar";
 
 interface SeriesDetailClientProps {
   id: string;
 }
 
+function getEpisodeProgress(
+  seriesId: string,
+  episodeNumber: number,
+  currentEpisode: number | null
+): number {
+  if (hasCompletedEpisode(seriesId, episodeNumber)) return 100;
+  if (currentEpisode === episodeNumber) return 42;
+  if (currentEpisode !== null && episodeNumber < currentEpisode) return 100;
+  return 0;
+}
+
 export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
   const { getStoryById } = useStoryStore();
   const { email } = useUserStore();
-  const { hasPaidAccess, hydrate: hydrateSubscription } = useSubscriptionStore();
+  const {
+    hasPaidAccess,
+    hydrate: hydrateSubscription,
+    isEntrepreneur,
+  } = useSubscriptionStore();
   const [series, setSeries] = useState<SeriesDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<DetailTab>("chapters");
+  const [activeTab, setActiveTab] = useState<DetailTab>("episodes");
   const [following, setFollowing] = useState(false);
+  const [readingEpisode, setReadingEpisode] = useState<number | null>(null);
+  const [fastPassOpen, setFastPassOpen] = useState(false);
+  const [fastPassEpisode, setFastPassEpisode] = useState(1);
   const viewTracked = useRef(false);
 
   const loggedIn = Boolean(email);
   const paid = hasPaidAccess();
+  const entrepreneur = isEntrepreneur();
 
   useEffect(() => {
     void hydrateSubscription();
   }, [hydrateSubscription]);
+
+  useEffect(() => {
+    const syncProgress = () => {
+      const entry = getReadingHistory().find((e) => e.seriesId === id);
+      setReadingEpisode(entry?.episodeNumber ?? null);
+    };
+    syncProgress();
+    window.addEventListener("tl-reading-history", syncProgress);
+    window.addEventListener("tl-reading-progress", syncProgress);
+    return () => {
+      window.removeEventListener("tl-reading-history", syncProgress);
+      window.removeEventListener("tl-reading-progress", syncProgress);
+    };
+  }, [id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,24 +156,38 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
     });
   }, [id, series]);
 
+  const mock = findMockStory(id);
+
+  const episodeList = useMemo(() => {
+    if (!series) return [];
+    const total = mock?.chapters ?? Math.max(series.episodes.length, 1);
+    return buildFullEpisodeList(
+      id,
+      total,
+      series.episodes,
+      series.coverArtUrl,
+      series.coverGradient
+    );
+  }, [series, id, mock?.chapters]);
+
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-background">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-border border-t-accent" />
+      <div className="flex min-h-[50vh] items-center justify-center bg-[#F6F1E7]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#E6DFD1] border-t-[#2F80ED]" />
       </div>
     );
   }
 
   if (!series) {
     return (
-      <div className="mx-auto max-w-lg bg-background py-20 text-center">
-        <h1 className="font-heading text-2xl font-bold text-primary">Series not found</h1>
-        <p className="mt-2 text-sm text-muted">
+      <div className="mx-auto max-w-lg bg-[#F6F1E7] py-20 text-center text-[#111827]">
+        <h1 className="font-heading text-2xl font-bold">Series not found</h1>
+        <p className="mt-2 text-sm text-white/60">
           This series may be unpublished or does not exist.
         </p>
         <Link
           href="/"
-          className="mt-6 inline-flex rounded-full bg-accent px-6 py-3 text-sm font-bold text-white hover:bg-accent-hover"
+          className="mt-6 inline-flex rounded bg-[#111827] px-6 py-3 text-sm font-bold text-white hover:bg-[#1f2937]"
         >
           Back to home
         </Link>
@@ -143,9 +195,7 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
     );
   }
 
-  const preset = getCoverPreset(series.genre);
   const readHref = `/story/${id}/read`;
-  const mock = findMockStory(id);
 
   const caseFile = getBusinessCaseFile(id, {
     title: series.title,
@@ -162,7 +212,7 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
     mock?.subtitle ?? (caseFile.subtitle || parsedSubtitle);
   const storyDescription = mock?.hook ?? series.synopsis;
   const sagaBadge = caseFile.sagaLabel.toUpperCase();
-  const totalChapters = mock?.chapters ?? series.episodes.length;
+  const totalChapters = mock?.chapters ?? episodeList.length;
   const publishedCount = getPublishedChapterCount(id, totalChapters);
   const readMinutes = mock?.readMinutes ?? caseFile.readMinutes;
   const schedule =
@@ -185,16 +235,32 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
       publishedCount,
       paid
     );
-    if (badge === "coming") return;
+    const entrepreneurEarly =
+      entrepreneur && episodeNumber === publishedCount + 1;
+    if (badge === "coming" && !entrepreneurEarly) return;
 
     const access = await checkEpisodeReadAccess(id, episodeNumber);
 
     if (!access.allowed) {
+      if (
+        !loggedIn &&
+        (access.reason === "signup_required" || episodeNumber > 1)
+      ) {
+        navigateWithAffiliate(
+          buildReaderSignupPath(id, series.title, Math.max(1, episodeNumber - 1))
+        );
+        return;
+      }
       if (!loggedIn) {
         navigateWithAffiliate(buildFreeEpisodeLimitSignupPath(id, series.title));
         return;
       }
-      navigateWithAffiliate(buildPaywallPath(id, episodeNumber, series.title));
+      navigateWithAffiliate(
+        buildPaywallPath(id, episodeNumber, series.title, {
+          reason:
+            access.reason === "weekly_free_used" ? "weekly_limit" : undefined,
+        })
+      );
       return;
     }
 
@@ -212,182 +278,271 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
     }
   };
 
+  const openFastPass = (episodeNumber: number) => {
+    if (!loggedIn) {
+      navigateWithAffiliate(
+        `/signup/continue?${new URLSearchParams({
+          storyId: id,
+          storyTitle: series.title,
+          ep: String(episodeNumber),
+          returnTo: buildPaywallPath(id, episodeNumber, heroTitle, {
+            reason: "fast_pass",
+          }),
+        }).toString()}`
+      );
+      return;
+    }
+
+    setFastPassEpisode(episodeNumber);
+    setFastPassOpen(true);
+  };
+
+  const fastPassReturnPath = `${readHref}?ep=${fastPassEpisode}`;
+
+  const tabs: { key: DetailTab; label: string }[] = [
+    { key: "episodes", label: "Episodes" },
+    { key: "about", label: "About" },
+    { key: "similar", label: "More Like This" },
+  ];
+
   return (
-    <div className="bg-background pb-16">
-      {/* Light hero */}
-      <section className="border-b border-border bg-surface">
-        <div className={`${PAGE_CONTAINER_CLASS} max-w-5xl py-8 md:py-12`}>
-          <div className="grid items-start gap-8 md:grid-cols-[minmax(0,280px)_1fr] lg:grid-cols-[minmax(0,320px)_1fr] lg:gap-12">
-            {/* Cover */}
-            <div className="mx-auto w-full max-w-[280px] md:mx-0 lg:max-w-none">
-              <div className="overflow-hidden rounded-2xl shadow-[0_8px_32px_rgba(10,22,40,0.12)] ring-1 ring-border">
-                {series.coverArtUrl ? (
-                  <img
-                    src={series.coverArtUrl}
-                    alt={heroTitle}
-                    className="aspect-[2/3] w-full object-cover"
-                  />
-                ) : (
-                  <CoverArt
-                    gradient={series.coverGradient || preset.gradient}
-                    genre={series.genre}
-                    title={heroTitle}
-                    showOverlay={false}
-                    className="aspect-[2/3] w-full"
-                  />
-                )}
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#F6F1E7] pb-16">
+      {/* Cinematic hero — lighter, fades into cream body */}
+      <section className="relative min-h-[420px] overflow-hidden md:min-h-[480px]">
+        <div className="absolute inset-0">
+          {series.coverArtUrl ? (
+            <img
+              src={series.coverArtUrl}
+              alt=""
+              className="h-full w-full object-cover object-center brightness-[1.05] saturate-[1.06] md:object-right"
+            />
+          ) : null}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(20, 28, 40, 0.78) 0%, rgba(20, 28, 40, 0.45) 38%, rgba(20, 28, 40, 0.12) 68%, transparent 100%)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-[140px]"
+            style={{
+              background:
+                "linear-gradient(180deg, transparent 0%, rgba(246, 241, 231, 0.5) 60%, #F6F1E7 100%)",
+            }}
+          />
+        </div>
 
-            {/* Info */}
-            <div className="min-w-0">
-              <span className="inline-flex rounded-md bg-accent px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                {sagaBadge}
+        <div className={`${PAGE_CONTAINER_CLASS} relative max-w-6xl py-10 text-white md:py-14`}>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#F0D48A]">
+            Toonlora Original
+          </p>
+          <p className="mt-2 text-xs font-bold uppercase tracking-wide text-white/75">
+            {sagaBadge}
+          </p>
+
+          <h1
+            className="font-heading mt-3 max-w-3xl text-4xl font-black uppercase leading-[1.02] tracking-tight md:text-5xl lg:text-[3.25rem]"
+            style={{ textShadow: "0 2px 16px rgba(0,0,0,0.3)" }}
+          >
+            {heroTitle}
+          </h1>
+          {heroSubtitle ? (
+            <p
+              className="mt-2 text-xl font-semibold text-[#E8EDF4] md:text-2xl"
+              style={{ textShadow: "0 1px 8px rgba(0,0,0,0.25)" }}
+            >
+              {heroSubtitle}
+            </p>
+          ) : null}
+
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#D1DAE6] md:text-base">
+            {storyDescription}
+          </p>
+
+          <p className="mt-3 text-sm text-[#C5D0DC]">
+            {totalChapters} chapters · {readMinutes} min reads · {schedule}
+          </p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => void openEpisode(1)}
+              className="inline-flex h-11 items-center gap-2.5 rounded-[10px] bg-white px-6 text-sm font-extrabold text-[#111827] shadow-md transition hover:bg-[#F8FAFC]"
+            >
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#111827] text-[10px] text-white">
+                ▶
               </span>
-
-              <h1 className="mt-4 font-heading text-3xl font-extrabold leading-tight text-primary md:text-4xl">
-                {heroTitle}
-              </h1>
-              {heroSubtitle ? (
-                <p className="mt-2 text-xl font-semibold text-accent md:text-2xl">
-                  {heroSubtitle}
-                </p>
-              ) : null}
-
-              <p className="mt-4 max-w-xl text-base leading-relaxed text-muted">
-                {storyDescription}
-              </p>
-
-              <p className="mt-4 text-sm font-medium text-primary/70">
-                {totalChapters} chapters · {readMinutes} min reads · {schedule}
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => void openEpisode(1)}
-                  className="inline-flex min-h-[48px] items-center rounded-full bg-accent px-7 text-sm font-bold text-white transition hover:bg-accent-hover"
-                >
-                  Start Chapter 1
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleFollow}
-                  className={`inline-flex min-h-[48px] items-center rounded-full border px-7 text-sm font-bold transition ${
-                    following
-                      ? "border-accent bg-accent/10 text-accent"
-                      : "border-border text-primary hover:border-accent/40"
-                  }`}
-                >
-                  {following ? "Following ✓" : "Follow Story"}
-                </button>
-              </div>
-            </div>
+              Play Chapter 1
+            </button>
+            <button
+              type="button"
+              onClick={toggleFollow}
+              className={`inline-flex h-11 items-center rounded-[10px] border px-6 text-sm font-bold transition ${
+                following
+                  ? "border-white/50 bg-white/20 text-white"
+                  : "border-white/40 bg-white/10 text-white hover:bg-white/20"
+              }`}
+            >
+              {following ? "✓ My List" : "+ My List"}
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Tabs + content */}
-      <div className={`${PAGE_CONTAINER_CLASS} max-w-5xl pt-8`}>
-        <div className="flex gap-1 border-b border-border">
-          {(
-            [
-              ["chapters", "Chapters"],
-              ["about", "About"],
-            ] as const
-          ).map(([key, label]) => (
+      {/* Tabs + content on warm body */}
+      <div className={`${PAGE_CONTAINER_CLASS} max-w-6xl`}>
+        <div className="flex gap-6 overflow-x-auto border-b border-[#E6DFD1] scrollbar-hide md:gap-10">
+          {tabs.map(({ key, label }) => (
             <button
               key={key}
               type="button"
               onClick={() => setActiveTab(key)}
-              className={`relative px-4 py-3 text-sm font-bold transition sm:px-6 ${
+              className={`relative shrink-0 py-4 text-sm font-bold uppercase tracking-[0.06em] transition ${
                 activeTab === key
-                  ? "text-accent"
-                  : "text-muted hover:text-primary"
+                  ? "text-[#111827]"
+                  : "text-[#6B7280] hover:text-[#111827]"
               }`}
             >
               {label}
               {activeTab === key ? (
-                <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-accent sm:inset-x-6" />
+                <span className="absolute inset-x-0 bottom-0 h-[3px] bg-[#2F80ED]" />
               ) : null}
             </button>
           ))}
         </div>
 
-        <div className="mt-6">
-          {activeTab === "chapters" ? (
-            <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
-              <ul className="divide-y divide-border">
-                {series.episodes.map((ep) => {
-                  const label = formatChapterListLabel(id, ep.number, ep.title);
+        <div className="py-8 md:py-10">
+          {activeTab === "episodes" ? (
+            <div>
+              <div className="mb-5 flex items-center gap-3">
+                <label className="sr-only" htmlFor="chapter-season">
+                  Season
+                </label>
+                <select
+                  id="chapter-season"
+                  className="rounded border border-[#D1C9B8] bg-white px-3 py-1.5 text-sm font-semibold text-[#111827]"
+                  defaultValue="1"
+                >
+                  <option value="1">Season 1</option>
+                </select>
+                <span className="text-sm text-[#6B7280]">
+                  {publishedCount} of {totalChapters} available
+                </span>
+              </div>
+
+              <NetflixChapterRow>
+                {episodeList.map((ep) => {
+                  const title = resolveChapterListTitle(id, ep.number, ep.title);
+                  const displayTitle =
+                    title.replace(/^Chapter\s+\d+\s*[—–-]\s*/i, "") || title;
                   const badge = getChapterAccessBadge(
                     ep.number,
                     publishedCount,
                     paid
                   );
-                  const isComing = badge === "coming";
+                  const progress = getEpisodeProgress(
+                    id,
+                    ep.number,
+                    readingEpisode
+                  );
+                  const isNextLocked = ep.number === publishedCount + 1;
+                  const showFastPass =
+                    badge === "coming" && isNextLocked && !entrepreneur;
+                  const entrepreneurCanReadEarly =
+                    entrepreneur && isNextLocked && badge === "coming";
 
                   return (
-                    <li key={ep.number}>
-                      <button
-                        type="button"
-                        disabled={isComing}
-                        onClick={() => void openEpisode(ep.number)}
-                        className={`group flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition sm:px-6 ${
-                          isComing
-                            ? "cursor-default opacity-70"
-                            : "hover:bg-surface-soft"
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <p
-                            className={`font-semibold ${
-                              isComing
-                                ? "text-muted"
-                                : "text-primary group-hover:text-accent"
-                            }`}
-                          >
-                            {label}
-                          </p>
-                        </div>
-                        {badge ? (
-                          <ChapterBadge type={badge} />
-                        ) : null}
-                      </button>
-                    </li>
+                    <NetflixChapterCard
+                      key={ep.number}
+                      number={ep.number}
+                      title={displayTitle}
+                      description={getChapterDescription(
+                        id,
+                        ep.number,
+                        heroTitle
+                      )}
+                      durationMinutes={readMinutes}
+                      coverArtUrl={ep.coverArtUrl ?? series.coverArtUrl}
+                      coverGradient={ep.coverGradient}
+                      genre={series.genre}
+                      progressPercent={progress}
+                      badge={badge}
+                      variant="light"
+                      showFastPass={showFastPass}
+                      disabled={badge === "coming" && !showFastPass && !entrepreneurCanReadEarly}
+                      onClick={() => void openEpisode(ep.number)}
+                      onFastPassClick={() => openFastPass(ep.number)}
+                    />
                   );
                 })}
-              </ul>
+              </NetflixChapterRow>
             </div>
           ) : null}
 
           {activeTab === "about" ? (
-            <div className="rounded-2xl bg-surface p-6 ring-1 ring-border sm:p-8">
-              <p className="text-base leading-relaxed text-primary">
+            <div className="max-w-3xl space-y-6">
+              <p className="text-base leading-relaxed text-[#374151]">
                 {storyDescription}
               </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-lg border border-[#E6DFD1] bg-white p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
+                    Founder
+                  </p>
+                  <p className="mt-1 font-semibold text-[#111827]">
+                    {caseFile.founder}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[#E6DFD1] bg-white p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
+                    Company
+                  </p>
+                  <p className="mt-1 font-semibold text-[#111827]">
+                    {caseFile.company}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
+                  Key lessons
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {caseFile.lessons.map((lesson) => (
+                    <li
+                      key={lesson}
+                      className="flex gap-2 text-sm text-[#374151]"
+                    >
+                      <span className="text-[#D8A84E]">•</span>
+                      {lesson}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
+          ) : null}
+
+          {activeTab === "similar" ? (
+            <SimilarStories seriesId={id} variant="light" />
           ) : null}
         </div>
       </div>
 
-      <SimilarStories seriesId={id} />
+      {activeTab !== "similar" ? (
+        <SimilarStories seriesId={id} variant="light" />
+      ) : null}
+
+      <SubscriptionPaywall
+        variant="modal"
+        storyName={heroTitle}
+        open={fastPassOpen}
+        onClose={() => setFastPassOpen(false)}
+        returnPath={fastPassReturnPath}
+        coverArtUrl={series.coverArtUrl}
+        storyId={id}
+        episodeNumber={fastPassEpisode}
+        fastPass
+      />
     </div>
-  );
-}
-
-function ChapterBadge({ type }: { type: "free" | "achiever" | "coming" }) {
-  const styles = {
-    free: "bg-accent/10 text-accent",
-    achiever: "bg-primary-soft text-primary",
-    coming: "bg-surface-soft text-muted",
-  };
-
-  return (
-    <span
-      className={`flex-shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${styles[type]}`}
-    >
-      {chapterBadgeLabel(type)}
-    </span>
   );
 }

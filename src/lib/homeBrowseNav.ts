@@ -1,5 +1,6 @@
 /** Homepage browse tabs — shared by Navbar and section anchors. */
 export const HOME_BROWSE_NAV = [
+  { id: "home", href: "/", label: "Home" },
   { id: "this-week", href: "/#this-week", label: "This Week" },
   { id: "founder-stories", href: "/#founder-stories", label: "Founder Stories" },
   { id: "rise-and-fall", href: "/#rise-and-fall", label: "Rise & Fall" },

@@ -51,6 +51,8 @@ interface WebtoonReaderProps {
     coverGradient: string;
     coverArtUrl?: string;
   }>;
+  /** Resume scroll at this panel (0-based) on mount. */
+  initialPanelIndex?: number;
   showControls?: boolean;
   onShare?: () => void;
   onGenerateNext?: () => void;
@@ -77,8 +79,11 @@ export default function WebtoonReader({
   generating = false,
   isCatalog = false,
   episodes,
+  initialPanelIndex = 0,
 }: WebtoonReaderProps) {
-  const [maxPanelIndex, setMaxPanelIndex] = useState(0);
+  const [maxPanelIndex, setMaxPanelIndex] = useState(() =>
+    Math.max(0, initialPanelIndex)
+  );
   const [showEndCard, setShowEndCard] = useState(false);
   const [showBeginnerLevelUp, setShowBeginnerLevelUp] = useState(false);
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
@@ -86,6 +91,7 @@ export default function WebtoonReader({
   const stripRef = useRef<HTMLDivElement | null>(null);
   const episodeCompleteTracked = useRef(false);
   const viewTracked = useRef(false);
+  const resumeScrollDone = useRef(false);
   const { email } = useUserStore();
   const { getTier, hasPaidAccess, hydrate: hydrateSubscription } = useSubscriptionStore();
   const loggedIn = Boolean(email);
@@ -93,8 +99,11 @@ export default function WebtoonReader({
   const needsSignup = isCatalog && !loggedIn;
   const needsSubscription = isCatalog && loggedIn && !paidAccess;
   const gatedNextEpisode = needsSignup || needsSubscription;
-  const returnPath = `/story/${seriesId}/read${episodeNumber > 1 ? `?ep=${episodeNumber}` : ""}`;
   const total = panels.length;
+  const safeInitialPanel = Math.min(
+    Math.max(0, initialPanelIndex),
+    Math.max(0, total - 1)
+  );
 
   const totalEpisodesInSeries = episodes?.length ?? episodeNumber;
   const nextEpisodeFromList = episodes?.find((e) => e.number === episodeNumber + 1);
@@ -114,6 +123,33 @@ export default function WebtoonReader({
       : undefined);
 
   const stripUrl = isMultiPanelUpload ? undefined : panelCoverUrl;
+
+  const persistReadingProgress = useCallback(
+    (panelIndex: number) => {
+      saveReadingProgress({
+        seriesId,
+        title: seriesTitle,
+        genre,
+        coverArtUrl: coverArtUrl ?? panelCoverUrl,
+        coverGradient,
+        creatorDisplayName,
+        episodeNumber,
+        panelIndex,
+        totalPanels: total,
+      });
+    },
+    [
+      seriesId,
+      seriesTitle,
+      genre,
+      coverArtUrl,
+      panelCoverUrl,
+      coverGradient,
+      creatorDisplayName,
+      episodeNumber,
+      total,
+    ]
+  );
 
   const navigateWithAffiliate = useCallback((path: string, replace = false) => {
     const url = appendAffiliateToHref(path, getStoredAffiliateSlug());
@@ -205,13 +241,35 @@ export default function WebtoonReader({
       if (cancelled) return;
 
       if (result.allowed) {
-        if (result.tier === "free") {
+        if (result.tier === "free" && loggedIn) {
           await claimEpisodeRead(seriesId, episodeNumber);
         }
         return;
       }
 
-      if (result.reason === "weekly_free_used" || result.reason === "not_released") {
+      if (result.reason === "signup_required" || (!loggedIn && episodeNumber > 1)) {
+        navigateWithAffiliate(
+          buildReaderSignupPath(seriesId, seriesTitle, Math.max(1, episodeNumber - 1)),
+          true
+        );
+        return;
+      }
+
+      if (result.reason === "weekly_free_used") {
+        if (!loggedIn) {
+          navigateWithAffiliate(buildFreeEpisodeLimitSignupPath(seriesId, seriesTitle), true);
+          return;
+        }
+        navigateWithAffiliate(
+          buildPaywallPath(seriesId, episodeNumber, seriesTitle, {
+            reason: "weekly_limit",
+          }),
+          true
+        );
+        return;
+      }
+
+      if (result.reason === "not_released") {
         if (!loggedIn) {
           navigateWithAffiliate(buildFreeEpisodeLimitSignupPath(seriesId, seriesTitle), true);
           return;
@@ -292,27 +350,57 @@ export default function WebtoonReader({
   }, [stripUrl, total]);
 
   useEffect(() => {
-    saveReadingProgress({
-      seriesId,
-      title: seriesTitle,
-      genre,
-      coverArtUrl: coverArtUrl ?? panelCoverUrl,
-      coverGradient,
-      creatorDisplayName,
-      episodeNumber,
-      href: returnPath,
+    if (resumeScrollDone.current || safeInitialPanel <= 0 || total === 0) return;
+
+    const scrollToPanel = () => {
+      if (stripUrl && stripRef.current) {
+        const el = stripRef.current;
+        const rect = el.getBoundingClientRect();
+        const documentTop = window.scrollY + rect.top;
+        const scrollable = Math.max(0, el.offsetHeight - window.innerHeight);
+        const fraction =
+          total > 1 ? safeInitialPanel / (total - 1) : 0;
+        window.scrollTo({
+          top: documentTop + scrollable * fraction,
+          behavior: "auto",
+        });
+        setMaxPanelIndex((prev) => Math.max(prev, safeInitialPanel));
+        resumeScrollDone.current = true;
+        return;
+      }
+
+      const el = panelRefs.current[safeInitialPanel];
+      if (el) {
+        el.scrollIntoView({ block: "start", behavior: "auto" });
+        setMaxPanelIndex((prev) => Math.max(prev, safeInitialPanel));
+        resumeScrollDone.current = true;
+      }
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToPanel);
     });
-  }, [
-    seriesId,
-    seriesTitle,
-    genre,
-    coverArtUrl,
-    panelCoverUrl,
-    coverGradient,
-    creatorDisplayName,
-    episodeNumber,
-    returnPath,
-  ]);
+  }, [safeInitialPanel, total, stripUrl, panels.length]);
+
+  useEffect(() => {
+    persistReadingProgress(maxPanelIndex);
+  }, [maxPanelIndex, persistReadingProgress]);
+
+  useEffect(() => {
+    const flush = () => persistReadingProgress(maxPanelIndex);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      flush();
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [maxPanelIndex, persistReadingProgress]);
 
   useEffect(() => {
     if (maxPanelIndex >= total - 1 && showControls) {
@@ -349,8 +437,10 @@ export default function WebtoonReader({
       episodeNumber,
       panelIndex: maxPanelIndex,
       totalPanels: total,
+      seriesTitle,
+      genre,
     });
-  }, [seriesId, episodeNumber, maxPanelIndex, total]);
+  }, [seriesId, seriesTitle, genre, episodeNumber, maxPanelIndex, total]);
 
   const handleNextEpisode = () => {
     if (!isCatalog) {

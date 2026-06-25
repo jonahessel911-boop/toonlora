@@ -9,16 +9,31 @@ import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 
 interface SimilarStoriesProps {
   seriesId: string;
+  variant?: "light" | "dark";
 }
 
-export default function SimilarStories({ seriesId }: SimilarStoriesProps) {
+export default function SimilarStories({
+  seriesId,
+  variant = "light",
+}: SimilarStoriesProps) {
   const ids = getSimilarStoryIds(seriesId);
+  const isDark = variant === "dark";
 
   return (
-    <section className="mt-12 border-t border-border pt-10">
-      <div className={`${PAGE_CONTAINER_CLASS} max-w-5xl`}>
-        <h2 className="font-heading text-xl font-extrabold text-primary md:text-2xl">
-          Similar stories
+    <section
+      className={
+        isDark
+          ? "border-t border-[#333] py-10"
+          : "border-t border-[#E6DFD1] py-10"
+      }
+    >
+      <div className={`${PAGE_CONTAINER_CLASS} max-w-6xl`}>
+        <h2
+          className={`font-heading text-xl font-extrabold md:text-2xl ${
+            isDark ? "text-white" : "text-[#111827]"
+          }`}
+        >
+          More Like This
         </h2>
         <div className="mt-5 flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
           {ids.map((id) => {
@@ -33,20 +48,39 @@ export default function SimilarStories({ seriesId }: SimilarStoriesProps) {
                 href={`/story/${id}`}
                 className="group w-[140px] min-w-[140px] flex-shrink-0 sm:w-[160px] sm:min-w-[160px]"
               >
-                <div className="overflow-hidden rounded-xl bg-surface shadow-sm ring-1 ring-border transition group-hover:-translate-y-0.5 group-hover:shadow-md">
+                <div
+                  className={`overflow-hidden rounded transition group-hover:-translate-y-0.5 ${
+                    isDark
+                      ? "bg-[#2a2a2a] ring-1 ring-white/10 group-hover:ring-white/25"
+                      : "bg-white shadow-sm ring-1 ring-[#E6DFD1] group-hover:shadow-md"
+                  }`}
+                >
                   <StoryCoverImage
                     title={mock.title}
                     genre={mock.sagaLabel}
                     gradient={card.coverGradient}
                     seed={seed}
+                    coverArtUrl={mock.coverArtUrl}
                     className="aspect-[2/3]"
                   />
                 </div>
-                <p className="mt-2 font-heading text-sm font-bold text-primary group-hover:text-accent">
+                <p
+                  className={`mt-2 font-heading text-sm font-bold ${
+                    isDark
+                      ? "text-white group-hover:text-[#D8A84E]"
+                      : "text-[#111827] group-hover:text-[#2F80ED]"
+                  }`}
+                >
                   {mock.title}
                 </p>
                 {mock.subtitle ? (
-                  <p className="line-clamp-1 text-xs text-muted">{mock.subtitle}</p>
+                  <p
+                    className={`line-clamp-1 text-xs ${
+                      isDark ? "text-[#999]" : "text-muted"
+                    }`}
+                  >
+                    {mock.subtitle}
+                  </p>
                 ) : null}
               </AffiliateLink>
             );

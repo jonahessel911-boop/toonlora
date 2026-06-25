@@ -17,10 +17,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "seriesId required" }, { status: 400 });
     }
 
+    const sessionId = getSessionFromRequest(request);
     const comments = await listEpisodeComments(
       seriesId,
       episodeNumber,
-      sort === "newest" ? "newest" : "top"
+      sort === "newest" ? "newest" : "top",
+      sessionId
     );
 
     return NextResponse.json({ comments, count: comments.length });

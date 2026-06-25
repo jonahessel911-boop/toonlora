@@ -10,7 +10,7 @@ import {
 import { apiFetch } from "@/lib/session";
 
 interface SubscriptionState {
-  status: "none" | "active" | "cancelled" | "past_due";
+  status: "none" | "active" | "cancelled" | "past_due" | "paused";
   planId: string | null;
   periodEnd: string | null;
   hydrated: boolean;
@@ -58,7 +58,9 @@ export const useSubscriptionStore = create<SubscriptionState>()(
               ? "active"
               : data.status === "cancelled"
                 ? "cancelled"
-                : "none",
+                : data.status === "paused"
+                  ? "paused"
+                  : "none",
             planId: data.planId,
             periodEnd: data.periodEnd,
             hydrated: true,

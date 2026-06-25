@@ -2,6 +2,7 @@ import {
   evaluateEpisodeAccess,
   getEpisodePublicReleaseAt,
   getIsoWeekKey,
+  isEpisodeReleasedForTier,
   type EpisodeAccessDenyReason,
 } from "@/lib/payments/subscription-access";
 import {
@@ -9,6 +10,7 @@ import {
   isPaidTier,
   type SubscriptionTierId,
 } from "@/lib/payments/subscription-plans";
+import { getProfileBySessionFromDb } from "@/lib/services/profile-repository";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { ensureSession } from "@/lib/services/story-repository";
 import {
@@ -25,6 +27,7 @@ export interface WeeklyFreeClaim {
 export interface EpisodeAccessResult {
   allowed: boolean;
   tier: SubscriptionTierId;
+  isRegistered: boolean;
   reason?: EpisodeAccessDenyReason;
   weeklyFreeRemaining: number;
   claimedThisWeek: WeeklyFreeClaim | null;
@@ -43,6 +46,41 @@ export async function resolveUserTier(sessionId: string): Promise<SubscriptionTi
   return getPlanTier(record.planId);
 }
 
+function resolveGuestEpisodeAccess(
+  episodeNumber: number,
+  publicReleaseAt: Date
+): EpisodeAccessResult {
+  if (episodeNumber > 1) {
+    return {
+      allowed: false,
+      tier: "free",
+      isRegistered: false,
+      reason: "signup_required",
+      weeklyFreeRemaining: 1,
+      claimedThisWeek: null,
+    };
+  }
+
+  if (!isEpisodeReleasedForTier("free", publicReleaseAt)) {
+    return {
+      allowed: false,
+      tier: "free",
+      isRegistered: false,
+      reason: "not_released",
+      weeklyFreeRemaining: 1,
+      claimedThisWeek: null,
+    };
+  }
+
+  return {
+    allowed: true,
+    tier: "free",
+    isRegistered: false,
+    weeklyFreeRemaining: 1,
+    claimedThisWeek: null,
+  };
+}
+
 export async function resolveEpisodeAccess(
   sessionId: string,
   seriesId: string,
@@ -52,6 +90,8 @@ export async function resolveEpisodeAccess(
   const tier = await resolveUserTier(sessionId);
   const publicReleaseAt = getEpisodePublicReleaseAt(episodePublishedAt);
   const weekKey = getIsoWeekKey();
+  const profile = await getProfileBySessionFromDb(sessionId);
+  const isRegistered = Boolean(profile);
 
   if (isPaidTier(tier)) {
     const allowed = evaluateEpisodeAccess({
@@ -64,10 +104,15 @@ export async function resolveEpisodeAccess(
     return {
       allowed,
       tier,
+      isRegistered,
       reason: allowed ? undefined : "not_released",
       weeklyFreeRemaining: 0,
       claimedThisWeek: null,
     };
+  }
+
+  if (!isRegistered) {
+    return resolveGuestEpisodeAccess(episodeNumber, publicReleaseAt);
   }
 
   const supabase = getSupabaseAdmin();
@@ -81,6 +126,7 @@ export async function resolveEpisodeAccess(
     return {
       allowed: result.allowed,
       tier,
+      isRegistered: true,
       reason: result.reason,
       weeklyFreeRemaining: result.allowed ? 0 : 1,
       claimedThisWeek: null,
@@ -112,6 +158,7 @@ export async function resolveEpisodeAccess(
   return {
     allowed: result.allowed || sameClaim,
     tier,
+    isRegistered: true,
     reason: result.allowed || sameClaim ? undefined : result.reason,
     weeklyFreeRemaining: weeklyFreeUsedThisWeek && !sameClaim ? 0 : 1,
     claimedThisWeek: claim,
@@ -123,6 +170,9 @@ export async function claimWeeklyFreeEpisode(
   seriesId: string,
   episodeNumber: number
 ): Promise<void> {
+  const profile = await getProfileBySessionFromDb(sessionId);
+  if (!profile) return;
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 

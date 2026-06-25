@@ -4,14 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   DEFAULT_SUBSCRIPTION_PLAN_ID,
+  ENTREPRENEUR_PLAN,
   FREE_PLAN,
   SUBSCRIPTION_PLANS,
   formatEur,
   type SubscriptionPlan,
 } from "@/lib/payments/subscription-plans";
+import { EARLY_ACCESS_DAYS } from "@/lib/payments/subscription-access";
 import { TIER_BENEFITS } from "@/lib/payments/reading-benefits";
 import { trackPaywallCheckoutClick, trackPaywallView } from "@/lib/analytics/gtag";
 import { apiFetch } from "@/lib/session";
+import { useSubscriptionStore } from "@/store/useSubscriptionStore";
+import { useUserStore } from "@/store/useUserStore";
+import { useWeeklyResetCountdown } from "@/hooks/useWeeklyResetCountdown";
 
 interface SubscriptionPaywallProps {
   storyName: string;
@@ -22,6 +27,12 @@ interface SubscriptionPaywallProps {
   variant?: "modal" | "page";
   storyId?: string;
   episodeNumber?: number;
+  /** Logged-in free user already used their weekly chapter read. */
+  weeklyLimitReached?: boolean;
+  /** Entrepreneur fast pass — next chapter 1 week before public release. */
+  fastPass?: boolean;
+  /** Pre-select a plan (e.g. Entrepreneur for fast pass). */
+  initialPlanId?: string;
 }
 
 export default function SubscriptionPaywall({
@@ -33,14 +44,61 @@ export default function SubscriptionPaywall({
   variant = "modal",
   storyId,
   episodeNumber,
+  weeklyLimitReached = false,
+  fastPass = false,
+  initialPlanId,
 }: SubscriptionPaywallProps) {
-  const [selectedPlanId, setSelectedPlanId] = useState(DEFAULT_SUBSCRIPTION_PLAN_ID);
+  const { email, fullName } = useUserStore();
+  const { hasPaidAccess, hydrate: hydrateSubscription } = useSubscriptionStore();
+  const loggedIn = Boolean(email);
+  const isOnFreePlan = loggedIn && !hasPaidAccess();
+  const weeklyResetIn = useWeeklyResetCountdown(weeklyLimitReached);
+
+  const defaultPlanId =
+    initialPlanId ??
+    (fastPass
+      ? ENTREPRENEUR_PLAN.id
+      : loggedIn && !hasPaidAccess() && !weeklyLimitReached
+        ? FREE_PLAN.id
+        : DEFAULT_SUBSCRIPTION_PLAN_ID);
+
+  const [selectedPlanId, setSelectedPlanId] = useState(defaultPlanId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const paywallViewTracked = useRef(false);
 
   const selectedPlan =
     SUBSCRIPTION_PLANS.find((p) => p.id === selectedPlanId) ?? SUBSCRIPTION_PLANS[1];
+
+  const visiblePlans = weeklyLimitReached || fastPass
+    ? SUBSCRIPTION_PLANS.filter((plan) => plan.checkoutEnabled)
+    : SUBSCRIPTION_PLANS;
+
+  const selectedTierBenefits =
+    selectedPlan.tier === "entrepreneur"
+      ? TIER_BENEFITS.entrepreneur
+      : selectedPlan.tier === "free"
+        ? TIER_BENEFITS.free
+        : TIER_BENEFITS.achiever;
+
+  useEffect(() => {
+    void hydrateSubscription();
+  }, [hydrateSubscription]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (fastPass) {
+      setSelectedPlanId(ENTREPRENEUR_PLAN.id);
+      return;
+    }
+    if (initialPlanId) {
+      setSelectedPlanId(initialPlanId);
+      return;
+    }
+    if (isOnFreePlan && !weeklyLimitReached) {
+      setSelectedPlanId(FREE_PLAN.id);
+    }
+  }, [open, fastPass, initialPlanId, isOnFreePlan, weeklyLimitReached]);
 
   useEffect(() => {
     if (!open || paywallViewTracked.current) return;
@@ -65,7 +123,12 @@ export default function SubscriptionPaywall({
     try {
       const res = await apiFetch("/api/stripe/subscription-checkout", {
         method: "POST",
-        body: JSON.stringify({ planId: selectedPlanId, returnPath }),
+        body: JSON.stringify({
+          planId: selectedPlanId,
+          returnPath,
+          email: email || undefined,
+          fullName: fullName || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Checkout failed");
@@ -78,7 +141,7 @@ export default function SubscriptionPaywall({
       setError(err instanceof Error ? err.message : "Checkout failed");
       setLoading(false);
     }
-  }, [selectedPlan.checkoutEnabled, selectedPlanId, returnPath, storyId, onClose]);
+  }, [selectedPlan.checkoutEnabled, selectedPlanId, returnPath, storyId, onClose, email, fullName]);
 
   if (!open) return null;
 
@@ -87,7 +150,7 @@ export default function SubscriptionPaywall({
       ? "relative flex min-h-[100dvh] flex-col bg-background text-primary"
       : "fixed inset-0 z-[120] flex flex-col bg-background text-primary";
 
-  const heroBenefits = TIER_BENEFITS.achiever;
+  const heroBenefits = selectedTierBenefits;
 
   return (
     <div className={shellClass}>
@@ -108,11 +171,40 @@ export default function SubscriptionPaywall({
                 Toonlora membership
               </p>
               <h1 className="font-heading mt-2 text-2xl font-extrabold leading-tight sm:text-[1.65rem]">
-                Unlock {storyName}
+                {weeklyLimitReached
+                  ? "Want to read unlimited?"
+                  : fastPass
+                    ? `Fast pass — ${storyName}`
+                    : `Unlock ${storyName}`}
               </h1>
-              <p className="mt-2 text-sm text-white/70">
-                In-depth business stories in a cartoon — pick the plan that fits you.
-              </p>
+              {weeklyLimitReached ? (
+                <div className="mt-3 space-y-1">
+                  <p className="text-sm font-semibold text-white">
+                    Oops, you hit your weekly read limit
+                  </p>
+                  <p className="text-sm text-white/80">
+                    Here is a special deal for you:
+                  </p>
+                  <p className="text-sm text-white/70">
+                    Weekly read limit reset in:{" "}
+                    <span className="font-semibold text-accent">{weeklyResetIn}</span>
+                  </p>
+                </div>
+              ) : fastPass ? (
+                <div className="mt-3 space-y-1">
+                  <p className="text-sm font-semibold text-white">
+                    Read the next chapter {EARLY_ACCESS_DAYS} days before everyone else
+                  </p>
+                  <p className="text-sm text-white/75">
+                    Entrepreneur members get a fast pass to next week&apos;s episode
+                    {episodeNumber ? ` — Chapter ${episodeNumber}` : ""}.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-white/70">
+                  In-depth business stories in a cartoon — pick the plan that fits you.
+                </p>
+              )}
             </div>
             <div className="relative h-28 w-24 shrink-0 overflow-hidden rounded-xl border border-white/15 shadow-lg">
               {coverArtUrl ? (
@@ -128,12 +220,13 @@ export default function SubscriptionPaywall({
 
         <div className="px-4 py-5">
           <div className="mx-auto max-w-lg space-y-3">
-            {SUBSCRIPTION_PLANS.map((plan) => (
+            {visiblePlans.map((plan) => (
               <PlanCard
                 key={plan.id}
                 plan={plan}
                 selected={selectedPlanId === plan.id}
                 onSelect={() => setSelectedPlanId(plan.id)}
+                isCurrentPlan={isOnFreePlan && plan.id === FREE_PLAN.id}
               />
             ))}
           </div>
@@ -141,7 +234,7 @@ export default function SubscriptionPaywall({
 
         <div className="mx-auto max-w-lg px-4 pb-4">
           <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
-            With Achiever you get
+            With {selectedPlan.name} you get
           </p>
           <ul className="space-y-2">
             {heroBenefits.map((benefit) => (
@@ -181,7 +274,9 @@ export default function SubscriptionPaywall({
             {loading
               ? "Processing…"
               : selectedPlan.id === FREE_PLAN.id
-                ? "Continue with Free"
+                ? isOnFreePlan
+                  ? "Current plan"
+                  : "Continue with Free"
                 : `Subscribe — ${selectedPlan.priceLabel}/month`}
           </button>
         </div>
@@ -194,11 +289,18 @@ function PlanCard({
   plan,
   selected,
   onSelect,
+  isCurrentPlan = false,
 }: {
   plan: SubscriptionPlan;
   selected: boolean;
   onSelect: () => void;
+  isCurrentPlan?: boolean;
 }) {
+  const showDiscount =
+    plan.checkoutEnabled &&
+    plan.compareAtCents != null &&
+    plan.discountPercent != null;
+
   return (
     <button
       type="button"
@@ -209,7 +311,11 @@ function PlanCard({
           : "border-border bg-surface hover:border-accent/40"
       }`}
     >
-      {plan.popular ? (
+      {isCurrentPlan ? (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white">
+          Current plan
+        </span>
+      ) : plan.popular ? (
         <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white">
           Early access
         </span>
@@ -238,12 +344,22 @@ function PlanCard({
               </ul>
             </div>
             <div className="shrink-0 text-right">
+              {showDiscount ? (
+                <p className="text-xs text-muted line-through">
+                  {formatEur(plan.compareAtCents!)}
+                </p>
+              ) : null}
               <p className="font-heading text-xl font-extrabold text-primary">
                 {plan.checkoutEnabled ? formatEur(plan.amountCents) : plan.priceLabel}
               </p>
               <p className="text-[11px] text-muted">
                 {plan.billingInterval ? "/ month" : "forever"}
               </p>
+              {showDiscount ? (
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-accent">
+                  {plan.discountPercent}% off
+                </p>
+              ) : null}
             </div>
           </div>
         </div>

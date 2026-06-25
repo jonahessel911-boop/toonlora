@@ -16,7 +16,7 @@ import {
 import type { SeriesDetail, SeriesEpisodeListing } from "@/lib/seriesCatalog";
 import type { Story } from "@/types/story";
 import { useCatalog } from "@/hooks/useCatalog";
-import { apiFetch } from "@/lib/session";
+import { apiFetch, getSessionId } from "@/lib/session";
 import { useUserStore } from "@/store/useUserStore";
 
 interface EpisodeCommentsSectionProps {
@@ -192,8 +192,13 @@ function CommentItem({
           <button
             type="button"
             onClick={() => onReact(comment.id, "like")}
-            className="flex items-center gap-1.5 text-xs text-[#666] hover:text-[#222]"
+            className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs transition ${
+              comment.userReaction === "like"
+                ? "bg-[#FFF7ED] text-[#EA580C] ring-1 ring-[#FB923C]"
+                : "text-[#666] hover:text-[#222]"
+            }`}
             aria-label="Like comment"
+            aria-pressed={comment.userReaction === "like"}
           >
             <span aria-hidden>👍</span>
             <span className="font-semibold">{comment.likes.toLocaleString()}</span>
@@ -201,8 +206,13 @@ function CommentItem({
           <button
             type="button"
             onClick={() => onReact(comment.id, "dislike")}
-            className="flex items-center gap-1.5 text-xs text-[#666] hover:text-[#222]"
+            className={`flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs transition ${
+              comment.userReaction === "dislike"
+                ? "bg-[#FFF7ED] text-[#EA580C] ring-1 ring-[#FB923C]"
+                : "text-[#666] hover:text-[#222]"
+            }`}
             aria-label="Dislike comment"
+            aria-pressed={comment.userReaction === "dislike"}
           >
             <span aria-hidden>👎</span>
             <span className="font-semibold">
@@ -243,7 +253,7 @@ export default function EpisodeCommentsSection({
         setComments(data.comments ?? []);
       } else {
         setComments(
-          listCommentsFromClient(series.id, episodeNumber, sort)
+          listCommentsFromClient(series.id, episodeNumber, sort, getSessionId())
         );
       }
     } catch (err) {
@@ -316,6 +326,7 @@ export default function EpisodeCommentsSection({
         );
       } else {
         const updated = reactToCommentLocal(
+          getSessionId(),
           series.id,
           episodeNumber,
           commentId,

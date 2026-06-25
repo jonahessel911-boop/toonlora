@@ -54,6 +54,8 @@ export function trackReadingProgress(input: {
   episodeNumber: number;
   panelIndex: number;
   totalPanels: number;
+  seriesTitle?: string;
+  genre?: string;
 }) {
   void apiFetch("/api/analytics/reading", {
     method: "POST",

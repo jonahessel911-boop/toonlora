@@ -13,6 +13,37 @@ export function getIsoWeekKey(date = new Date()): string {
   return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
+/** Next Monday 00:00 UTC — when the free weekly chapter read resets. */
+export function getNextWeeklyFreeResetAt(now = new Date()): Date {
+  const today = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  const isoDay = today.getUTCDay() || 7;
+  const daysUntilNextMonday = 8 - isoDay;
+  const reset = new Date(today);
+  reset.setUTCDate(reset.getUTCDate() + daysUntilNextMonday);
+  reset.setUTCHours(0, 0, 0, 0);
+  return reset;
+}
+
+export function msUntilWeeklyFreeReset(now = new Date()): number {
+  return Math.max(0, getNextWeeklyFreeResetAt(now).getTime() - now.getTime());
+}
+
+/** Human-readable countdown, e.g. "5d 12h" or "45m". */
+export function formatWeeklyResetCountdown(ms: number): string {
+  if (ms <= 0) return "0m";
+
+  const totalMinutes = Math.floor(ms / 60_000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export function addDays(date: Date, days: number): Date {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
@@ -44,7 +75,8 @@ export function isEpisodeReleasedForTier(
 export type EpisodeAccessDenyReason =
   | "not_released"
   | "weekly_free_used"
-  | "subscription_required";
+  | "subscription_required"
+  | "signup_required";
 
 export interface EpisodeAccessInput {
   tier: SubscriptionTierId;

@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (access.tier === "free") {
+    if (access.tier === "free" && access.isRegistered) {
       await claimWeeklyFreeEpisode(sessionId, seriesId, episodeNumber);
     }
 

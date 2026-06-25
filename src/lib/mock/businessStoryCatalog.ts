@@ -11,6 +11,7 @@ export interface MockCatalogStory {
   readMinutes: number;
   sagaLabel: string;
   status: MockStoryStatus;
+  coverArtUrl?: string;
   badges?: SagaBadge[];
   weeklyDrop?: boolean;
   featuredHero?: boolean;
@@ -111,6 +112,7 @@ export const MOCK_STORY_CATALOG: MockStoryCategory[] = [
         chapters: 6,
         readMinutes: 6,
         sagaLabel: "Rise & Fall",
+        coverArtUrl: "/covers/rise-and-fall/blockbuster.png",
         status: "live",
         badges: ["company", "trending"],
         trending: true,
@@ -123,6 +125,7 @@ export const MOCK_STORY_CATALOG: MockStoryCategory[] = [
         chapters: 8,
         readMinutes: 7,
         sagaLabel: "Rise & Fall",
+        coverArtUrl: "/covers/rise-and-fall/wework.png",
         status: "coming",
         badges: ["billion-dollar"],
       },
@@ -134,6 +137,7 @@ export const MOCK_STORY_CATALOG: MockStoryCategory[] = [
         chapters: 8,
         readMinutes: 7,
         sagaLabel: "Rise & Fall",
+        coverArtUrl: "/covers/rise-and-fall/enron.png",
         status: "coming",
         badges: ["billion-dollar"],
       },

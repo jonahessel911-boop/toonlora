@@ -43,6 +43,9 @@ async function hydrateEntry(
     createdAt: story.createdAt,
     coverArtUrl,
     href: entry.href,
+    chapterProgress: entry.episodeNumber,
+    panelIndex: entry.panelIndex ?? 0,
+    totalPanels: entry.totalPanels,
   });
 }
 

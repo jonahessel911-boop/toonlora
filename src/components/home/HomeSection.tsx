@@ -49,7 +49,7 @@ export default function HomeSection({
         <div className="mb-6 flex items-end justify-between gap-4 md:mb-7">
           <div className="min-w-0">
             <h2
-              className={`font-heading text-xl font-extrabold tracking-tight md:text-[1.65rem] ${titleClass}`}
+              className={`font-heading text-2xl font-extrabold tracking-tight md:text-3xl ${titleClass}`}
             >
               {title}
             </h2>

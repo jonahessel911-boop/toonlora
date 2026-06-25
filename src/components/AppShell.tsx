@@ -7,7 +7,7 @@ import AnalyticsProvider from "@/components/analytics/AnalyticsProvider";
 import AffiliateProvider from "@/components/affiliate/AffiliateProvider";
 
 const AUTH_ROUTES = ["/signup", "/signin", "/subscribe", "/partners"];
-const MINIMAL_ROUTES = ["/lp", "/admin"];
+const MINIMAL_ROUTES = ["/lp", "/admin", "/home"];
 
 function isReaderRoute(pathname: string) {
   return (
@@ -25,7 +25,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isCreator = pathname.startsWith("/creator");
   const isDraftReader = pathname.includes("/creator/episode-builder/draft/");
   const hideNav = isAuth || isMinimal || isReader || isCreator;
+  const hideFooter = pathname === "/" || hideNav;
   const fixedViewport = isCreate || (isCreator && !isDraftReader);
+  const isHome = pathname === "/";
+  const showNav = !hideNav;
+  /** Fixed navbar does not reserve layout space — offset content on non-home routes. */
+  const navLayoutOffset = showNav && !isHome;
 
   return (
     <AnalyticsProvider>
@@ -35,7 +40,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           fixedViewport ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"
         }`}
       >
-        {!hideNav && <Navbar />}
+        {showNav && <Navbar />}
+        {navLayoutOffset ? (
+          <div
+            className="pointer-events-none shrink-0 h-16 md:h-[7.25rem] xl:h-16"
+            aria-hidden
+          />
+        ) : null}
         <main
           className={`flex min-h-0 min-w-0 flex-1 flex-col ${
             fixedViewport ? "overflow-hidden" : ""
@@ -43,7 +54,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         >
           {children}
         </main>
-        {!hideNav && !fixedViewport && <SiteFooter />}
+        {!hideFooter && !fixedViewport && <SiteFooter />}
       </div>
       </AffiliateProvider>
     </AnalyticsProvider>

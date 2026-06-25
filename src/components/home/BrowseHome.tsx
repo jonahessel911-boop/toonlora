@@ -1,8 +1,12 @@
 "use client";
 
-import HomeBrandHero from "@/components/home/HomeBrandHero";
-import HomeSection from "@/components/home/HomeSection";
-import SagaRail from "@/components/home/SagaRail";
+import ContinueReadingCard from "@/components/home/stream/ContinueReadingCard";
+import SiteFooter from "@/components/layout/SiteFooter";
+import FeaturedHero from "@/components/home/stream/FeaturedHero";
+import FounderStoryCard from "@/components/home/stream/FounderStoryCard";
+import StreamPosterCard from "@/components/home/stream/StreamPosterCard";
+import StreamRail from "@/components/home/stream/StreamRail";
+import TopTenCard from "@/components/home/stream/TopTenCard";
 import { prioritizeCoverArt, withRealCoverArt } from "@/components/home/StoryCard";
 import { useCatalog } from "@/hooks/useCatalog";
 import { HOME_BROWSE_NAV } from "@/lib/homeBrowseNav";
@@ -13,10 +17,10 @@ import {
   getHeistsAndFraudsCategory,
   getHistoryDropCategory,
   getRiseAndFallCategory,
+  getTrendingMockStories,
+  WEEKLY_HERO,
 } from "@/lib/mock/businessStoryCatalog";
-import {
-  mockCategoryToCatalogSeries,
-} from "@/lib/mock/mockCatalogCards";
+import { mockCategoryToCatalogSeries } from "@/lib/mock/mockCatalogCards";
 import {
   fetchPublishedStory,
   getStoryCoverArtUrl,
@@ -38,7 +42,6 @@ async function hydrateEntry(
   if (!story) return null;
 
   const coverArtUrl = getStoryCoverArtUrl(story) ?? entry.coverArtUrl;
-  if (!coverArtUrl) return null;
 
   return catalogToCard({
     id: story.id,
@@ -59,6 +62,8 @@ async function hydrateEntry(
     coverArtUrl,
     href: entry.href,
     chapterProgress: entry.episodeNumber,
+    panelIndex: entry.panelIndex ?? 0,
+    totalPanels: entry.totalPanels,
     sagaLabel: String(story.genre),
     readMinutes: 8,
   });
@@ -73,10 +78,21 @@ const SECTION_CATEGORIES = {
   "history-drop": getHistoryDropCategory,
 } as const;
 
-/** Light premium homepage — dark hero, white cards on beige. */
+function PosterSkeleton() {
+  return (
+    <div className="h-[340px] w-[70vw] max-w-[240px] shrink-0 animate-pulse rounded-xl bg-[#E7DDCC]/60 sm:w-[220px] md:h-[360px] md:w-[240px]" />
+  );
+}
+
+/** Netflix-style cinematic browse index. */
 export default function BrowseHome() {
   const { email } = useUserStore();
   const loggedIn = Boolean(email);
+
+  useEffect(() => {
+    document.documentElement.classList.add("theme-cinematic");
+    return () => document.documentElement.classList.remove("theme-cinematic");
+  }, []);
 
   const { series: catalogTrending, loading: loadingTrending } = useCatalog({
     sort: "popular",
@@ -86,7 +102,7 @@ export default function BrowseHome() {
   const [continueStories, setContinueStories] = useState<CatalogSeries[]>([]);
 
   const refreshContinue = useCallback(async () => {
-    const entries = getReadingHistory().slice(0, 8);
+    const entries = getReadingHistory().slice(0, 10);
     if (entries.length === 0) {
       setContinueStories([]);
       return;
@@ -154,36 +170,157 @@ export default function BrowseHome() {
     >;
   }, [catalogTrending]);
 
+  const featuredStory = useMemo(() => {
+    const founder = sectionStories["founder-stories"]?.stories ?? [];
+    return (
+      founder.find((s) => s.id === WEEKLY_HERO.id) ??
+      mockCategoryToCatalogSeries(getFounderCategory()).find(
+        (s) => s.id === WEEKLY_HERO.id
+      )
+    );
+  }, [sectionStories]);
+
+  const trendingThisWeek = useMemo(() => {
+    const mockTrending = mockCategoryToCatalogSeries(
+      getRiseAndFallCategory()
+    ).concat(
+      mockCategoryToCatalogSeries(getFounderCategory()).filter((s) =>
+        getTrendingMockStories().some((m) => m.id === s.id)
+      )
+    );
+    const seen = new Set<string>();
+    return mockTrending.filter((s) => {
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
+      return true;
+    });
+  }, []);
+
+  const topTen = useMemo(() => {
+    const withCovers = trendingThisWeek
+      .filter((story) => Boolean(story.coverArtUrl))
+      .slice(0, 10);
+
+    return withCovers.map((story, index) => ({
+      ...story,
+      sagaBadges:
+        story.sagaBadges ??
+        (index === 0
+          ? (["new-drop"] as const)
+          : index < 4
+            ? (["trending"] as const)
+            : undefined),
+    }));
+  }, [trendingThisWeek]);
+
+  const continueFallback = useMemo(() => {
+    const rise = mockCategoryToCatalogSeries(getRiseAndFallCategory());
+    const founder = mockCategoryToCatalogSeries(getFounderCategory());
+    const wework = rise.find((s) => s.id === "wework");
+    const elon = founder.find((s) => s.id === "elon-musk");
+    return [wework, elon]
+      .filter((s): s is CatalogSeries => Boolean(s))
+      .map((story, index) => ({
+        ...story,
+        chapterProgress: index === 0 ? 3 : 5,
+      }));
+  }, []);
+
+  const continueDisplay =
+    continueStories.length > 0 ? continueStories : continueFallback;
+
   const continueProgress = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const story of continueStories) {
-      if (story.chapterProgress) map[story.id] = story.chapterProgress;
+    const map: Record<
+      string,
+      { episode: number; panel: number; totalPanels?: number }
+    > = {};
+    for (const entry of getReadingHistory()) {
+      map[entry.seriesId] = {
+        episode: entry.episodeNumber,
+        panel: entry.panelIndex ?? 0,
+        totalPanels: entry.totalPanels,
+      };
     }
     return map;
   }, [continueStories]);
 
-  const browseSections = HOME_BROWSE_NAV.filter((item) => item.id !== "this-week");
+  const browseSections = HOME_BROWSE_NAV.filter(
+    (item) =>
+      item.id !== "this-week" &&
+      item.id !== "home" &&
+      item.id !== "founder-stories"
+  );
+
+  const founderSection = sectionStories["founder-stories"];
 
   return (
-    <div className="bg-background pb-16">
-      <HomeBrandHero />
+    <div className="min-h-[100dvh] bg-[#0E1117]">
+      <FeaturedHero featuredStory={featuredStory} />
 
-      <div className="space-y-2 md:space-y-4">
-        {loggedIn && continueStories.length > 0 ? (
-          <HomeSection
-            id="continue"
-            title="Continue Reading"
-            subtitle="Pick up where you left off."
-            tone="clear"
-          >
-            <div className="rounded-2xl bg-surface p-5 shadow-[0_4px_24px_rgba(10,22,40,0.05)] ring-1 ring-border md:p-6">
-              <SagaRail
-                stories={continueStories}
+      <div className="relative z-10 bg-[#F6F1E7] pt-6">
+        <StreamRail
+          id="continue"
+          title="Continue Reading"
+          subtitle={
+            loggedIn && continueStories.length > 0
+              ? "Pick up where you left off"
+              : undefined
+          }
+          noTopBorder
+        >
+          {continueDisplay.map((story) => {
+            const progress = continueProgress[story.id];
+            return (
+              <ContinueReadingCard
+                key={story.id}
+                story={story}
                 listSection="continue_reading"
-                progressMap={continueProgress}
+                chapterProgress={
+                  progress?.episode ?? story.chapterProgress
+                }
+                panelIndex={progress?.panel ?? story.panelIndex}
+                totalPanels={progress?.totalPanels ?? story.totalPanels}
               />
-            </div>
-          </HomeSection>
+            );
+          })}
+        </StreamRail>
+
+        <StreamRail
+          id="top-10"
+          title="Top 10 This Week"
+          viewAllHref="/#top-10"
+          compact
+          dense
+        >
+          {topTen.map((story, index) => (
+            <TopTenCard
+              key={story.id}
+              story={story}
+              rank={index + 1}
+              listSection="top_10"
+            />
+          ))}
+        </StreamRail>
+
+        {founderSection ? (
+          <StreamRail
+            id="founder-stories"
+            title="Founder Stories"
+            subtitle={founderSection.category.subtitle}
+            viewAllHref="/#founder-stories"
+          >
+            {loadingTrending && founderSection.stories.length === 0
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <PosterSkeleton key={i} />
+                ))
+              : founderSection.stories.map((story) => (
+                  <FounderStoryCard
+                    key={story.id}
+                    story={story}
+                    listSection="founder_stories"
+                  />
+                ))}
+          </StreamRail>
         ) : null}
 
         {browseSections.map(({ id, label }) => {
@@ -191,25 +328,24 @@ export default function BrowseHome() {
           if (!section) return null;
 
           return (
-            <HomeSection
+            <StreamRail
               key={id}
               id={id}
               title={label}
               subtitle={section.category.subtitle}
-              tone="clear"
+              viewAllHref={`/#${id}`}
             >
-              <SagaRail
-                stories={section.stories}
-                loading={
-                  id === "founder-stories" &&
-                  loadingTrending &&
-                  section.stories.length === 0
-                }
-                listSection={id.replace(/-/g, "_")}
-              />
-            </HomeSection>
+              {section.stories.map((story) => (
+                <StreamPosterCard
+                  key={story.id}
+                  story={story}
+                  listSection={id.replace(/-/g, "_")}
+                />
+              ))}
+            </StreamRail>
           );
         })}
+        <SiteFooter />
       </div>
     </div>
   );

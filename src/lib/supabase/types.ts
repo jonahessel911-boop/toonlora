@@ -247,6 +247,8 @@ export interface Database {
           session_id: string;
           profile_id: string | null;
           series_id: string;
+          series_title: string | null;
+          genre: string | null;
           episode_number: number;
           max_panel_reached: number;
           total_panels: number;
@@ -258,6 +260,8 @@ export interface Database {
           session_id: string;
           profile_id?: string | null;
           series_id: string;
+          series_title?: string | null;
+          genre?: string | null;
           episode_number?: number;
           max_panel_reached?: number;
           total_panels?: number;
@@ -265,6 +269,8 @@ export interface Database {
         };
         Update: {
           profile_id?: string | null;
+          series_title?: string | null;
+          genre?: string | null;
           max_panel_reached?: number;
           total_panels?: number;
           completed_at?: string | null;
@@ -332,6 +338,26 @@ export interface Database {
         Update: {
           likes?: number;
           dislikes?: number;
+        };
+      };
+      comment_reactions: {
+        Row: {
+          id: string;
+          comment_id: string;
+          session_id: string;
+          profile_id: string | null;
+          reaction: "like" | "dislike";
+          created_at: string;
+        };
+        Insert: {
+          comment_id: string;
+          session_id: string;
+          profile_id?: string | null;
+          reaction: "like" | "dislike";
+        };
+        Update: {
+          reaction?: "like" | "dislike";
+          profile_id?: string | null;
         };
       };
     };

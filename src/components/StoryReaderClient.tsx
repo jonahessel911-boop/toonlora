@@ -32,6 +32,10 @@ export default function StoryReaderClient({
     1,
     Number(searchParams.get("ep") ?? 1) || 1
   );
+  const panelFromUrl = Math.max(
+    0,
+    Number(searchParams.get("panel") ?? 0) || 0
+  );
 
   const { hydrate, getStoryById, addStory, hydrated } = useStoryStore();
   const { canGenerate, consumeGeneration, credits, hydrate: hydrateCredits } =
@@ -227,6 +231,7 @@ export default function StoryReaderClient({
         }
         credits={credits}
         isCatalog={story.status === "published"}
+        initialPanelIndex={panelFromUrl}
       />,
       seriesDetail,
       episode.episodeNumber

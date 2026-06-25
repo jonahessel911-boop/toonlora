@@ -5,7 +5,8 @@ import type { SubscriptionTierId } from "@/lib/payments/subscription-plans";
 export interface EpisodeAccessResult {
   allowed: boolean;
   tier: SubscriptionTierId;
-  reason?: "not_released" | "weekly_free_used" | "subscription_required";
+  isRegistered?: boolean;
+  reason?: "not_released" | "weekly_free_used" | "subscription_required" | "signup_required";
   weeklyFreeRemaining: number;
   claimedThisWeek: {
     seriesId: string;

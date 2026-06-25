@@ -8,6 +8,10 @@ export interface SubscriptionPlan {
   amountCents: number;
   billingInterval: "month" | null;
   priceLabel: string;
+  /** Full price before paywall promo discount (shown struck-through). */
+  compareAtCents?: number;
+  /** Promo discount percent (e.g. 49 → 49% off). */
+  discountPercent?: number;
   description: string;
   features: readonly string[];
   popular?: boolean;
@@ -23,14 +27,28 @@ export const FREE_PLAN: SubscriptionPlan = {
   amountCents: 0,
   billingInterval: null,
   priceLabel: "€0",
-  description: "1 chapter per week, completely free",
+  description: "Chapter 1 is free to preview. Create an account for 1 chapter per week.",
   features: [
-    "1 chapter per week on the public release schedule",
+    "Chapter 1 preview on every story (no account needed)",
+    "1 extra chapter per week after you sign up",
     "Browse all categories and story previews",
     "Create stories with credits",
   ],
   checkoutEnabled: false,
 };
+
+export const ACHIEVER_DISCOUNT_PERCENT = 49;
+export const ENTREPRENEUR_DISCOUNT_PERCENT = 69;
+
+/** List price so that `amountCents` equals the discounted monthly price. */
+export function listPriceCentsForDiscount(
+  saleCents: number,
+  discountPercent: number
+): number {
+  const factor = 1 - discountPercent / 100;
+  if (factor <= 0) return saleCents;
+  return Math.round(saleCents / factor);
+}
 
 export const ACHIEVER_PLAN: SubscriptionPlan = {
   id: "sub-achiever",
@@ -40,6 +58,8 @@ export const ACHIEVER_PLAN: SubscriptionPlan = {
   amountCents: 799,
   billingInterval: "month",
   priceLabel: "€7,99",
+  compareAtCents: listPriceCentsForDiscount(799, ACHIEVER_DISCOUNT_PERCENT),
+  discountPercent: ACHIEVER_DISCOUNT_PERCENT,
   description: "Read everything in the normal chapter line",
   features: [
     "Unlimited chapters on the public release schedule",
@@ -58,6 +78,8 @@ export const ENTREPRENEUR_PLAN: SubscriptionPlan = {
   amountCents: 1299,
   billingInterval: "month",
   priceLabel: "€12,99",
+  compareAtCents: listPriceCentsForDiscount(1299, ENTREPRENEUR_DISCOUNT_PERCENT),
+  discountPercent: ENTREPRENEUR_DISCOUNT_PERCENT,
   description: "Read every story 1 week before public release",
   features: [
     "Everything in Achiever",

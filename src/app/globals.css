@@ -79,6 +79,62 @@
   --lp-blue: #3b9eff;
 }
 
+/* Cinematic browse — dark hero + warm story rails */
+html.theme-cinematic {
+  --background: #0e1117;
+  --hero-bg: #111827;
+  --section-bg: #f4f1ea;
+  --surface-warm: #fffdf7;
+  --surface: #151a23;
+  --surface-soft: #1c2230;
+  --foreground: #f9fafb;
+  --primary: #111827;
+  --primary-dark: #0e1117;
+  --primary-soft: rgba(47, 128, 237, 0.12);
+  --text: #111827;
+  --text-light: #f9fafb;
+  --muted: #6b7280;
+  --muted-light: #a7b0be;
+  --border: #e6dfd1;
+  --border-dark: rgba(255, 255, 255, 0.1);
+  --nav-bg: #111827;
+  --nav-bg-warm: #fffdf7;
+  --accent: #2f80ed;
+  --accent-hover: #1c6ed6;
+  --accent-gold: #d8a84e;
+  --hero-purple: #111827;
+  --hero-purple-dark: #0e1117;
+  --gs-bg: var(--background);
+  --gs-surface: var(--surface);
+  --gs-surface-mint: var(--surface-soft);
+  --gs-text: var(--text);
+  --gs-muted: var(--muted);
+  --gs-border: var(--border);
+  --groen-mint: var(--section-bg);
+  --groen-deep: var(--text);
+}
+
+html.theme-cinematic body {
+  background: #0e1117;
+  color: #f9fafb;
+}
+
+html.theme-cinematic .font-heading {
+  letter-spacing: -0.02em;
+}
+
+html.theme-cinematic .nav-tab-active::after {
+  background: #d8a84e;
+}
+
+html.theme-cinematic .nav-tab-active {
+  color: #f9fafb;
+}
+
+html.theme-cinematic .tl-logo-lora {
+  color: #2f80ed;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -131,6 +187,9 @@
   --color-lp-coral-hover: var(--lp-coral-hover);
   --color-lp-yellow: var(--lp-yellow);
   --color-lp-blue: var(--lp-blue);
+  --color-section-bg: var(--section-bg);
+  --color-surface-warm: var(--surface-warm);
+  --color-accent-gold: var(--accent-gold);
   --font-sans: var(--font-body);
   --font-heading: var(--font-heading);
 }
@@ -139,6 +198,13 @@ html {
   scroll-behavior: smooth;
   overflow-x: clip;
   width: 100%;
+  scroll-padding-top: 4rem;
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  html {
+    scroll-padding-top: 7.25rem;
+  }
 }
 
 body {

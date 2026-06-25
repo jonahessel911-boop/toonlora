@@ -70,14 +70,18 @@ function SearchIcon({ className = "h-5 w-5" }: { className?: string }) {
 
 function BrowseTab({
   href,
+  id,
   label,
   active,
   onNavigate,
+  darkNav = false,
 }: {
   href: string;
+  id: string;
   label: string;
   active: boolean;
   onNavigate: (href: string) => void;
+  darkNav?: boolean;
 }) {
   return (
     <AffiliateLink
@@ -89,8 +93,12 @@ function BrowseTab({
         }
       }}
       className={`nav-tab shrink-0 snap-start px-1 pb-3 pt-1 text-[13px] font-bold uppercase tracking-[0.06em] transition-colors sm:text-sm ${
-        active ? "nav-tab-active text-accent" : "text-white/60 hover:text-accent"
-      }`}
+        active
+          ? "nav-tab-active"
+          : darkNav
+            ? "text-white/70 hover:text-white"
+            : "text-[#6B7280] hover:text-[#2F80ED]"
+      } ${active && !darkNav ? "text-[#2F80ED]" : ""} ${active && darkNav ? "text-white" : ""}`}
     >
       {label}
     </AffiliateLink>
@@ -101,6 +109,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const isHome = pathname === "/";
+  const navOverHero = isHome && !scrolled;
+  const navDarkHome = isHome;
   const { hash: activeHash, navigateToSection } = useActiveHash();
   const { email, fullName, logout } = useUserStore();
   const loggedIn = Boolean(email);
@@ -112,10 +124,24 @@ export default function Navbar() {
     };
   }, [open]);
 
-  const isBrowseActive = (href: string) => {
+  useEffect(() => {
+    if (!isHome) {
+      setScrolled(true);
+      return;
+    }
+    const onScroll = () => setScrolled(window.scrollY > 320);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
+
+  const isBrowseActive = (href: string, id: string) => {
     if (pathname !== "/") return false;
+    if (id === "home") {
+      return !activeHash || activeHash === "#this-week";
+    }
     const target = href.includes("#") ? href.slice(href.indexOf("#")) : "";
-    if (!activeHash && target === "#this-week") return true;
+    if (!activeHash && target === "#this-week") return id === "this-week";
     return activeHash === target;
   };
 
@@ -127,15 +153,49 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-nav-bg">
-        <div className={`${PAGE_CONTAINER_CLASS} flex h-16 items-center justify-between gap-3`}>
+      <header
+        className={`fixed inset-x-0 top-0 z-50 transition duration-300 ${
+          navOverHero
+            ? "border-b border-transparent bg-transparent"
+            : navDarkHome
+              ? "border-b border-white/10 bg-[#0E1117]/95 backdrop-blur-md"
+              : "border-b border-white/10 bg-[#111827]/95 backdrop-blur-md"
+        }`}
+      >
+        <div
+          className={`${PAGE_CONTAINER_CLASS} relative flex h-16 items-center justify-between gap-3`}
+        >
           <AffiliateLink href="/" className="flex shrink-0 items-center">
-            <ToonloraLogo variant="nav" />
+            <ToonloraLogo variant="nav" onLight={false} />
           </AffiliateLink>
+
+          <nav
+            className="absolute left-1/2 hidden -translate-x-1/2 gap-5 overflow-x-auto scrollbar-hide xl:flex xl:max-w-[min(58vw,720px)]"
+            aria-label="Browse sections"
+          >
+            {browseNav.map((link) => (
+              <BrowseTab
+                key={link.href}
+                href={link.href}
+                id={link.id}
+                label={link.label}
+                active={isBrowseActive(link.href, link.id)}
+                onNavigate={handleBrowseNavigate}
+                darkNav={navDarkHome}
+              />
+            ))}
+          </nav>
 
           <div className="flex items-center gap-1 sm:gap-2">
             {!loggedIn && (
-              <AffiliateLink href="/signin" className="tl-nav-login hidden sm:inline-flex">
+              <AffiliateLink
+                href="/signin"
+                className={
+                  navDarkHome
+                    ? "tl-nav-login hidden sm:inline-flex"
+                    : "hidden rounded px-3 py-2 text-sm font-semibold text-[#6B7280] transition hover:text-[#2F80ED] sm:inline-flex"
+                }
+              >
                 Log in
               </AffiliateLink>
             )}
@@ -153,7 +213,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white md:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white xl:hidden"
               aria-label="Menu"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -163,7 +223,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="hidden border-t border-white/10 md:block">
+        <div className="hidden border-t border-white/10 md:block xl:hidden">
           <nav
             className={`${PAGE_CONTAINER_CLASS} flex gap-6 overflow-x-auto scrollbar-hide sm:gap-8`}
             aria-label="Browse sections"
@@ -172,9 +232,11 @@ export default function Navbar() {
               <BrowseTab
                 key={link.href}
                 href={link.href}
+                id={link.id}
                 label={link.label}
-                active={isBrowseActive(link.href)}
+                active={isBrowseActive(link.href, link.id)}
                 onNavigate={handleBrowseNavigate}
+                darkNav={navDarkHome}
               />
             ))}
           </nav>
@@ -184,7 +246,7 @@ export default function Navbar() {
       <MobileDrawer
         open={open}
         onClose={() => setOpen(false)}
-        isBrowseActive={isBrowseActive}
+        isBrowseActive={(href, id) => isBrowseActive(href, id)}
         loggedIn={loggedIn}
         fullName={fullName}
         email={email}
@@ -211,7 +273,7 @@ function MobileDrawer({
 }: {
   open: boolean;
   onClose: () => void;
-  isBrowseActive: (href: string) => boolean;
+  isBrowseActive: (href: string, id: string) => boolean;
   loggedIn: boolean;
   fullName: string;
   email: string;
@@ -283,7 +345,7 @@ function MobileDrawer({
                       onClose();
                     }}
                     className={`block rounded-xl px-3 py-3 text-base font-bold ${
-                      isBrowseActive(link.href)
+                      isBrowseActive(link.href, link.id)
                         ? "bg-primary-soft text-accent"
                         : "text-gs-text hover:bg-surface-soft/60"
                     }`}

@@ -14,6 +14,8 @@ export default function SubscribePageClient() {
   const storyId = searchParams.get("storyId") ?? "";
   const storyTitleParam = searchParams.get("storyTitle");
   const nextEpisode = Math.max(2, Number(searchParams.get("ep") ?? 2) || 2);
+  const weeklyLimitReached = searchParams.get("reason") === "weekly_limit";
+  const fastPass = searchParams.get("reason") === "fast_pass";
   const { getStoryById } = useStoryStore();
   const { status, hydrate: hydrateSubscription, isSubscriber } =
     useSubscriptionStore();
@@ -78,6 +80,8 @@ export default function SubscribePageClient() {
       coverArtUrl={coverArtUrl}
       storyId={storyId || undefined}
       episodeNumber={storyId ? nextEpisode : undefined}
+      weeklyLimitReached={weeklyLimitReached}
+      fastPass={fastPass}
     />
   );
 }

@@ -41,7 +41,7 @@ export default function SagaCard({
     >
       <AffiliateLink
         href={href}
-        className="flex h-full flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_4px_24px_rgba(10,22,40,0.06)] ring-1 ring-border transition duration-300 active:scale-[0.98] sm:group-hover:-translate-y-1 sm:group-hover:shadow-[0_12px_36px_rgba(10,22,40,0.1)]"
+        className="flex h-full flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-border transition duration-300 active:scale-[0.98] sm:group-hover:-translate-y-1 sm:group-hover:ring-white/20"
         onClick={() =>
           trackStoryClick({
             seriesId: story.id,
@@ -80,7 +80,7 @@ export default function SagaCard({
             </div>
           ) : null}
 
-          <span className="absolute right-2.5 top-2.5 rounded-md bg-white/90 px-2 py-0.5 text-[9px] font-bold text-primary shadow-sm">
+          <span className="absolute right-2.5 top-2.5 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-bold text-white shadow-sm backdrop-blur-sm">
             {readMinutes} min
           </span>
         </div>
@@ -119,7 +119,7 @@ export default function SagaCard({
             {story.synopsis}
           </p>
 
-          <span className="mt-3 inline-flex w-fit items-center rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-white transition group-hover:bg-accent-hover">
+          <span className="mt-3 inline-flex w-fit items-center rounded bg-accent px-4 py-1.5 text-xs font-bold text-white transition group-hover:bg-accent-hover">
             Read Now
           </span>
         </div>
