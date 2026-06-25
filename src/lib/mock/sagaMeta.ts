@@ -2,6 +2,8 @@ import {
   allMockStories,
   type MockCatalogStory,
 } from "@/lib/mock/businessStoryCatalog";
+import { formatCatalogCategoryLabel } from "@/lib/catalogCategoryLabel";
+import { resolveCompanyName, resolveFounderName } from "@/lib/founderStoryTitle";
 
 export interface BusinessCaseFile {
   founder: string;
@@ -37,7 +39,7 @@ const LESSONS_BY_ID: Record<string, string[]> = {
   ],
 };
 
-const FOUNDER_MAP: Record<string, string> = {
+export const FOUNDER_NAME_BY_ID: Record<string, string> = {
   "elon-musk": "Elon Musk",
   ferrari: "Enzo Ferrari",
   porsche: "Ferdinand Porsche",
@@ -52,7 +54,7 @@ const FOUNDER_MAP: Record<string, string> = {
   enron: "Ken Lay & Jeffrey Skilling",
 };
 
-const COMPANY_MAP: Record<string, string> = {
+export const COMPANY_NAME_BY_ID: Record<string, string> = {
   "elon-musk": "Tesla · SpaceX · X",
   ferrari: "Ferrari",
   porsche: "Porsche",
@@ -84,8 +86,8 @@ const INDUSTRY_MAP: Record<string, string> = {
 
 function mockToCaseFile(story: MockCatalogStory): BusinessCaseFile {
   return {
-    founder: FOUNDER_MAP[story.id] ?? story.title,
-    company: COMPANY_MAP[story.id] ?? story.title,
+    founder: FOUNDER_NAME_BY_ID[story.id] ?? story.title,
+    company: COMPANY_NAME_BY_ID[story.id] ?? story.title,
     industry: INDUSTRY_MAP[story.id] ?? "Business",
     sagaLabel: story.sagaLabel,
     subtitle: story.subtitle,
@@ -119,17 +121,42 @@ export function getBusinessCaseFile(
     genre: string;
     synopsis: string;
     chapterCount: number;
+    topic?: string;
+    slug?: string;
+    category?: string;
+    mainCharacter?: string | null;
+    researchTopic?: string;
+    researchCharacters?: Array<{ name: string; role: string }>;
   }
 ): BusinessCaseFile {
   const mock = MOCK_LOOKUP.get(seriesId);
   if (mock) return mock;
 
-  const { name, subtitle } = parseSagaTitle(fallback.title);
+  const { subtitle } = parseSagaTitle(fallback.title);
+  const founder =
+    resolveFounderName({
+      storyId: seriesId,
+      title: fallback.title,
+      mainCharacter: fallback.mainCharacter,
+      researchCharacters: fallback.researchCharacters,
+    }) ?? parseSagaTitle(fallback.title).name;
+
+  const company = resolveCompanyName({
+    storyId: seriesId,
+    title: fallback.title,
+    topic: fallback.topic,
+    slug: fallback.slug,
+    category: fallback.category ?? fallback.genre,
+    mainCharacter: fallback.mainCharacter,
+    researchTopic: fallback.researchTopic,
+    researchCharacters: fallback.researchCharacters,
+  });
+
   return {
-    founder: name,
-    company: name,
+    founder,
+    company,
     industry: fallback.genre,
-    sagaLabel: fallback.genre,
+    sagaLabel: formatCatalogCategoryLabel(fallback.category ?? fallback.genre),
     subtitle: subtitle || fallback.synopsis.slice(0, 80),
     lessons: [
       "Strategy beats hype in the long run",

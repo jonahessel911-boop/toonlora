@@ -11,10 +11,8 @@ import { prioritizeCoverArt, withRealCoverArt } from "@/components/home/StoryCar
 import { useContinueReading } from "@/hooks/useContinueReading";
 import { useCatalog } from "@/hooks/useCatalog";
 import { HOME_BROWSE_NAV } from "@/lib/homeBrowseNav";
-import {
-  groupCatalogBySection,
-  mergeCatalogById,
-} from "@/lib/home/indexCatalog";
+import { groupCatalogBySection, mergeCatalogById } from "@/lib/home/indexCatalog";
+import { formatCatalogCategoryLabel } from "@/lib/catalogCategoryLabel";
 import {
   getCompanyCategory,
   getEmpiresCategory,
@@ -43,7 +41,7 @@ const SECTION_CATEGORIES = {
 
 function PosterSkeleton() {
   return (
-    <div className="h-[340px] w-[70vw] max-w-[240px] shrink-0 animate-pulse rounded-xl bg-[#E7DDCC]/60 sm:w-[220px] md:h-[360px] md:w-[240px]" />
+    <div className="h-[380px] w-[78vw] max-w-[280px] shrink-0 animate-pulse rounded-xl bg-[#E7DDCC]/60 sm:w-[260px] md:h-[400px] md:w-[280px]" />
   );
 }
 
@@ -101,7 +99,7 @@ export default function BrowseHome() {
       catalogWithArt.length > 0
         ? catalogWithArt.map((s, i) => ({
             ...s,
-            sagaLabel: s.genre,
+            sagaLabel: formatCatalogCategoryLabel(s.genre),
             readMinutes: 8,
             sagaBadges: i < 3 ? (["trending"] as const) : undefined,
             rank: i + 1,
@@ -164,6 +162,8 @@ export default function BrowseHome() {
 
     return withCovers.map((story, index) => ({
       ...story,
+      sagaLabel:
+        story.sagaLabel ?? formatCatalogCategoryLabel(story.genre),
       sagaBadges:
         story.sagaBadges ??
         (index === 0
@@ -214,8 +214,6 @@ export default function BrowseHome() {
           id="top-10"
           title="Top 10 This Week"
           viewAllHref="/#top-10"
-          compact
-          dense
         >
           {topTen.map((story, index) => (
             <TopTenCard

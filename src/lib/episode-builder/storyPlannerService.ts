@@ -14,20 +14,11 @@ import {
   type StoryQualityResult,
 } from "@/lib/episode-builder/storyQualityService";
 import { clampEpisodeLength } from "@/lib/episode-builder/storyStructure";
+import { parseJsonFromModel } from "@/lib/parseModelJson";
 import { callOpenAIChat, hasOpenAIKey } from "@/lib/engine/openai-client";
 import { EPISODE_LLM_QUALITY_IMPROVE } from "@/lib/episode-builder/constants";
 
 const MAX_QUALITY_PASSES = 2;
-
-function parseJsonResponse<T>(raw: string): T {
-  const trimmed = raw.trim();
-  const start = trimmed.indexOf("{");
-  const end = trimmed.lastIndexOf("}");
-  if (start === -1 || end === -1) {
-    throw new Error("Planner returned invalid JSON");
-  }
-  return JSON.parse(trimmed.slice(start, end + 1)) as T;
-}
 
 export function normalizeEpisodeInput(
   input: EpisodeBuilderInput
@@ -54,7 +45,7 @@ export async function generateInitialStoryPlan(
 
   const prompt = buildStoryPlannerPrompt(normalized);
   const raw = await callOpenAIChat({ prompt, json: true });
-  const parsed = parseJsonResponse<RawStoryPlanResponse>(raw);
+  const parsed = parseJsonFromModel<RawStoryPlanResponse>(raw);
   return rawPlanToEpisodeStoryPlan(parsed, normalized);
 }
 

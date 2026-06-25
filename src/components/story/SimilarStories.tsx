@@ -35,7 +35,7 @@ export default function SimilarStories({
         >
           More Like This
         </h2>
-        <div className="mt-5 flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="mt-6 flex gap-5 overflow-x-auto pb-2 scrollbar-hide">
           {ids.map((id) => {
             const mock = findMockStory(id);
             if (!mock) return null;
@@ -46,10 +46,10 @@ export default function SimilarStories({
               <AffiliateLink
                 key={id}
                 href={`/story/${id}`}
-                className="group w-[140px] min-w-[140px] flex-shrink-0 sm:w-[160px] sm:min-w-[160px]"
+                className="group w-[min(44vw,200px)] min-w-[180px] flex-shrink-0 sm:w-[220px] sm:min-w-[220px] md:w-[240px] md:min-w-[240px]"
               >
                 <div
-                  className={`overflow-hidden rounded transition group-hover:-translate-y-0.5 ${
+                  className={`overflow-hidden rounded-lg transition group-hover:-translate-y-0.5 ${
                     isDark
                       ? "bg-[#2a2a2a] ring-1 ring-white/10 group-hover:ring-white/25"
                       : "bg-white shadow-sm ring-1 ring-[#E6DFD1] group-hover:shadow-md"
@@ -65,7 +65,7 @@ export default function SimilarStories({
                   />
                 </div>
                 <p
-                  className={`mt-2 font-heading text-sm font-bold ${
+                  className={`mt-2.5 font-heading text-base font-bold sm:text-lg ${
                     isDark
                       ? "text-white group-hover:text-[#D8A84E]"
                       : "text-[#111827] group-hover:text-[#2F80ED]"
@@ -75,7 +75,7 @@ export default function SimilarStories({
                 </p>
                 {mock.subtitle ? (
                   <p
-                    className={`line-clamp-1 text-xs ${
+                    className={`line-clamp-2 text-sm sm:text-base ${
                       isDark ? "text-[#999]" : "text-muted"
                     }`}
                   >

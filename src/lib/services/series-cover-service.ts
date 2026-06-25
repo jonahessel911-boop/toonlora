@@ -14,6 +14,7 @@ import {
   requireAnthropicKey,
 } from "@/lib/engine/anthropic-client";
 import { hasOpenAIKey, requireOpenAIKey } from "@/lib/engine/openai-client";
+import { parseJsonFromModel } from "@/lib/parseModelJson";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -23,6 +24,33 @@ const CATEGORY_LABELS: Record<string, string> = {
   empires: "Empires",
   heists: "Heists & Frauds",
 };
+
+const FOUNDER_TITLE_SYSTEM = `You are a Toonlora series title writer for cinematic founder graphic novels.
+
+Write ONE catchy catalog title in this exact format:
+"[Founder full name — first and last name] — [Punchy dramatic tagline]"
+
+CRITICAL: The subject MUST be the founder's personal name (e.g. "Enzo Ferrari", "Adam Neumann", "Phil Knight"), NEVER the company or brand alone (NOT "Ferrari", "WeWork", "Nike").
+
+The tagline must be provocative, specific, and binge-worthy — not generic.
+
+Examples of excellent founder story titles:
+- Enzo Ferrari — The Man Who Let Drivers Die for Glory
+- Adam Neumann — The $47B Lie
+- Phil Knight — Just Don't Quit
+- Steve Jobs — The Return
+- Ray Kroc — The Real McDonald's
+
+Return ONLY JSON:
+{
+  "display_title": string,
+  "tagline": string,
+  "cover_subjects": [string, string],
+  "iconic_visual": string
+}
+
+cover_subjects: founder portrait + iconic product/vehicle/building from their story
+iconic_visual: the single most recognizable object/symbol for this founder's story`;
 
 const TITLE_SYSTEM = `You are a Toonlora series title writer for cinematic business graphic novels.
 
@@ -35,10 +63,11 @@ Examples of excellent titles:
 - WeWork — The $47B Lie
 - Enron — The Smartest Criminals in the Room
 - Theranos — One Drop of Blood, One Billion in Fraud
-- Ferrari — The Man Who Let Drivers Die for Glory
 - LVMH — How One Man Bought Every Luxury Brand on Earth
 - FTX — How SBF Lost $32B in 72 Hours
 - Blockbuster — The Night They Said No to Netflix for $50M
+
+Note: For Founder Stories category, use the founder's full personal name — not the company name.
 
 Return ONLY JSON:
 {
@@ -76,14 +105,6 @@ interface CoverTitleResult {
   tagline: string;
   cover_subjects: string[];
   iconic_visual: string;
-}
-
-function parseJsonFromModel<T>(raw: string): T {
-  const trimmed = raw.trim();
-  const start = trimmed.indexOf("{");
-  const end = trimmed.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("Model returned invalid JSON");
-  return JSON.parse(trimmed.slice(start, end + 1)) as T;
 }
 
 async function callAnthropicJson<T>(params: {
@@ -204,9 +225,12 @@ ${(live.research?.characters ?? [])
 
 Write the catalog display_title and cover visual plan for this series.`;
 
+  const isFounderCategory = live.series.category === "founder_stories";
+  const titleSystem = isFounderCategory ? FOUNDER_TITLE_SYSTEM : TITLE_SYSTEM;
+
   const { result: titlePlan, usage: titleUsage } =
     await callAnthropicJson<CoverTitleResult>({
-      system: TITLE_SYSTEM,
+      system: titleSystem,
       user: titleUser,
       operation: "series_cover_title",
     });

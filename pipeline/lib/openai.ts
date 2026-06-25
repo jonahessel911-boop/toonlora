@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { enforceCaptionBoxRules } from "../../src/lib/prompts/caption-box-rules.js";
 import { requireEnv } from "./config.js";
 import { getSupabase } from "./supabase.js";
 import { getStepUsage } from "./usage.js";
@@ -22,7 +23,7 @@ export async function generateDalleImage(prompt: string): Promise<GeneratedImage
 
   const response = await openai.images.generate({
     model: "gpt-image-1",
-    prompt: prompt,
+    prompt: enforceCaptionBoxRules(prompt),
     size: "1024x1536",
     quality: "high",
   });

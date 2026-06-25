@@ -1,12 +1,16 @@
 import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import { BRAND_TAGLINE } from "@/lib/brand";
-import { PLATFORM_TOPICS } from "@/lib/platformTopics";
+import { HOME_BROWSE_NAV } from "@/lib/homeBrowseNav";
 
 const FOOTER_LINKS = [
   { href: "/", label: "Browse" },
   { href: "/profile", label: "My Library" },
   { href: "/subscribe", label: "Subscribe" },
 ] as const;
+
+const FOOTER_CATEGORIES = HOME_BROWSE_NAV.filter(
+  (item) => item.id !== "home" && item.id !== "this-week"
+);
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
@@ -26,16 +30,16 @@ export default function SiteFooter() {
 
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
-              Topics
+              Categories
             </p>
             <ul className="mt-3 space-y-2">
-              {PLATFORM_TOPICS.map((topic) => (
-                <li key={topic.id}>
+              {FOOTER_CATEGORIES.map((category) => (
+                <li key={category.id}>
                   <AffiliateLink
-                    href={`/#categories?topic=${topic.id}`}
+                    href={category.href}
                     className="text-sm font-semibold text-[#2F80ED] transition hover:text-[#1F6FD6]"
                   >
-                    {topic.label} Stories
+                    {category.label}
                   </AffiliateLink>
                 </li>
               ))}
@@ -77,11 +81,10 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-2 border-t border-[#E7DDCC] pt-6 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+        <div className="mt-10 border-t border-[#E7DDCC] pt-6 text-center sm:text-left">
           <p className="text-xs text-[#64748B]">
             © {year} Toonlora. All rights reserved.
           </p>
-          <p className="text-xs text-[#64748B]">Business Stories</p>
         </div>
       </div>
     </footer>

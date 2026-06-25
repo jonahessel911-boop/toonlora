@@ -7,7 +7,7 @@ import NetflixChapterRow from "@/components/story/NetflixChapterRow";
 import SimilarStories from "@/components/story/SimilarStories";
 import SubscriptionPaywall from "@/components/reader/SubscriptionPaywall";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
-import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
+import { fetchPublishedStory, isStoryBrowsable } from "@/lib/fetchPublishedStory";
 import { appendAffiliateToHref, getStoredAffiliateSlug } from "@/lib/affiliate/client-tracking";
 import { buildPaywallPath, buildReaderSignupPath } from "@/lib/reader/nextEpisodeGate";
 import {
@@ -20,6 +20,7 @@ import {
   isFollowingSeries,
   unfollowSeries,
 } from "@/lib/library/preferences";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { findMockStory } from "@/lib/mock/businessStoryCatalog";
 import {
   buildFullEpisodeList,
@@ -37,6 +38,7 @@ import {
 import { getReadingHistory } from "@/lib/readingHistory";
 import { hasCompletedEpisode } from "@/lib/readingProgress";
 import { storyToSeriesDetail, type SeriesDetail } from "@/lib/seriesCatalog";
+import type { Story } from "@/types/story";
 import { trackSeriesView } from "@/lib/trackSeriesView";
 import { formatCatalogViews } from "@/types/catalog";
 import { useStoryStore } from "@/store/useStoryStore";
@@ -63,12 +65,14 @@ function getEpisodeProgress(
 export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
   const { getStoryById } = useStoryStore();
   const { email } = useUserStore();
+  const { requireAuth } = useRequireAuth();
   const {
     hasPaidAccess,
     hydrate: hydrateSubscription,
     isEntrepreneur,
   } = useSubscriptionStore();
   const [series, setSeries] = useState<SeriesDetail | null>(null);
+  const [loadedStory, setLoadedStory] = useState<Story | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<DetailTab>("episodes");
   const [following, setFollowing] = useState(false);
@@ -108,16 +112,19 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
         const fetched = await fetchPublishedStory(id);
         if (!cancelled) {
           if (fetched) {
+            setLoadedStory(fetched);
             setSeries(storyToSeriesDetail(fetched));
             return;
           }
 
           const local = getStoryById(id);
-          if (local && (local.status === "published" || local.isPublic)) {
+          if (local && isStoryBrowsable(local)) {
+            setLoadedStory(local);
             setSeries(storyToSeriesDetail(local));
             return;
           }
 
+          setLoadedStory(null);
           const mock = findMockStory(id);
           if (mock) {
             setSeries(mockStoryToSeriesDetail(mock));
@@ -202,6 +209,12 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
     genre: series.genre,
     synopsis: series.synopsis,
     chapterCount: mock?.chapters ?? series.episodes.length,
+    topic: loadedStory?.topic,
+    slug: loadedStory?.slug,
+    category: loadedStory?.category ?? loadedStory?.genre,
+    mainCharacter: loadedStory?.mainCharacter,
+    researchTopic: loadedStory?.researchTopic,
+    researchCharacters: loadedStory?.researchCharacters,
   });
 
   const { name: parsedName, subtitle: parsedSubtitle } = parseSagaTitle(
@@ -269,6 +282,8 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
   };
 
   const toggleFollow = () => {
+    if (!requireAuth(`/story/${id}`)) return;
+
     if (following) {
       unfollowSeries(id);
       setFollowing(false);
@@ -481,37 +496,37 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
           ) : null}
 
           {activeTab === "about" ? (
-            <div className="max-w-3xl space-y-6">
-              <p className="text-base leading-relaxed text-[#374151]">
+            <div className="max-w-4xl space-y-8">
+              <p className="text-lg leading-relaxed text-[#374151] md:text-xl md:leading-relaxed">
                 {storyDescription}
               </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-lg border border-[#E6DFD1] bg-white p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="rounded-xl border border-[#E6DFD1] bg-white p-5 md:p-6">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280] md:text-sm">
                     Founder
                   </p>
-                  <p className="mt-1 font-semibold text-[#111827]">
+                  <p className="mt-2 text-lg font-semibold text-[#111827] md:text-xl">
                     {caseFile.founder}
                   </p>
                 </div>
-                <div className="rounded-lg border border-[#E6DFD1] bg-white p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
+                <div className="rounded-xl border border-[#E6DFD1] bg-white p-5 md:p-6">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280] md:text-sm">
                     Company
                   </p>
-                  <p className="mt-1 font-semibold text-[#111827]">
+                  <p className="mt-2 text-lg font-semibold text-[#111827] md:text-xl">
                     {caseFile.company}
                   </p>
                 </div>
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280]">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#6B7280] md:text-sm">
                   Key lessons
                 </p>
-                <ul className="mt-3 space-y-2">
+                <ul className="mt-4 space-y-3">
                   {caseFile.lessons.map((lesson) => (
                     <li
                       key={lesson}
-                      className="flex gap-2 text-sm text-[#374151]"
+                      className="flex gap-3 text-base text-[#374151] md:text-lg"
                     >
                       <span className="text-[#D8A84E]">•</span>
                       {lesson}

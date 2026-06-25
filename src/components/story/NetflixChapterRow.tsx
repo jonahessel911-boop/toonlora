@@ -73,7 +73,7 @@ export default function NetflixChapterRow({ children }: NetflixChapterRowProps) 
         <button
           type="button"
           onClick={() => scroll("left")}
-          className="absolute left-0 top-[72px] z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white opacity-0 transition hover:bg-black group-hover/row:opacity-100 md:flex"
+          className="absolute left-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white opacity-0 transition hover:bg-black group-hover/row:opacity-100 md:flex"
           aria-label="Scroll chapters left"
         >
           <Chevron direction="left" />
@@ -82,7 +82,7 @@ export default function NetflixChapterRow({ children }: NetflixChapterRowProps) 
 
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory md:gap-5"
+        className="flex gap-5 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory md:gap-6"
       >
         {children}
       </div>
@@ -91,7 +91,7 @@ export default function NetflixChapterRow({ children }: NetflixChapterRowProps) 
         <button
           type="button"
           onClick={() => scroll("right")}
-          className="absolute right-0 top-[72px] z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white opacity-0 transition hover:bg-black group-hover/row:opacity-100 md:flex"
+          className="absolute right-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white opacity-0 transition hover:bg-black group-hover/row:opacity-100 md:flex"
           aria-label="Scroll chapters right"
         >
           <Chevron direction="right" />

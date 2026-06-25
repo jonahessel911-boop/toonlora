@@ -18,6 +18,7 @@ import type { Story } from "@/types/story";
 import { useCatalog } from "@/hooks/useCatalog";
 import { apiFetch, getSessionId } from "@/lib/session";
 import { useUserStore } from "@/store/useUserStore";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 interface EpisodeCommentsSectionProps {
   series: SeriesDetail;
@@ -231,6 +232,7 @@ export default function EpisodeCommentsSection({
   story,
 }: EpisodeCommentsSectionProps) {
   const { email, fullName } = useUserStore();
+  const { requireAuth } = useRequireAuth();
   const loggedIn = Boolean(email && fullName);
   const [sort, setSort] = useState<CommentSort>("top");
   const [comments, setComments] = useState<EpisodeComment[]>([]);
@@ -309,6 +311,8 @@ export default function EpisodeCommentsSection({
   };
 
   const handleReact = async (commentId: string, reaction: "like" | "dislike") => {
+    const returnTo = `/story/${series.id}/read?ep=${episodeNumber}#episode-comments`;
+    if (!requireAuth(returnTo)) return;
     try {
       if (isDatabaseEnabled()) {
         const res = await apiFetch(`/api/comments/${commentId}/react`, {

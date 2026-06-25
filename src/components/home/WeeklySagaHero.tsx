@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo } from "react";
 import StoryCoverImage from "@/components/ui/StoryCoverImage";
+import { useMyList } from "@/hooks/useMyList";
 import { NAVY_COVER_GRADIENT } from "@/lib/theme/navy";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
+import { formatSagaFollowTitle } from "@/lib/library/preferences";
 import { mockStoryToCatalogSeries } from "@/lib/mock/mockCatalogCards";
 import {
   WEEKLY_HERO,
@@ -17,10 +19,21 @@ interface WeeklySagaHeroProps {
 }
 
 export default function WeeklySagaHero({ featured = WEEKLY_HERO }: WeeklySagaHeroProps) {
-  const [following, setFollowing] = useState(false);
   const saga = mockStoryToCatalogSeries(featured);
   const href = `/story/${featured.id}/read?ep=1`;
   const seed = featured.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  const listEntry = useMemo(
+    () => ({
+      seriesId: featured.id,
+      title: formatSagaFollowTitle(featured.title, featured.subtitle),
+      scheduleLabel: "New every Monday",
+      href: `/story/${featured.id}`,
+    }),
+    [featured.id, featured.subtitle, featured.title]
+  );
+
+  const { onList: following, toggle } = useMyList(listEntry);
 
   return (
     <section
@@ -57,7 +70,8 @@ export default function WeeklySagaHero({ featured = WEEKLY_HERO }: WeeklySagaHer
               </Link>
               <button
                 type="button"
-                onClick={() => setFollowing((f) => !f)}
+                onClick={toggle}
+                aria-pressed={following}
                 className={`inline-flex min-h-[48px] items-center justify-center rounded-full border px-7 text-sm font-bold transition ${
                   following
                     ? "border-accent bg-accent/15 text-accent"

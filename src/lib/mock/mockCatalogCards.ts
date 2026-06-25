@@ -1,5 +1,6 @@
 import type { CatalogSeries } from "@/types/catalog";
 import { NAVY_COVER_GRADIENT } from "@/lib/theme/navy";
+import { formatFounderStoryTitle } from "@/lib/founderStoryTitle";
 import type {
   MockCatalogStory,
   MockStoryCategory,
@@ -9,7 +10,15 @@ export function mockStoryToCatalogSeries(
   story: MockCatalogStory,
   category?: MockStoryCategory
 ): CatalogSeries {
-  const displayTitle = story.title;
+  const isFounder =
+    category?.section === "founders" || story.sagaLabel === "Founder Story";
+  const displayTitle = isFounder
+    ? formatFounderStoryTitle({
+        storyId: story.id,
+        title: story.title,
+        subtitle: story.subtitle,
+      })
+    : story.title;
 
   return {
     id: story.id,
@@ -32,7 +41,7 @@ export function mockStoryToCatalogSeries(
     likes: story.trending ? "890" : "0",
     episodes: story.chapters,
     creator: "Toonlora Original",
-    sagaSubtitle: story.subtitle,
+    sagaSubtitle: isFounder ? undefined : story.subtitle,
     sagaLabel: story.sagaLabel,
     readMinutes: story.readMinutes,
     sagaBadges: story.badges,

@@ -91,6 +91,12 @@ export interface Story {
   isPublic?: boolean;
   coverArtUrl?: string;
   displayTitle?: string;
+  /** Pipeline research topic / raw series title (e.g. "Ferrari") */
+  topic?: string;
+  slug?: string;
+  category?: string;
+  researchTopic?: string;
+  researchCharacters?: Array<{ name: string; role: string }>;
 }
 
 /** @deprecated Use CatalogSeries from @/types/catalog */

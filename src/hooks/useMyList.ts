@@ -7,9 +7,11 @@ import {
   unfollowSeries,
   type FollowingStory,
 } from "@/lib/library/preferences";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 /** Sync My List / follow state with localStorage-backed preferences. */
 export function useMyList(entry: FollowingStory) {
+  const { requireAuth } = useRequireAuth();
   const [onList, setOnList] = useState(false);
 
   const sync = useCallback(() => {
@@ -23,13 +25,15 @@ export function useMyList(entry: FollowingStory) {
   }, [sync]);
 
   const toggle = useCallback(() => {
+    if (!requireAuth(entry.href)) return;
+
     if (isFollowingSeries(entry.seriesId)) {
       unfollowSeries(entry.seriesId);
     } else {
       followSeries(entry);
     }
     sync();
-  }, [entry, sync]);
+  }, [entry, requireAuth, sync]);
 
   return { onList, toggle };
 }

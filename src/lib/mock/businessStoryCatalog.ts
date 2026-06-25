@@ -52,7 +52,7 @@ export const MOCK_STORY_CATALOG: MockStoryCategory[] = [
       WEEKLY_HERO,
       {
         id: "ferrari",
-        title: "Ferrari",
+        title: "Enzo Ferrari",
         subtitle: "Built on Rage",
         hook: "The obsession, betrayal, and speed behind an empire.",
         chapters: 10,

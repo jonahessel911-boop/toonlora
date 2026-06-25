@@ -42,7 +42,7 @@ export default function NetflixChapterCard({
   const cardDisabled = disabled || (isComing && !showFastPass);
 
   return (
-    <article className="flex w-[min(78vw,300px)] shrink-0 snap-start flex-col sm:w-[320px]">
+    <article className="flex w-[min(92vw,380px)] shrink-0 snap-start flex-col sm:w-[400px]">
       <button
         type="button"
         disabled={cardDisabled}
@@ -50,7 +50,7 @@ export default function NetflixChapterCard({
         className={`group w-full text-left ${cardDisabled ? "cursor-default" : ""}`}
       >
         <div
-          className={`relative aspect-video overflow-hidden rounded ${
+          className={`relative aspect-[2/3] overflow-hidden rounded-lg ${
             isLight ? "bg-[#E6DFD1] ring-1 ring-[#D1C9B8]" : "bg-[#2a2a2a]"
           }`}
         >
@@ -83,14 +83,14 @@ export default function NetflixChapterCard({
           />
 
           <span
-            className="absolute bottom-3 left-3 font-heading text-5xl font-black leading-none text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
+            className="absolute bottom-4 left-4 font-heading text-6xl font-black leading-none text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] sm:text-7xl"
             aria-hidden
           >
             {number}
           </span>
 
           {badge ? (
-            <span className="absolute right-2 top-2 rounded bg-black/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+            <span className="absolute right-3 top-3 rounded bg-black/60 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
               {chapterBadgeLabel(badge)}
             </span>
           ) : null}
@@ -105,9 +105,9 @@ export default function NetflixChapterCard({
           ) : null}
         </div>
 
-        <div className="mt-2.5 flex items-start justify-between gap-3">
+        <div className="mt-3 flex items-start justify-between gap-3">
           <p
-            className={`font-heading text-[15px] font-bold leading-tight ${
+            className={`font-heading text-base font-bold leading-tight sm:text-lg ${
               isComing
                 ? isLight
                   ? "text-[#6B7280]"
@@ -129,7 +129,7 @@ export default function NetflixChapterCard({
         </div>
 
         <p
-          className={`mt-1.5 line-clamp-3 text-sm leading-[1.45] ${
+          className={`mt-2 line-clamp-3 text-sm leading-relaxed sm:text-base ${
             isLight ? "text-[#6B7280]" : "text-[#999]"
           }`}
         >

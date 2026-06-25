@@ -1,5 +1,6 @@
 import { callAnthropicJson } from "../lib/anthropic.js";
 import { parseJsonFromModel } from "../lib/json.js";
+import { CAPTION_BOX_RULES, SCENE_COMPOSITION_SAFE_ZONE } from "../../src/lib/prompts/caption-box-rules.js";
 import {
   listEpisodes,
   listPanelsForEpisode,
@@ -18,14 +19,8 @@ const CAMERA_ROTATION = [
   "low angle power shot",
 ] as const;
 
-const NARRATION_CORNERS = [
-  "bottom-left",
-  "top-right",
-  "bottom-right",
-  "top-left",
-  "bottom-right",
-  "top-left",
-] as const;
+const CAPTION_BOX_POSITION =
+  "large box, 80% width centered, 68-82% height band, 32px inner padding, 80px+ bottom margin — never full width, never on subject";
 
 const PROMPT_SYSTEM = `You are a senior comic art director for Toonlora, a premium documentary-style digital comic platform. Your job is to take a panel script and write a complete, detailed image generation prompt that produces a ready-to-publish cinematic comic panel.
 
@@ -47,6 +42,7 @@ Describe the main character with extreme specificity: approximate age, hair styl
 Keep this IDENTICAL across all panels in the same episode.
 
 SCENE — describe exactly:
+${SCENE_COMPOSITION_SAFE_ZONE}
 - Location (specific: not just "office" but "late-night Tesla factory floor in Fremont California 2008, fluorescent overhead lights, half-assembled red roadster in background")
 - Time of day and lighting: one dominant light source, mostly dark, high contrast
 - Camera angle: choose one that fits the story beat
@@ -54,12 +50,13 @@ SCENE — describe exactly:
 - Background props: specific branded elements, readable documents, era-appropriate technology, financial charts — describe what is readable on them
 - Weather/atmosphere if exterior
 
-TEXT — include the exact caption from the panel script:
-"Narration box: cream/parchment colored box, thin dark border, slight aged paper texture, clean readable black serif font. Placed at [top-left / top-right / bottom-left / bottom-right — choose based on where empty space is in the scene].
-Text reads: '[EXACT CAPTION TEXT FROM SCRIPT]'"
+TEXT — include the exact caption from the panel script. Include this block verbatim in every image prompt:
 
-If dialogue exists:
-"Speech bubble near character mouth, clean modern font, text reads: '[EXACT DIALOGUE]'"
+"${CAPTION_BOX_RULES}"
+
+Then specify the panel caption: Text reads: '[EXACT CAPTION TEXT FROM SCRIPT]'
+
+If dialogue exists, add the speech bubble per the CAPTION BOX RULES above: text reads: '[EXACT DIALOGUE]'
 
 IMPORTANT RULES — include at end of every prompt:
 "Every panel must feel cinematic and realistic. Avoid repeated poses from previous panels. Avoid flat cartoon styling. Avoid exaggerated facial expressions. Avoid fake-looking charts. Keep the panel premium, dark, serious, and emotionally intense. No watermarks. No borders around the full image. No logos except story-relevant branding."
@@ -70,14 +67,14 @@ When generating prompts, you receive:
 - The series title and category
 - Research facts about the real story
 - The panel script: visual_description, character_details, background_props, caption_text, dialogue_text, mood, era_details, camera angle suggestion
-- Per-panel assignments for camera angle, narration corner placement, and emotional beat within the chapter sequence
+- Per-panel assignments for camera angle and emotional beat within the chapter sequence
 
 Use ALL of this to write one complete prompt per panel.
 Each image_prompt must be 300–500 words — detailed enough that gpt-image-1 produces the panel with no retouching needed.
 
 Write each image_prompt as a single flowing paragraph (or short labeled sections matching OPENING / STYLE / FORMAT / CHARACTER / SCENE / TEXT / IMPORTANT RULES) that can be sent directly to gpt-image-1 with zero post-processing.
 
-Within a chapter: vary camera angle and narration corner every panel. Progress emotion across the sequence. Never repeat poses.
+Within a chapter: vary camera angle every panel. Caption box position and style are fixed per CAPTION BOX RULES. Progress emotion across the sequence. Never repeat poses.
 
 Return ONLY valid JSON:
 {
@@ -109,22 +106,6 @@ function groupPanelsByChapter(panels: PanelRow[]): Map<number, PanelRow[]> {
   return chapters;
 }
 
-function textPlacementToCorner(
-  placement: string | null | undefined,
-  fallback: string
-): string {
-  if (!placement) return fallback;
-  const p = placement.toLowerCase();
-  if (p === "top") return "top-right";
-  if (p === "bottom") return "bottom-left";
-  if (p === "split") return "top-left";
-  if (p.includes("top") && p.includes("left")) return "top-left";
-  if (p.includes("top") && p.includes("right")) return "top-right";
-  if (p.includes("bottom") && p.includes("left")) return "bottom-left";
-  if (p.includes("bottom") && p.includes("right")) return "bottom-right";
-  return fallback;
-}
-
 function panelToScriptPayload(p: PanelRow) {
   const script = p.script_json as Record<string, unknown> | null;
   return {
@@ -149,7 +130,7 @@ function buildChapterSequenceDirectives(
 ): Array<{
   panel_number: number;
   camera_angle: string;
-  narration_corner: string;
+  caption_position: string;
   emotional_beat: string;
 }> {
   const beats = [
@@ -164,10 +145,7 @@ function buildChapterSequenceDirectives(
   return chapterPanels.map((panel, index) => ({
     panel_number: panel.panel_number,
     camera_angle: CAMERA_ROTATION[index % CAMERA_ROTATION.length],
-    narration_corner: textPlacementToCorner(
-      panel.text_placement,
-      NARRATION_CORNERS[index % NARRATION_CORNERS.length]
-    ),
+    caption_position: CAPTION_BOX_POSITION,
     emotional_beat: beats[Math.min(index, beats.length - 1)],
   }));
 }
@@ -213,8 +191,8 @@ ${JSON.stringify(scriptPanels, null, 2)}
 Research facts:
 ${params.researchFacts}
 
-For each panel write OPENING, STYLE (verbatim), FORMAT (verbatim), CHARACTER DESCRIPTION, SCENE, TEXT (verbatim caption + dialogue if any), and IMPORTANT RULES (verbatim closing block).
-Send-ready for gpt-image-1. Portrait 1024x1536.`,
+For each panel write OPENING, STYLE (verbatim), FORMAT (verbatim), CHARACTER DESCRIPTION, SCENE (include composition safe zone — subject in top 62% only), TEXT (verbatim CAPTION BOX RULES + caption + dialogue), and IMPORTANT RULES (verbatim closing block).
+Send-ready for gpt-image-1. Portrait 1024x1536. Caption box: large, 80% width, 32px padding, never full-width.`,
     maxTokens: Math.max(12000, params.panels.length * 2500),
   });
 

@@ -1,5 +1,6 @@
 import { callAnthropicJson } from "../lib/anthropic.js";
 import { parseJsonFromModel } from "../lib/json.js";
+import { CAPTION_WRITING_RULES } from "../../src/lib/prompts/caption-writing-rules.js";
 import { upsertEpisodeStructure, upsertPanelRow } from "../lib/supabase.js";
 import { loadResearch } from "./researcher.js";
 
@@ -27,8 +28,10 @@ Create exactly ${LEAN_PANEL_COUNT} panel for a preview episode:
 For the panel:
 - beat: story beat in one sentence
 - visual: what we see (lighting, composition, era, emotion)
-- caption: max 20 words narration (empty string if none)
+- caption: max 20 words narration, max 3 short lines (empty string if none) — no dialogue in caption
 - dialogue: max 10 words, format Name: "line" or empty string
+
+${CAPTION_WRITING_RULES}
 
 Return ONLY JSON:
 {

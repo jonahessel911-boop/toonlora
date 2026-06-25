@@ -1,5 +1,6 @@
 import { callAnthropicJson } from "../lib/anthropic.js";
 import { parseJsonFromModel } from "../lib/json.js";
+import { CAPTION_WRITING_RULES } from "../../src/lib/prompts/caption-writing-rules.js";
 import {
   listEpisodes,
   upsertEpisodeStructure,
@@ -64,8 +65,9 @@ RULES:
 - visual_description: exact scene — location, time, lighting, characters, action, camera angle (vary angles — never repeat the previous panel's angle)
 - character_details: age, clothing, hair, expression, body language — extremely specific
 - background_props: newspapers, screens, documents, charts with READABLE specific content
-- caption_text: max 25 words, punchy, MUST include at least one specific fact, number, name, or date
+- caption_text: max 20 words, max 3 short lines, MUST include at least one specific fact, number, name, or date — dialogue goes in dialogue_text only, never in caption
 - dialogue_text: exact spoken words for dialogue panels, null otherwise; max 10 words per bubble
+${CAPTION_WRITING_RULES}
 - mood: one word — tense / triumphant / dark / chaotic / hopeful / ominous
 - era_details: year, world context, period clothing, tech visible
 - stat_card: one shocking number full screen, minimal caption

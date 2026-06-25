@@ -6,6 +6,8 @@ import {
   type ApiUsageSummary,
 } from "@/lib/api-usage-cost";
 import { persistPipelinePanelArt } from "@/lib/services/comic-art-storage";
+import { enforceCaptionBoxRules, CAPTION_BOX_RULES, SCENE_COMPOSITION_SAFE_ZONE } from "@/lib/prompts/caption-box-rules";
+import { CAPTION_WRITING_RULES } from "@/lib/prompts/caption-writing-rules";
 import { getPipelineLiveState } from "@/lib/services/content-pipeline-service";
 import {
   getPanelById,
@@ -20,6 +22,7 @@ import {
   requireAnthropicKey,
 } from "@/lib/engine/anthropic-client";
 import { hasOpenAIKey, requireOpenAIKey } from "@/lib/engine/openai-client";
+import { parseJsonFromModel } from "@/lib/parseModelJson";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { CreatorAdminPanel } from "@/types/creator-admin";
 
@@ -45,8 +48,9 @@ Return ONLY valid JSON:
 RULES:
 - Continue the narrative from the last existing panel — do not repeat what was already shown
 - visual_description: exact scene with camera angle (different from the previous panel)
-- caption_text: max 25 words, include a specific fact, number, name, or date
+- caption_text: max 20 words, max 3 short lines when rendered in the caption box
 - dialogue_text: max 10 words per bubble, or null
+${CAPTION_WRITING_RULES}
 - Pick the next story beat from the episode plan / bible that has not been covered yet`;
 
 const PROMPT_SYSTEM = `You are a senior comic art director for Toonlora. Write ONE complete image generation prompt for a single panel.
@@ -56,8 +60,11 @@ OPENING (2 sentences) — story context, tone, era
 STYLE — include verbatim: "Ultra-realistic cinematic graphic novel style. Not cartoonish. Not anime. Not flat illustration. Realistic faces, realistic lighting, realistic clothing, realistic environments. Dark, gritty, high-end business thriller atmosphere. Detailed shadows, film lighting. Premium HBO / Netflix documentary drama feeling."
 FORMAT — include verbatim: "Tall vertical portrait panel, mobile-first, single cinematic scene."
 CHARACTER — specific age, hair, clothing, expression, body language
-SCENE — location, lighting, camera angle, background props with readable details
-TEXT — exact caption and dialogue from the script in cream/parchment narration boxes
+SCENE — location, lighting, camera angle, background props. ${SCENE_COMPOSITION_SAFE_ZONE}
+TEXT — include this block verbatim, then the exact caption and dialogue from the script:
+
+"${CAPTION_BOX_RULES}"
+
 IMPORTANT RULES — cinematic, realistic, no watermarks, no borders
 
 The image_prompt must be 300–500 words, one flowing paragraph ready for gpt-image-1.
@@ -76,16 +83,6 @@ interface ExtraPanelScript {
   text_placement: string;
   mood: string;
   era_details: string;
-}
-
-function parseJsonFromModel<T>(raw: string): T {
-  const trimmed = raw.trim();
-  const start = trimmed.indexOf("{");
-  const end = trimmed.lastIndexOf("}");
-  if (start === -1 || end === -1) {
-    throw new Error("Model returned invalid JSON");
-  }
-  return JSON.parse(trimmed.slice(start, end + 1)) as T;
 }
 
 async function callAnthropicJson<T>(params: {
@@ -138,7 +135,7 @@ async function generatePanelImage(prompt: string): Promise<{
     },
     body: JSON.stringify({
       model: "gpt-image-1",
-      prompt,
+      prompt: enforceCaptionBoxRules(prompt),
       size: "1024x1536",
       quality: "high",
       n: 1,

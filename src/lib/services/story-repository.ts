@@ -1,5 +1,13 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { buildEpisodeFromPanelUrls } from "@/lib/admin/uploadedStoryBuilder";
+import {
+  formatFounderStoryTitle,
+  isFounderStoryCategory,
+} from "@/lib/founderStoryTitle";
+import {
+  fetchPipelinePanelsForEpisodes,
+  hydrateEpisodesWithPipelinePanels,
+} from "@/lib/services/pipeline-story-hydration";
 import type { EpisodeRow, SeriesRow } from "@/lib/supabase/types";
 import type { Story, StoryEpisode } from "@/types/story";
 
@@ -12,13 +20,8 @@ export interface SaveStoryOptions {
   featuredRank?: number | null;
 }
 
-function rowToStory(series: SeriesRow, episodeRows: EpisodeRow[]): Story {
-  const extended = series as SeriesRow & {
-    display_title?: string | null;
-    cover_art_url?: string | null;
-  };
-
-  const episodes: StoryEpisode[] = episodeRows
+function episodesFromRows(episodeRows: EpisodeRow[]): StoryEpisode[] {
+  return episodeRows
     .sort((a, b) => a.episode_number - b.episode_number)
     .map((ep) => ({
       id: ep.id,
@@ -30,14 +33,43 @@ function rowToStory(series: SeriesRow, episodeRows: EpisodeRow[]): Story {
       comicPage: ep.comic_page as unknown as StoryEpisode["comicPage"],
       textOverlay: ep.text_overlay as unknown as StoryEpisode["textOverlay"],
     }));
+}
+
+function rowToStory(series: SeriesRow, episodes: StoryEpisode[]): Story {
+  const extended = series as SeriesRow & {
+    display_title?: string | null;
+    cover_art_url?: string | null;
+    category?: string | null;
+    slug?: string | null;
+    research_json?: {
+      topic?: string;
+      characters?: Array<{ name: string; role: string }>;
+    } | null;
+  };
+
+  const category = extended.category?.trim() || series.genre;
+  const rawTitle = extended.display_title?.trim() || series.title;
+  const resolvedTitle = isFounderStoryCategory(category)
+    ? formatFounderStoryTitle({
+        storyId: series.id,
+        title: rawTitle,
+        mainCharacter: series.main_character,
+        researchCharacters: extended.research_json?.characters,
+      })
+    : rawTitle;
 
   return {
     id: series.id,
-    title: extended.display_title?.trim() || series.title,
+    title: resolvedTitle,
     genre: series.genre,
     coverGradient: series.cover_gradient,
     coverArtUrl: extended.cover_art_url?.trim() || undefined,
     displayTitle: extended.display_title?.trim() || undefined,
+    topic: series.title?.trim() || undefined,
+    slug: extended.slug?.trim() || undefined,
+    category: category || undefined,
+    researchTopic: extended.research_json?.topic?.trim() || undefined,
+    researchCharacters: extended.research_json?.characters,
     chapters: (series.legacy_pages?.chapters ?? []) as Story["chapters"],
     pages: (series.legacy_pages?.pages ?? []) as Story["pages"],
     createdAt: series.created_at,
@@ -258,6 +290,28 @@ export async function updateAdminStoryEpisode(
   return getStoryFromDb(storyId) as Promise<Story>;
 }
 
+async function hydrateEpisodesFromRows(
+  episodeRows: EpisodeRow[]
+): Promise<StoryEpisode[]> {
+  const episodes = episodesFromRows(episodeRows);
+  const supabase = getSupabaseAdmin();
+  if (!supabase || episodes.length === 0) return episodes;
+
+  const panelRows = await fetchPipelinePanelsForEpisodes(
+    supabase,
+    episodes.map((ep) => ep.id)
+  );
+  return hydrateEpisodesWithPipelinePanels(episodes, panelRows);
+}
+
+async function loadStoryWithPipelinePanels(
+  series: SeriesRow,
+  episodeRows: EpisodeRow[]
+): Promise<Story> {
+  const episodes = await hydrateEpisodesFromRows(episodeRows);
+  return rowToStory(series, episodes);
+}
+
 export async function getStoryFromDb(id: string): Promise<Story | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
@@ -276,7 +330,10 @@ export async function getStoryFromDb(id: string): Promise<Story | null> {
     .eq("series_id", id)
     .order("episode_number", { ascending: true });
 
-  return rowToStory(series as SeriesRow, (episodes ?? []) as EpisodeRow[]);
+  return loadStoryWithPipelinePanels(
+    series as SeriesRow,
+    (episodes ?? []) as EpisodeRow[]
+  );
 }
 
 export async function listStoriesFromDb(sessionId: string): Promise<Story[]> {
@@ -302,7 +359,10 @@ export async function listStoriesFromDb(sessionId: string): Promise<Story[]> {
       .order("episode_number", { ascending: true });
 
     stories.push(
-      rowToStory(series as SeriesRow, (episodes ?? []) as EpisodeRow[])
+      await loadStoryWithPipelinePanels(
+        series as SeriesRow,
+        (episodes ?? []) as EpisodeRow[]
+      )
     );
   }
 

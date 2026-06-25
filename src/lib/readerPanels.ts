@@ -32,12 +32,23 @@ export function episodeToReaderPanels(
   const stripUrl = episode.comicPage.artUrl ?? undefined;
 
   const breakdownByNumber = new Map(
-    episode.panelBreakdown.panels.map((p) => [p.panel_number, p])
+    (episode.panelBreakdown?.panels ?? []).map((p) => [p.panel_number, p])
   );
 
-  return episode.script.panels.map((scriptPanel, panelIndex) => {
+  const scriptPanels =
+    episode.script?.panels?.length > 0
+      ? episode.script.panels
+      : [...breakdownByNumber.values()]
+          .sort((a, b) => a.panel_number - b.panel_number)
+          .map((panel) => ({
+            panel_number: panel.panel_number,
+            visual_description: panel.visual,
+          }));
+
+  return scriptPanels.map((scriptPanel, panelIndex) => {
     const id = `${seriesId ?? "ep"}-panel-${scriptPanel.panel_number}`;
-    const panelArtUrl = breakdownByNumber.get(scriptPanel.panel_number)?.artUrl;
+    const breakdownPanel = breakdownByNumber.get(scriptPanel.panel_number);
+    const panelArtUrl = breakdownPanel?.artUrl;
     const imageUrl = panelArtUrl ?? (panelIndex === 0 ? stripUrl : undefined);
 
     return {

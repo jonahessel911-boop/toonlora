@@ -12,7 +12,9 @@ import {
   updatePanelFields,
 } from "@/lib/services/pipeline-panels-repository";
 import { persistPipelinePanelArt } from "@/lib/services/comic-art-storage";
+import { enforceCaptionBoxRules } from "@/lib/prompts/caption-box-rules";
 import { hasOpenAIKey, requireOpenAIKey } from "@/lib/engine/openai-client";
+import { parseJsonFromModel } from "@/lib/parseModelJson";
 import type { CreatorAdminPanel, ImageQaResult } from "@/types/creator-admin";
 
 const QA_PASS_THRESHOLD = 75;
@@ -144,7 +146,7 @@ async function generatePanelImage(prompt: string): Promise<{
     },
     body: JSON.stringify({
       model: "gpt-image-1",
-      prompt,
+      prompt: enforceCaptionBoxRules(prompt),
       size: "1024x1536",
       quality: "high",
       n: 1,
@@ -229,7 +231,9 @@ export async function runPanelImageQa(panelId: string): Promise<{
     imageUrl: context.panel.image_url,
   });
 
-  const result = normalizeQaResult(parseJsonResponse<Partial<ImageQaResult>>(content));
+  const result = normalizeQaResult(
+    parseJsonFromModel<Partial<ImageQaResult>>(content)
+  );
 
   const review = await insertPanelReview({
     panel_id: panelId,
@@ -334,10 +338,12 @@ export async function regeneratePanelImage(
   const approvedExamples = await listApprovedPromptExamples(context.category, 3);
   const commonIssues = filterQaIssues(await listCommonIssues(5));
 
-  let enrichedPrompt = buildRegenerationPrompt(basePrompt, {
-    applyAiFix: options.applyAiFix,
-    promptFix: context.panel.latest_ai_review?.prompt_fix,
-  });
+  let enrichedPrompt = enforceCaptionBoxRules(
+    buildRegenerationPrompt(basePrompt, {
+      applyAiFix: options.applyAiFix,
+      promptFix: context.panel.latest_ai_review?.prompt_fix,
+    })
+  );
 
   if (commonIssues.length > 0) {
     enrichedPrompt += `\n\nAvoid these common problems: ${commonIssues.join("; ")}.`;

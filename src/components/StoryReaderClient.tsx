@@ -10,7 +10,7 @@ import EpisodeCommentsSection from "@/components/comments/EpisodeCommentsSection
 import GenerationLoading from "@/components/create/GenerationLoading";
 import { storyToSeriesDetail, type SeriesDetail } from "@/lib/seriesCatalog";
 import { episodeToReaderPanels } from "@/lib/readerPanels";
-import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
+import { fetchPublishedStory, isStoryBrowsable } from "@/lib/fetchPublishedStory";
 import { useStoryStore } from "@/store/useStoryStore";
 import { useCreditsStore } from "@/store/useCreditsStore";
 import { useSubscriptionStore } from "@/store/useSubscriptionStore";
@@ -67,7 +67,7 @@ export default function StoryReaderClient({
       setLoading(true);
       try {
         const local = getStoryById(id);
-        if (local && (local.status === "published" || local.isPublic)) {
+        if (local && isStoryBrowsable(local)) {
           if (!cancelled) setStory(local);
           return;
         }
@@ -185,9 +185,7 @@ export default function StoryReaderClient({
     );
   }
 
-  const isReadable = story.status !== "draft";
-
-  if (!isReadable) {
+  if (!isStoryBrowsable(story)) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-4 text-center text-white">
         <h1 className="font-heading text-2xl font-bold">Not published yet</h1>

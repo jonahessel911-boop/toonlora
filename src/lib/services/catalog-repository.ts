@@ -1,4 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { formatCatalogCategoryLabel } from "@/lib/catalogCategoryLabel";
+import {
+  formatFounderStoryTitle,
+  isFounderStoryCategory,
+} from "@/lib/founderStoryTitle";
 import type { CatalogSeries } from "@/types/catalog";
 import type { SeriesRow } from "@/lib/supabase/types";
 
@@ -60,6 +65,9 @@ function rowToCatalog(
     display_title?: string | null;
     category?: string | null;
     cover_art_url?: string | null;
+    research_json?: {
+      characters?: Array<{ name: string; role: string }>;
+    } | null;
   };
 
   const logline =
@@ -71,10 +79,24 @@ function rowToCatalog(
   const resolvedCover =
     coverArtUrl ?? coverFromSeriesRow(series) ?? undefined;
 
+  const category = extended.category?.trim() || series.genre;
+  const rawTitle = extended.display_title?.trim() || series.title;
+  const research = extended.research_json;
+
+  const title = isFounderStoryCategory(category)
+    ? formatFounderStoryTitle({
+        storyId: series.id,
+        title: rawTitle,
+        mainCharacter: series.main_character,
+        researchCharacters: research?.characters,
+      })
+    : rawTitle;
+
   return {
     id: series.id,
-    title: extended.display_title?.trim() || series.title,
-    genre: extended.category?.trim() || series.genre,
+    title,
+    genre: category,
+    sagaLabel: formatCatalogCategoryLabel(category),
     coverGradient: series.cover_gradient,
     coverArtUrl: resolvedCover,
     source: series.source === "admin" ? "admin" : "creator",

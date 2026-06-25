@@ -16,6 +16,7 @@ import {
   type RawStoryPlanResponse,
   rawPlanToEpisodeStoryPlan,
 } from "@/lib/episode-builder/imagePromptService";
+import { parseJsonFromModel } from "@/lib/parseModelJson";
 import { callOpenAIChat, hasOpenAIKey } from "@/lib/engine/openai-client";
 import {
   EPISODE_LLM_QUALITY_IMPROVE,
@@ -41,16 +42,6 @@ const SCORE_KEYS: (keyof EpisodeQualityScores)[] = [
 
 const VAGUE_WORDS =
   /\b(destiny|shadows|legacy|darkness|hope|ambition|storm|fate)\b/i;
-
-function parseJsonResponse<T>(raw: string): T {
-  const trimmed = raw.trim();
-  const start = trimmed.indexOf("{");
-  const end = trimmed.lastIndexOf("}");
-  if (start === -1 || end === -1) {
-    throw new Error("Quality check returned invalid JSON");
-  }
-  return JSON.parse(trimmed.slice(start, end + 1)) as T;
-}
 
 function normalizeScores(raw: Partial<EpisodeQualityScores>): EpisodeQualityScores {
   const scores = {} as EpisodeQualityScores;
@@ -169,7 +160,7 @@ export async function evaluateStoryQuality(
       prompt: `${STORY_QUALITY_CHECK_PROMPT}\n\nPLAN:\n${payload}`,
       json: true,
     });
-    const parsed = parseJsonResponse<{
+    const parsed = parseJsonFromModel<{
       scores: Partial<EpisodeQualityScores>;
       needsImprovement?: boolean;
       weakAreas?: string[];
@@ -255,7 +246,7 @@ export async function improveStoryPlan(
   });
 
   const raw = await Promise.race([improveTask, timeoutTask]);
-  const parsed = parseJsonResponse<RawStoryPlanResponse>(raw);
+  const parsed = parseJsonFromModel<RawStoryPlanResponse>(raw);
   return rawPlanToEpisodeStoryPlan(parsed, { ...input, episodeLength }, plan.id);
 }
 
