@@ -6,11 +6,63 @@ import {
 } from "../lib/config.js";
 import { callAnthropicJson } from "../lib/anthropic.js";
 import { parseJsonFromModel } from "../lib/json.js";
+import {
+  getPipelineMaxPanels,
+  isSingleEpisodeMode,
+} from "../lib/pipeline-context.js";
 import { saveStorylineBible } from "../lib/supabase.js";
 import type { StorylineBible } from "../lib/types.js";
 import { loadResearch } from "./researcher.js";
 
-const BIBLE_SYSTEM = `You are the master story architect for Toonlora — cinematic business graphic novels.
+function buildBibleSystem(maxPanels?: number, singleEpisode?: boolean): string {
+  if (singleEpisode && maxPanels) {
+    const minBeats = Math.max(2, Math.ceil(maxPanels / PANELS_PER_CHAPTER_MAX));
+    const maxBeats = Math.min(8, Math.floor(maxPanels / PANELS_PER_CHAPTER_MIN));
+
+    return `You are the master story architect for Toonlora — cinematic business graphic novels.
+
+This is a SINGLE-EPISODE production queue job (episode 1 only).
+
+Toonlora format:
+- One panel = one full screen (1 image with baked-in text)
+- Episode 1 must have EXACTLY ${maxPanels} panels total
+- Chapters = story beats, each becomes ${PANELS_PER_CHAPTER_MIN}–${PANELS_PER_CHAPTER_MAX} panels
+
+STEP 1 — FULL STORY TIMELINE (storyline_bible field)
+Write the complete narrative for this story (1500–3000 words). Rich, specific, documentary tone.
+
+STEP 2 — EPISODE 1 ONLY
+- episode_number: 1
+- panel_count_estimated: ${maxPanels} (exact)
+- story_beats: ${minBeats}–${maxBeats} beats covering the full story arc for this episode
+- Include narrative_arc and ugc_hook
+
+STEP 3 — SERIES SUMMARY
+- total_episodes: 1
+- total_panels_estimated: ${maxPanels}
+
+Return ONLY valid JSON:
+{
+  "series_title": string,
+  "total_episodes": 1,
+  "total_panels_estimated": ${maxPanels},
+  "storyline_bible": string,
+  "episodes": [{
+    "episode_number": 1,
+    "title": string,
+    "time_period": string,
+    "narrative_arc": string,
+    "story_beats": string[],
+    "panel_count_estimated": ${maxPanels},
+    "ugc_hook": string
+  }]
+}`;
+  }
+
+  return BIBLE_SYSTEM_MULTI;
+}
+
+const BIBLE_SYSTEM_MULTI = `You are the master story architect for Toonlora — cinematic business graphic novels.
 
 Before ANY panel scripts are written, you must create a complete STORYLINE BIBLE for the series.
 
@@ -68,11 +120,22 @@ Rules:
 - Mix dramatic highlight episodes with deeper in-depth episodes where the story earns it`;
 
 function validateStorylineBible(bible: StorylineBible): void {
+  const maxPanels = getPipelineMaxPanels();
+  const singleEpisode = isSingleEpisodeMode();
+  const panelMin = singleEpisode && maxPanels ? 5 : PANELS_PER_EPISODE_MIN;
+  const panelMax = singleEpisode && maxPanels ? maxPanels : PANELS_PER_EPISODE_MAX;
+  const beatMin = singleEpisode && maxPanels && maxPanels < 25 ? 2 : 5;
+
   if (!bible.storyline_bible?.trim()) {
     throw new Error("Storyline bible missing storyline_bible narrative");
   }
   if (!bible.episodes?.length) {
     throw new Error("Storyline bible returned no episodes");
+  }
+  if (singleEpisode && bible.episodes.length !== 1) {
+    throw new Error(
+      `Single-episode mode expected 1 episode, got ${bible.episodes.length}`
+    );
   }
   if (bible.total_episodes !== bible.episodes.length) {
     throw new Error(
@@ -82,23 +145,29 @@ function validateStorylineBible(bible: StorylineBible): void {
 
   let panelSum = 0;
   for (const ep of bible.episodes) {
-    if (
-      ep.panel_count_estimated < PANELS_PER_EPISODE_MIN ||
-      ep.panel_count_estimated > PANELS_PER_EPISODE_MAX
-    ) {
+    if (ep.panel_count_estimated < panelMin || ep.panel_count_estimated > panelMax) {
       throw new Error(
-        `Episode ${ep.episode_number}: panel_count_estimated ${ep.panel_count_estimated} out of range`
+        `Episode ${ep.episode_number}: panel_count_estimated ${ep.panel_count_estimated} out of range (${panelMin}–${panelMax})`
       );
     }
-    if (ep.story_beats.length < 5 || ep.story_beats.length > 8) {
+    if (singleEpisode && maxPanels && ep.panel_count_estimated !== maxPanels) {
+      ep.panel_count_estimated = maxPanels;
+    }
+    if (ep.story_beats.length < beatMin || ep.story_beats.length > 8) {
       throw new Error(
-        `Episode ${ep.episode_number}: expected 5–8 story_beats, got ${ep.story_beats.length}`
+        `Episode ${ep.episode_number}: expected ${beatMin}–8 story_beats, got ${ep.story_beats.length}`
       );
     }
     if (!ep.narrative_arc?.trim() || !ep.ugc_hook?.trim()) {
       throw new Error(`Episode ${ep.episode_number}: missing narrative_arc or ugc_hook`);
     }
     panelSum += ep.panel_count_estimated;
+  }
+
+  if (singleEpisode && maxPanels) {
+    bible.total_panels_estimated = maxPanels;
+    bible.total_episodes = 1;
+    return;
   }
 
   if (bible.total_panels_estimated !== panelSum) {
@@ -110,11 +179,13 @@ function validateStorylineBible(bible: StorylineBible): void {
 
 export async function runStorylineBible(seriesId: string): Promise<StorylineBible> {
   const research = await loadResearch(seriesId);
+  const maxPanels = getPipelineMaxPanels();
+  const singleEpisode = isSingleEpisodeMode();
 
   console.log(`[storylineBible] Writing complete storyline bible for "${research.topic}"…`);
 
   const raw = await callAnthropicJson({
-    system: BIBLE_SYSTEM,
+    system: buildBibleSystem(maxPanels, singleEpisode),
     user: `Series topic: "${research.topic}"
 
 Full research (use ALL of this for the timeline narrative):

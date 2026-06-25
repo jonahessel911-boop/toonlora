@@ -15,6 +15,10 @@ import {
   startPipelineRun,
 } from "./lib/supabase.js";
 import { slugify } from "./lib/json.js";
+import {
+  clearPipelineContext,
+  setPipelineContext,
+} from "./lib/pipeline-context.js";
 
 async function runStep(
   step: PipelineStep,
@@ -50,6 +54,24 @@ function nextStepsToRun(completed: PipelineStep[]): PipelineStep[] {
 }
 
 export async function runPipeline(
+  options: PipelineRunOptions
+): Promise<{ seriesId: string }> {
+  if (options.maxPanels || options.singleEpisode || options.generateCover) {
+    setPipelineContext({
+      maxPanels: options.maxPanels,
+      singleEpisode: options.singleEpisode,
+      generateCover: options.generateCover,
+    });
+  }
+
+  try {
+    return await runPipelineInner(options);
+  } finally {
+    clearPipelineContext();
+  }
+}
+
+async function runPipelineInner(
   options: PipelineRunOptions
 ): Promise<{ seriesId: string }> {
   let seriesId = options.seriesId;

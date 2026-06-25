@@ -21,7 +21,7 @@ async function processOneJob(): Promise<boolean> {
   if (!job) return false;
 
   console.log(
-    `[worker] ▶ ${job.topic} (${job.mode}) — job ${job.id}`
+    `[worker] ▶ ${job.topic} (${job.mode}, max ${job.max_panels} panels) — job ${job.id}`
   );
 
   try {
@@ -31,6 +31,7 @@ async function processOneJob(): Promise<boolean> {
       mode: job.mode,
       seriesId: job.series_id ?? undefined,
       resume: Boolean(job.series_id),
+      maxPanels: job.max_panels,
     });
 
     await markJobCompleted(job.id, result.seriesId);
@@ -39,7 +40,15 @@ async function processOneJob(): Promise<boolean> {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await markJobFailed(job.id, message);
+    const seriesId =
+      err && typeof err === "object" && "seriesId" in err
+        ? String((err as { seriesId?: string }).seriesId ?? "")
+        : job.series_id ?? undefined;
+    await markJobFailed(
+      job.id,
+      message,
+      seriesId || undefined
+    );
     console.error(`[worker] ✗ Failed — ${message}`);
   }
 

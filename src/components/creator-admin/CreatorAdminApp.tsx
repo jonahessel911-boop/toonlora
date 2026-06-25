@@ -11,6 +11,7 @@ import type {
 import PanelReviewDetail from "@/components/creator-admin/PanelReviewDetail";
 import PipelineLiveFeed from "@/components/creator-admin/PipelineLiveFeed";
 import PipelineStartPanel from "@/components/creator-admin/PipelineStartPanel";
+import StoryQueuePanel from "@/components/creator-admin/StoryQueuePanel";
 import SeriesCoverSection from "@/components/creator-admin/SeriesCoverSection";
 import ApiUsageDisplay from "@/components/creator-admin/ApiUsageDisplay";
 import type { ApiUsageSummary } from "@/lib/api-usage-cost";
@@ -363,6 +364,13 @@ export default function CreatorAdminApp() {
       <div className="mx-auto flex max-w-[1600px] flex-col lg:flex-row">
         <aside className="w-full shrink-0 border-b border-[#07111F]/10 bg-white lg:w-72 lg:border-b-0 lg:border-r">
           <div className="p-4">
+            <StoryQueuePanel
+              onSelectSeries={(seriesId) => {
+                setSelectedSeriesId(seriesId);
+                setSelectedPanelId(null);
+                setCoverSelected(false);
+              }}
+            />
             <PipelineStartPanel
               selectedSeriesId={selectedSeriesId}
               onStarted={(seriesId) => void handlePipelineStarted(seriesId)}

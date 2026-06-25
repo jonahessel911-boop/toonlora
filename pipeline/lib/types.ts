@@ -236,4 +236,7 @@ export interface PipelineRunOptions {
   category: string;
   seriesId?: string;
   resume?: boolean;
+  maxPanels?: number;
+  singleEpisode?: boolean;
+  generateCover?: boolean;
 }

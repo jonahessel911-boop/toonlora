@@ -17,6 +17,7 @@ export interface PipelineQueueJob {
   series_id: string | null;
   error: string | null;
   priority: number;
+  max_panels: number;
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -32,6 +33,10 @@ function rowToJob(row: Record<string, unknown>): PipelineQueueJob {
     series_id: (row.series_id as string | null) ?? null,
     error: (row.error as string | null) ?? null,
     priority: row.priority as number,
+    max_panels:
+      typeof row.max_panels === "number"
+        ? row.max_panels
+        : Number(row.max_panels) || 36,
     created_at: row.created_at as string,
     started_at: (row.started_at as string | null) ?? null,
     completed_at: (row.completed_at as string | null) ?? null,
@@ -43,14 +48,20 @@ export async function enqueueStory(params: {
   category?: string;
   mode?: PipelineQueueMode;
   priority?: number;
+  maxPanels?: number;
 }): Promise<PipelineQueueJob> {
   const supabase = getSupabase();
+  const maxPanels = Math.min(
+    40,
+    Math.max(5, Math.floor(params.maxPanels ?? 36))
+  );
   const { data, error } = await supabase
     .from("pipeline_queue")
     .insert({
       topic: params.topic.trim(),
       category: params.category?.trim() || "business",
       mode: params.mode ?? "lean",
+      max_panels: maxPanels,
       priority: params.priority ?? 0,
       status: "pending",
     })
@@ -120,7 +131,11 @@ export async function markJobCompleted(
   if (error) throw new Error(error.message);
 }
 
-export async function markJobFailed(jobId: string, message: string): Promise<void> {
+export async function markJobFailed(
+  jobId: string,
+  message: string,
+  seriesId?: string
+): Promise<void> {
   const supabase = getSupabase();
   const { error } = await supabase
     .from("pipeline_queue")
@@ -128,6 +143,7 @@ export async function markJobFailed(jobId: string, message: string): Promise<voi
       status: "failed",
       error: message,
       completed_at: new Date().toISOString(),
+      ...(seriesId ? { series_id: seriesId } : {}),
     })
     .eq("id", jobId);
 

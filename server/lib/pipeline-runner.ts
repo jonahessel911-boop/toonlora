@@ -11,6 +11,7 @@ export interface RunStoryOptions {
   mode?: PipelineQueueMode;
   seriesId?: string;
   resume?: boolean;
+  maxPanels?: number;
 }
 
 export interface RunStoryResult {
@@ -26,6 +27,19 @@ function ensureEnv(): void {
     loadServerEnv();
     configurePipelineEnv();
     envLoaded = true;
+  }
+}
+
+async function generateCoverForSeries(seriesId: string): Promise<void> {
+  try {
+    const { generateSeriesCover } = await import(
+      "../../src/lib/services/series-cover-service.js"
+    );
+    await generateSeriesCover(seriesId);
+    console.log(`[worker] ✓ Cover generated for ${seriesId}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[worker] Cover generation skipped: ${message}`);
   }
 }
 
@@ -61,11 +75,27 @@ export async function runStoryPipeline(
     resume,
   };
 
-  if (mode === "lean") {
-    await runLeanPipeline(runOptions);
-  } else {
-    await runPipeline(runOptions);
-  }
+  try {
+    if (mode === "lean") {
+      await runLeanPipeline(runOptions);
+    } else {
+      const maxPanels = Math.min(
+        40,
+        Math.max(5, Math.floor(options.maxPanels ?? 36))
+      );
+      await runPipeline({
+        ...runOptions,
+        maxPanels,
+        singleEpisode: true,
+        generateCover: false,
+      });
+      await generateCoverForSeries(seriesId);
+    }
 
-  return { seriesId, mode, resumed: resume };
+    return { seriesId, mode, resumed: resume };
+  } catch (err) {
+    const message = err instanceof Error ? err : new Error(String(err));
+    (message as Error & { seriesId?: string }).seriesId = seriesId;
+    throw message;
+  }
 }
