@@ -124,15 +124,11 @@ html.theme-cinematic .font-heading {
 }
 
 html.theme-cinematic .nav-tab-active::after {
-  background: #d8a84e;
+  background: #2f80ed;
 }
 
 html.theme-cinematic .nav-tab-active {
   color: #f9fafb;
-}
-
-html.theme-cinematic .tl-logo-lora {
-  color: #2f80ed;
 }
 
 @theme inline {
@@ -521,26 +517,11 @@ body {
   font-weight: 800;
 }
 
-/* Text logo — TOON white + LORA electric blue on dark nav */
+/* Text logo — single blue wordmark */
 .tl-logo-wordmark {
   font-family: var(--font-heading);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.04em;
   line-height: 1;
-}
-
-.tl-logo-toon {
-  color: #ffffff;
-}
-
-.tl-logo-lora {
-  color: var(--accent);
-}
-
-.tl-logo-wordmark-light .tl-logo-toon {
-  color: var(--primary);
-}
-
-.tl-logo-wordmark-light .tl-logo-lora {
-  color: var(--accent);
+  color: #2f80ed;
 }

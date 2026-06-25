@@ -8,8 +8,13 @@ import StreamPosterCard from "@/components/home/stream/StreamPosterCard";
 import StreamRail from "@/components/home/stream/StreamRail";
 import TopTenCard from "@/components/home/stream/TopTenCard";
 import { prioritizeCoverArt, withRealCoverArt } from "@/components/home/StoryCard";
+import { useContinueReading } from "@/hooks/useContinueReading";
 import { useCatalog } from "@/hooks/useCatalog";
 import { HOME_BROWSE_NAV } from "@/lib/homeBrowseNav";
+import {
+  groupCatalogBySection,
+  mergeCatalogById,
+} from "@/lib/home/indexCatalog";
 import {
   getCompanyCategory,
   getEmpiresCategory,
@@ -21,53 +26,11 @@ import {
   WEEKLY_HERO,
 } from "@/lib/mock/businessStoryCatalog";
 import { mockCategoryToCatalogSeries } from "@/lib/mock/mockCatalogCards";
-import {
-  fetchPublishedStory,
-  getStoryCoverArtUrl,
-} from "@/lib/fetchPublishedStory";
-import {
-  getReadingHistory,
-  pruneReadingHistory,
-  type ReadingHistoryEntry,
-} from "@/lib/readingHistory";
-import { catalogToCard } from "@/types/catalog";
+import { continueItemToCatalogCard } from "@/lib/reading/continueReading";
 import type { CatalogSeries } from "@/types/catalog";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { catalogToCard } from "@/types/catalog";
+import { useEffect, useMemo } from "react";
 import { useUserStore } from "@/store/useUserStore";
-
-async function hydrateEntry(
-  entry: ReadingHistoryEntry
-): Promise<CatalogSeries | null> {
-  const story = await fetchPublishedStory(entry.seriesId);
-  if (!story) return null;
-
-  const coverArtUrl = getStoryCoverArtUrl(story) ?? entry.coverArtUrl;
-
-  return catalogToCard({
-    id: story.id,
-    title: story.title,
-    genre: String(story.genre),
-    coverGradient: story.coverGradient,
-    source: story.source === "admin" ? "admin" : "creator",
-    status: "published",
-    creatorDisplayName:
-      story.creatorDisplayName ?? entry.creatorDisplayName ?? "Toonlora",
-    synopsis: story.synopsis ?? "",
-    episodeCount: story.episodes?.length ?? entry.episodeNumber,
-    viewsCount: story.viewsCount ?? 0,
-    likesCount: story.likesCount ?? 0,
-    featuredRank: story.featuredRank ?? null,
-    publishedAt: story.publishedAt ?? null,
-    createdAt: story.createdAt,
-    coverArtUrl,
-    href: entry.href,
-    chapterProgress: entry.episodeNumber,
-    panelIndex: entry.panelIndex ?? 0,
-    totalPanels: entry.totalPanels,
-    sagaLabel: String(story.genre),
-    readMinutes: 8,
-  });
-}
 
 const SECTION_CATEGORIES = {
   "founder-stories": getFounderCategory,
@@ -99,31 +62,17 @@ export default function BrowseHome() {
     limit: 8,
   });
 
-  const [continueStories, setContinueStories] = useState<CatalogSeries[]>([]);
+  const { series: indexCatalog, loading: loadingIndex } = useCatalog({
+    index: true,
+    limit: 32,
+  });
 
-  const refreshContinue = useCallback(async () => {
-    const entries = getReadingHistory().slice(0, 10);
-    if (entries.length === 0) {
-      setContinueStories([]);
-      return;
-    }
-    const cards = (
-      await Promise.all(entries.map((entry) => hydrateEntry(entry)))
-    ).filter((card): card is CatalogSeries => card !== null);
-    pruneReadingHistory(cards.map((card) => card.id));
-    setContinueStories(cards);
-  }, []);
+  const { items: continueItems } = useContinueReading(10);
 
-  useEffect(() => {
-    void refreshContinue();
-    const onStorage = () => void refreshContinue();
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("tl-reading-history", onStorage);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("tl-reading-history", onStorage);
-    };
-  }, [refreshContinue]);
+  const continueStories = useMemo(
+    () => continueItems.map((item) => continueItemToCatalogCard(item)),
+    [continueItems]
+  );
 
   useEffect(() => {
     const scrollToHash = () => {
@@ -142,7 +91,12 @@ export default function BrowseHome() {
   }, []);
 
   const sectionStories = useMemo(() => {
-    const catalogWithArt = withRealCoverArt(prioritizeCoverArt(catalogTrending));
+    const indexWithArt = withRealCoverArt(prioritizeCoverArt(indexCatalog));
+    const indexBySection = groupCatalogBySection(indexWithArt);
+
+    const catalogWithArt = withRealCoverArt(
+      prioritizeCoverArt(mergeCatalogById(indexWithArt, catalogTrending))
+    );
     const catalogStories: CatalogSeries[] =
       catalogWithArt.length > 0
         ? catalogWithArt.map((s, i) => ({
@@ -158,19 +112,27 @@ export default function BrowseHome() {
       Object.entries(SECTION_CATEGORIES).map(([id, getCategory]) => {
         const category = getCategory();
         const mockStories = mockCategoryToCatalogSeries(category);
+        const fromIndex = indexBySection.get(id) ?? [];
         const stories =
-          id === "founder-stories" && catalogStories.length > 0
-            ? catalogStories
-            : mockStories;
+          id === "founder-stories" && (catalogStories.length > 0 || fromIndex.length > 0)
+            ? mergeCatalogById(fromIndex, catalogStories)
+            : fromIndex.length > 0
+              ? mergeCatalogById(fromIndex, mockStories)
+              : mockStories;
         return [id, { category, stories }];
       })
     ) as Record<
       keyof typeof SECTION_CATEGORIES,
       { category: ReturnType<typeof getFounderCategory>; stories: CatalogSeries[] }
     >;
-  }, [catalogTrending]);
+  }, [catalogTrending, indexCatalog]);
 
   const featuredStory = useMemo(() => {
+    const indexWithArt = withRealCoverArt(indexCatalog);
+    if (indexWithArt[0]) {
+      return catalogToCard(indexWithArt[0]);
+    }
+
     const founder = sectionStories["founder-stories"]?.stories ?? [];
     return (
       founder.find((s) => s.id === WEEKLY_HERO.id) ??
@@ -178,9 +140,10 @@ export default function BrowseHome() {
         (s) => s.id === WEEKLY_HERO.id
       )
     );
-  }, [sectionStories]);
+  }, [sectionStories, indexCatalog]);
 
-  const trendingThisWeek = useMemo(() => {
+  const topTen = useMemo(() => {
+    const indexWithArt = withRealCoverArt(indexCatalog).map((s) => catalogToCard(s));
     const mockTrending = mockCategoryToCatalogSeries(
       getRiseAndFallCategory()
     ).concat(
@@ -189,15 +152,13 @@ export default function BrowseHome() {
       )
     );
     const seen = new Set<string>();
-    return mockTrending.filter((s) => {
+    const combined = mergeCatalogById(indexWithArt, mockTrending).filter((s) => {
       if (seen.has(s.id)) return false;
       seen.add(s.id);
       return true;
     });
-  }, []);
 
-  const topTen = useMemo(() => {
-    const withCovers = trendingThisWeek
+    const withCovers = combined
       .filter((story) => Boolean(story.coverArtUrl))
       .slice(0, 10);
 
@@ -211,38 +172,7 @@ export default function BrowseHome() {
             ? (["trending"] as const)
             : undefined),
     }));
-  }, [trendingThisWeek]);
-
-  const continueFallback = useMemo(() => {
-    const rise = mockCategoryToCatalogSeries(getRiseAndFallCategory());
-    const founder = mockCategoryToCatalogSeries(getFounderCategory());
-    const wework = rise.find((s) => s.id === "wework");
-    const elon = founder.find((s) => s.id === "elon-musk");
-    return [wework, elon]
-      .filter((s): s is CatalogSeries => Boolean(s))
-      .map((story, index) => ({
-        ...story,
-        chapterProgress: index === 0 ? 3 : 5,
-      }));
-  }, []);
-
-  const continueDisplay =
-    continueStories.length > 0 ? continueStories : continueFallback;
-
-  const continueProgress = useMemo(() => {
-    const map: Record<
-      string,
-      { episode: number; panel: number; totalPanels?: number }
-    > = {};
-    for (const entry of getReadingHistory()) {
-      map[entry.seriesId] = {
-        episode: entry.episodeNumber,
-        panel: entry.panelIndex ?? 0,
-        totalPanels: entry.totalPanels,
-      };
-    }
-    return map;
-  }, [continueStories]);
+  }, [indexCatalog]);
 
   const browseSections = HOME_BROWSE_NAV.filter(
     (item) =>
@@ -258,32 +188,27 @@ export default function BrowseHome() {
       <FeaturedHero featuredStory={featuredStory} />
 
       <div className="relative z-10 bg-[#F6F1E7] pt-6">
-        <StreamRail
-          id="continue"
-          title="Continue Reading"
-          subtitle={
-            loggedIn && continueStories.length > 0
-              ? "Pick up where you left off"
-              : undefined
-          }
-          noTopBorder
-        >
-          {continueDisplay.map((story) => {
-            const progress = continueProgress[story.id];
-            return (
+        {continueStories.length > 0 ? (
+          <StreamRail
+            id="continue"
+            title="Continue Reading"
+            subtitle={
+              loggedIn ? "Pick up where you left off" : "Your recent reads"
+            }
+            noTopBorder
+          >
+            {continueStories.map((story) => (
               <ContinueReadingCard
                 key={story.id}
                 story={story}
                 listSection="continue_reading"
-                chapterProgress={
-                  progress?.episode ?? story.chapterProgress
-                }
-                panelIndex={progress?.panel ?? story.panelIndex}
-                totalPanels={progress?.totalPanels ?? story.totalPanels}
+                chapterProgress={story.chapterProgress}
+                panelIndex={story.panelIndex}
+                totalPanels={story.totalPanels}
               />
-            );
-          })}
-        </StreamRail>
+            ))}
+          </StreamRail>
+        ) : null}
 
         <StreamRail
           id="top-10"
@@ -309,7 +234,7 @@ export default function BrowseHome() {
             subtitle={founderSection.category.subtitle}
             viewAllHref="/#founder-stories"
           >
-            {loadingTrending && founderSection.stories.length === 0
+            {loadingTrending && loadingIndex && founderSection.stories.length === 0
               ? Array.from({ length: 5 }).map((_, i) => (
                   <PosterSkeleton key={i} />
                 ))

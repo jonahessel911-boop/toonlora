@@ -20,12 +20,13 @@ export async function GET(request: Request) {
   }
 
   if (!isServerDatabaseConfigured()) {
-    return NextResponse.json({
-      allowed: true,
-      tier: "free",
-      weeklyFreeRemaining: 1,
-      claimedThisWeek: null,
-    });
+      return NextResponse.json({
+        allowed: true,
+        tier: "free",
+        weeklyFreeRemaining: 1,
+        claimedThisWeek: null,
+        weeklyFreeResetsAt: null,
+      });
   }
 
   try {
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (access.tier === "free" && access.isRegistered) {
+    if (access.tier === "free" && access.isRegistered && episodeNumber > 1) {
       await claimWeeklyFreeEpisode(sessionId, seriesId, episodeNumber);
     }
 

@@ -8,6 +8,7 @@ import ProfileSidebar, {
   type ProfileTab,
 } from "@/components/profile/ProfileSidebar";
 import ProfileSubscriptionTab from "@/components/profile/ProfileSubscriptionTab";
+import { useContinueReading } from "@/hooks/useContinueReading";
 import {
   fetchPublishedStory,
   getStoryCoverArtUrl,
@@ -20,15 +21,16 @@ import {
   type NotificationPreferences,
 } from "@/lib/library/preferences";
 import {
-  getReadingHistory,
   buildResumeReadHref,
   computeSeriesReadPercent,
-  type ReadingHistoryEntry,
 } from "@/lib/readingHistory";
+import type { ContinueReadingItem } from "@/lib/reading/continueReading";
 import { apiFetch } from "@/lib/session";
-import { findMockStory } from "@/lib/mock/businessStoryCatalog";
 import { buildRetentionStories } from "@/lib/profile/retentionStories";
-import type { UserReadingEngagement } from "@/lib/services/user-reading-engagement";
+import type {
+  TopEngagedStory,
+  UserReadingEngagement,
+} from "@/lib/services/user-reading-engagement";
 import { useSubscriptionStore } from "@/store/useSubscriptionStore";
 import { useUserStore } from "@/store/useUserStore";
 
@@ -49,6 +51,40 @@ interface FollowingStoryDisplay extends FollowingStory {
   subtitle: string;
   chapterProgress: number;
   totalChapters: number;
+}
+
+interface ReadStoryDisplay {
+  seriesId: string;
+  title: string;
+  sagaLabel: string;
+  coverArtUrl?: string;
+  chaptersRead: number;
+  href: string;
+}
+
+function ProfileStatCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div
+      className="flex min-w-[140px] flex-1 flex-col rounded-2xl px-4 py-3.5"
+      style={{ background: PAPER_CARD, border: `1px solid ${BORDER}` }}
+    >
+      <p
+        className="font-heading text-2xl font-extrabold tabular-nums"
+        style={{ color: TEXT_DARK }}
+      >
+        {value}
+      </p>
+      <p className="mt-0.5 text-xs font-semibold" style={{ color: MUTED }}>
+        {label}
+      </p>
+    </div>
+  );
 }
 
 function SectionHeading({
@@ -193,18 +229,17 @@ function SecondaryButton({
   );
 }
 
-function ContinueReadingCard({ entry }: { entry: ReadingHistoryEntry }) {
-  const mock = findMockStory(entry.seriesId);
-  const totalChapters = mock?.chapters ?? entry.totalPanels ?? 1;
-  const panelIndex = entry.panelIndex ?? 0;
-  const totalPanels = entry.totalPanels ?? 1;
+function ContinueReadingCard({ item }: { item: ContinueReadingItem }) {
+  const totalChapters = item.totalChapters;
+  const panelIndex = item.panelIndex;
+  const totalPanels = item.totalPanels;
   const pct = computeSeriesReadPercent(
-    entry.episodeNumber,
+    item.episodeNumber,
     totalChapters,
     panelIndex,
     totalPanels
   );
-  const subtitle = mock?.subtitle ?? entry.genre;
+  const subtitle = item.synopsis ?? item.genre;
 
   return (
     <article className="w-[min(88vw,340px)] shrink-0 snap-start sm:w-[320px]">
@@ -214,16 +249,16 @@ function ContinueReadingCard({ entry }: { entry: ReadingHistoryEntry }) {
       >
         <div className="relative h-full w-[88px] shrink-0 overflow-hidden">
           <CinematicStoryCover
-            coverArtUrl={entry.coverArtUrl}
-            title={entry.title}
-            sagaLabel={entry.genre || mock?.sagaLabel}
+            coverArtUrl={item.coverArtUrl}
+            title={item.title}
+            sagaLabel={item.genre}
             className="h-full w-full"
           />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col justify-center px-3.5 py-2.5">
           <p className="truncate font-heading text-[15px] font-extrabold text-[#F8FAFC]">
-            {entry.title}
+            {item.title}
           </p>
           {subtitle ? (
             <p className="truncate text-xs text-[#AAB4C3]">{subtitle}</p>
@@ -235,14 +270,14 @@ function ContinueReadingCard({ entry }: { entry: ReadingHistoryEntry }) {
             />
           </div>
           <p className="mt-1 text-[11px] text-[#AAB4C3]">
-            Chapter {entry.episodeNumber}
+            Chapter {item.episodeNumber}
             {totalChapters > 1 ? ` of ${totalChapters}` : ""}
             {panelIndex > 0 ? ` · Panel ${panelIndex + 1}` : ""}
           </p>
         </div>
 
         <div className="flex shrink-0 items-center pr-3">
-          <PrimaryButton href={entry.href} className="!h-9 !px-4 !text-xs">
+          <PrimaryButton href={item.href} className="!h-9 !px-4 !text-xs">
             Continue
           </PrimaryButton>
         </div>
@@ -251,22 +286,28 @@ function ContinueReadingCard({ entry }: { entry: ReadingHistoryEntry }) {
   );
 }
 
-function followingReadHref(seriesId: string, chapter: number): string {
-  const history = getReadingHistory().find((e) => e.seriesId === seriesId);
+function followingReadHref(seriesId: string, chapter: number, items: ContinueReadingItem[]): string {
+  const history = items.find((entry) => entry.seriesId === seriesId);
   if (history && history.episodeNumber === chapter) {
     return history.href;
   }
   return buildResumeReadHref(seriesId, chapter, history?.panelIndex ?? 0);
 }
 
-function FollowingStoryCard({ story }: { story: FollowingStoryDisplay }) {
+function FollowingStoryCard({
+  story,
+  continueItems,
+}: {
+  story: FollowingStoryDisplay;
+  continueItems: ContinueReadingItem[];
+}) {
   const progress = story.chapterProgress;
   const total = Math.max(story.totalChapters, 1);
   const progressPct =
     progress > 0 ? Math.min(100, (progress / total) * 100) : 0;
   const readHref =
     progress > 0
-      ? followingReadHref(story.seriesId, progress)
+      ? followingReadHref(story.seriesId, progress, continueItems)
       : `${story.href}/read`;
   const ctaLabel = progress > 0 ? "Continue" : "Read";
 
@@ -339,6 +380,54 @@ function FollowingStoryCard({ story }: { story: FollowingStoryDisplay }) {
           View
         </Link>
       </div>
+    </article>
+  );
+}
+
+function ReadStoryCard({ story }: { story: ReadStoryDisplay }) {
+  return (
+    <article
+      className="group flex items-center gap-4 rounded-2xl p-3.5 transition hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(14,23,38,0.08)] sm:p-4"
+      style={{
+        background: PAPER_CARD,
+        border: `1px solid ${BORDER}`,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "#FBF6EE";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = PAPER_CARD;
+      }}
+    >
+      <Link href={`/story/${story.seriesId}`} className="shrink-0 overflow-hidden rounded-xl">
+        <div className="h-[88px] w-16 overflow-hidden rounded-xl">
+          <CinematicStoryCover
+            coverArtUrl={story.coverArtUrl}
+            title={story.title}
+            sagaLabel={story.sagaLabel}
+            className="h-full w-full"
+          />
+        </div>
+      </Link>
+
+      <div className="min-w-0 flex-1">
+        <Link href={`/story/${story.seriesId}`} className="block min-w-0">
+          <p
+            className="font-heading line-clamp-2 text-[15px] font-extrabold leading-snug transition group-hover:text-[#2F80ED]"
+            style={{ color: TEXT_DARK }}
+          >
+            {story.title}
+          </p>
+          <p className="mt-1 text-xs" style={{ color: MUTED }}>
+            {story.chaptersRead}{" "}
+            {story.chaptersRead === 1 ? "chapter" : "chapters"} read
+          </p>
+        </Link>
+      </div>
+
+      <PrimaryButton href={story.href} className="!h-9 !px-4 !text-xs sm:!text-sm">
+        Open
+      </PrimaryButton>
     </article>
   );
 }
@@ -426,26 +515,24 @@ function AccountCard({
 
 async function hydrateFollowingStory(
   story: FollowingStory,
-  chapterProgress: number
+  chapterProgress: number,
+  continueItems: ContinueReadingItem[]
 ): Promise<FollowingStoryDisplay> {
-  const historyEntry = getReadingHistory().find(
+  const progressEntry = continueItems.find(
     (entry) => entry.seriesId === story.seriesId
   );
-  const mock = findMockStory(story.seriesId);
 
-  let coverArtUrl = historyEntry?.coverArtUrl;
-  let sagaLabel = historyEntry?.genre ?? mock?.sagaLabel ?? "Business";
-  let subtitle = mock?.subtitle ?? sagaLabel;
-  let totalChapters = mock?.chapters ?? 1;
+  let coverArtUrl = progressEntry?.coverArtUrl;
+  let sagaLabel = progressEntry?.genre ?? "Business";
+  let subtitle = progressEntry?.synopsis ?? sagaLabel;
+  let totalChapters = progressEntry?.totalChapters ?? 1;
 
-  if (!mock) {
-    const fetched = await fetchPublishedStory(story.seriesId);
-    if (fetched) {
-      coverArtUrl = getStoryCoverArtUrl(fetched) ?? coverArtUrl;
-      sagaLabel = String(fetched.genre);
-      subtitle = sagaLabel;
-      totalChapters = Math.max(totalChapters, fetched.episodes?.length ?? 1);
-    }
+  const fetched = await fetchPublishedStory(story.seriesId);
+  if (fetched) {
+    coverArtUrl = getStoryCoverArtUrl(fetched) ?? coverArtUrl;
+    sagaLabel = String(fetched.genre);
+    subtitle = fetched.synopsis?.trim() || sagaLabel;
+    totalChapters = Math.max(totalChapters, fetched.episodes?.length ?? 1);
   }
 
   return {
@@ -455,6 +542,33 @@ async function hydrateFollowingStory(
     subtitle,
     totalChapters,
     chapterProgress,
+  };
+}
+
+async function hydrateReadStory(
+  story: TopEngagedStory,
+  continueItems: ContinueReadingItem[]
+): Promise<ReadStoryDisplay> {
+  const progressEntry = continueItems.find(
+    (entry) => entry.seriesId === story.seriesId
+  );
+
+  let coverArtUrl = progressEntry?.coverArtUrl;
+  let sagaLabel = story.genre;
+
+  const fetched = await fetchPublishedStory(story.seriesId);
+  if (fetched) {
+    coverArtUrl = getStoryCoverArtUrl(fetched) ?? coverArtUrl;
+    sagaLabel = String(fetched.genre);
+  }
+
+  return {
+    seriesId: story.seriesId,
+    title: story.seriesTitle,
+    sagaLabel,
+    coverArtUrl,
+    chaptersRead: story.chaptersRead,
+    href: progressEntry?.href ?? `/story/${story.seriesId}/read`,
   };
 }
 
@@ -483,10 +597,11 @@ export default function ProfileApp() {
   const planLabel = hasPlus ? "Plus" : "Free";
 
   const [following, setFollowing] = useState<FollowingStoryDisplay[]>([]);
+  const [readStories, setReadStories] = useState<ReadStoryDisplay[]>([]);
   const [notifications, setNotifications] = useState<NotificationPreferences>({
     newChaptersDigest: true,
   });
-  const [continueItems, setContinueItems] = useState<ReadingHistoryEntry[]>([]);
+  const { items: continueItems } = useContinueReading(8);
   const [engagement, setEngagement] = useState<UserReadingEngagement | null>(
     null
   );
@@ -499,32 +614,54 @@ export default function ProfileApp() {
     () =>
       buildRetentionStories({
         engagement,
-        history: continueItems,
+        continueReading: continueItems,
         following: getFollowingStories(),
       }),
     [engagement, continueItems]
   );
 
+  const storiesReadCount = useMemo(() => {
+    if (engagement && engagement.storiesReadCount > 0) {
+      return engagement.storiesReadCount;
+    }
+    return new Set(continueItems.map((item) => item.seriesId)).size;
+  }, [engagement, continueItems]);
+
   const refreshLibrary = useCallback(async () => {
     const follows = getFollowingStories();
-    const history = getReadingHistory();
     const progressBySeries = new Map(
-      history.map((entry) => [entry.seriesId, entry.episodeNumber])
+      continueItems.map((entry) => [entry.seriesId, entry.episodeNumber])
     );
 
     const enriched = await Promise.all(
       follows.map((story) =>
         hydrateFollowingStory(
           story,
-          progressBySeries.get(story.seriesId) ?? 0
+          progressBySeries.get(story.seriesId) ?? 0,
+          continueItems
         )
       )
     );
 
+    const readSource =
+      engagement?.readStories && engagement.readStories.length > 0
+        ? engagement.readStories
+        : continueItems.map((item) => ({
+            seriesId: item.seriesId,
+            seriesTitle: item.title,
+            genre: item.genre,
+            chaptersRead: item.episodeNumber,
+            lastReadAt: item.updatedAt,
+          }));
+
+    const enrichedReads = await Promise.all(
+      readSource.map((story) => hydrateReadStory(story, continueItems))
+    );
+
     setFollowing(enriched);
+    setReadStories(enrichedReads);
     setNotifications(getNotificationPreferences());
-    setContinueItems(history.slice(0, 8));
-  }, []);
+  }, [continueItems, engagement]);
 
   useEffect(() => {
     void hydrateSubscription();
@@ -629,18 +766,23 @@ export default function ProfileApp() {
                   My Library
                 </h1>
                 <p className="mt-1 text-sm" style={{ color: MUTED }}>
-                  Continue reading and stories you follow.
+                  Continue reading, your list, and stories you&apos;ve read.
                 </p>
               </div>
               <ProfilePill name={displayName} planLabel={planLabel} />
             </header>
 
+            <div className="mb-8 flex flex-wrap gap-3">
+              <ProfileStatCard label="Stories read" value={storiesReadCount} />
+              <ProfileStatCard label="My List" value={following.length} />
+            </div>
+
             <section className="mb-10">
               <SectionHeading title="Continue Reading" />
               {continueItems.length > 0 ? (
                 <div className="-mx-4 mt-4 flex gap-3 overflow-x-auto px-4 pb-1 snap-x snap-mandatory scrollbar-none sm:-mx-0 sm:px-0">
-                  {continueItems.map((entry) => (
-                    <ContinueReadingCard key={entry.seriesId} entry={entry} />
+                  {continueItems.map((item) => (
+                    <ContinueReadingCard key={item.seriesId} item={item} />
                   ))}
                 </div>
               ) : (
@@ -667,13 +809,16 @@ export default function ProfileApp() {
               )}
             </section>
 
-            <section>
-              <SectionHeading title="Following Stories" />
+            <section className="mb-10">
+              <SectionHeading title="My List" />
               {following.length > 0 ? (
                 <ul className="mt-4 flex flex-col gap-3">
                   {following.map((story) => (
                     <li key={story.seriesId}>
-                      <FollowingStoryCard story={story} />
+                      <FollowingStoryCard
+                        story={story}
+                        continueItems={continueItems}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -686,11 +831,42 @@ export default function ProfileApp() {
                   }}
                 >
                   <p className="text-sm" style={{ color: MUTED }}>
-                    You&apos;re not following any stories yet. Tap Follow Story
-                    on a series page to add it here.
+                    No stories saved yet. Tap{" "}
+                    <span className="font-semibold" style={{ color: TEXT_DARK }}>
+                      + My List
+                    </span>{" "}
+                    on a story to save it here.
                   </p>
                   <div className="mt-4">
                     <SecondaryButton href="/">Browse stories</SecondaryButton>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section>
+              <SectionHeading title="Stories Read" />
+              {readStories.length > 0 ? (
+                <ul className="mt-4 flex flex-col gap-3">
+                  {readStories.map((story) => (
+                    <li key={story.seriesId}>
+                      <ReadStoryCard story={story} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div
+                  className="mt-4 rounded-[18px] p-6"
+                  style={{
+                    background: PAPER_CARD,
+                    border: `1px solid ${BORDER}`,
+                  }}
+                >
+                  <p className="text-sm" style={{ color: MUTED }}>
+                    Stories you read will show up here.
+                  </p>
+                  <div className="mt-4">
+                    <PrimaryButton href="/">Start reading</PrimaryButton>
                   </div>
                 </div>
               )}

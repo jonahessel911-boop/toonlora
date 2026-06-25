@@ -4,6 +4,12 @@ import { isPaidTier } from "@/lib/payments/subscription-plans";
 /** Days Entrepreneur subscribers get early access before public release. */
 export const EARLY_ACCESS_DAYS = 7;
 
+/** Days until the free extra-chapter read resets after it is claimed. */
+export const WEEKLY_FREE_RESET_DAYS = 7;
+
+export const WEEKLY_FREE_RESET_MS = WEEKLY_FREE_RESET_DAYS * 24 * 60 * 60 * 1000;
+
+/** @deprecated Calendar-week keys — use claim `claimedAt` + {@link WEEKLY_FREE_RESET_DAYS} instead. */
 export function getIsoWeekKey(date = new Date()): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const day = d.getUTCDay() || 7;
@@ -13,7 +19,22 @@ export function getIsoWeekKey(date = new Date()): string {
   return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
-/** Next Monday 00:00 UTC — when the free weekly chapter read resets. */
+/** When the current weekly free claim expires (claimedAt + 7 days). */
+export function getWeeklyFreeResetAt(claimedAt: string | Date): Date {
+  const claimed =
+    typeof claimedAt === "string" ? new Date(claimedAt) : claimedAt;
+  return new Date(claimed.getTime() + WEEKLY_FREE_RESET_MS);
+}
+
+export function msUntilWeeklyFreeResetFromClaim(
+  claimedAt: string | null | undefined,
+  now = new Date()
+): number {
+  if (!claimedAt) return 0;
+  return Math.max(0, getWeeklyFreeResetAt(claimedAt).getTime() - now.getTime());
+}
+
+/** @deprecated Use {@link msUntilWeeklyFreeResetFromClaim} with the user's claim timestamp. */
 export function getNextWeeklyFreeResetAt(now = new Date()): Date {
   const today = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
@@ -26,7 +47,13 @@ export function getNextWeeklyFreeResetAt(now = new Date()): Date {
   return reset;
 }
 
-export function msUntilWeeklyFreeReset(now = new Date()): number {
+export function msUntilWeeklyFreeReset(
+  claimedAt?: string | null,
+  now = new Date()
+): number {
+  if (claimedAt) {
+    return msUntilWeeklyFreeResetFromClaim(claimedAt, now);
+  }
   return Math.max(0, getNextWeeklyFreeResetAt(now).getTime() - now.getTime());
 }
 
@@ -97,6 +124,11 @@ export function evaluateEpisodeAccess(input: EpisodeAccessInput): {
   }
 
   if (isPaidTier(input.tier)) {
+    return { allowed: true };
+  }
+
+  /** Chapter 1 is free on every story — never counts against the weekly extra chapter. */
+  if (input.episodeNumber <= 1) {
     return { allowed: true };
   }
 

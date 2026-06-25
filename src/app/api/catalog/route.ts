@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isServerDatabaseConfigured } from "@/lib/config";
-import { listPublishedCatalog } from "@/lib/services/catalog-repository";
+import { listIndexCatalog, listPublishedCatalog } from "@/lib/services/catalog-repository";
 import { catalogToCard } from "@/types/catalog";
 
 export async function GET(request: Request) {
@@ -17,13 +17,20 @@ export async function GET(request: Request) {
       | "newest"
       | "popular";
     const limit = Number(searchParams.get("limit") ?? 48);
+    const index = searchParams.get("index") === "1";
 
-    const series = await listPublishedCatalog({
-      genre: genre || undefined,
-      source: source ?? undefined,
-      sort,
-      limit,
-    });
+    const series = index
+      ? await listIndexCatalog({
+          genre: genre || undefined,
+          source: source ?? undefined,
+          limit,
+        })
+      : await listPublishedCatalog({
+          genre: genre || undefined,
+          source: source ?? undefined,
+          sort,
+          limit,
+        });
 
     return NextResponse.json(
       {

@@ -5,40 +5,46 @@ interface ToonloraLogoProps {
   variant?: "full" | "compact" | "icon" | "nav";
   className?: string;
   iconSize?: number;
-  /** Light background — navy TOON + blue LORA */
+  /** @deprecated Blue wordmark works on light and dark backgrounds */
   onLight?: boolean;
 }
 
 const LOGO_SRC = "/images/toonlora-logo.png";
 
-function WordmarkLogo({
-  className = "",
-  onLight = false,
-  size = "nav",
-}: {
-  className?: string;
-  onLight?: boolean;
-  size?: "nav" | "compact" | "full";
-}) {
-  const sizeClass =
-    size === "full"
-      ? "text-3xl sm:text-4xl"
-      : size === "compact"
-        ? "text-xl sm:text-2xl"
-        : "text-xl sm:text-2xl md:text-[1.75rem]";
+/** Intrinsic dimensions after trim (892×160). */
+const LOGO_WIDTH = 892;
+const LOGO_HEIGHT = 160;
 
+const VARIANT_HEIGHT: Record<"nav" | "compact" | "full" | "icon", number> = {
+  nav: 34,
+  compact: 28,
+  full: 44,
+  icon: 32,
+};
+
+function LogoImage({
+  height,
+  className = "",
+  priority = false,
+}: {
+  height: number;
+  className?: string;
+  priority?: boolean;
+}) {
   return (
-    <span
-      className={`tl-logo-wordmark inline-flex items-baseline ${onLight ? "tl-logo-wordmark-light" : ""} ${sizeClass} ${className}`}
-      aria-label={APP_NAME}
-    >
-      <span className="tl-logo-toon">TOON</span>
-      <span className="tl-logo-lora">LORA</span>
-    </span>
+    <Image
+      src={LOGO_SRC}
+      alt={APP_NAME}
+      width={LOGO_WIDTH}
+      height={LOGO_HEIGHT}
+      priority={priority}
+      className={`w-auto object-contain object-left ${className}`}
+      style={{ height }}
+    />
   );
 }
 
-/** Official Toonlora wordmark — compact icon uses scaled wordmark */
+/** Compact mark for tight spaces (reader bar, etc.). */
 export function ToonloraIcon({
   size = 28,
   className = "",
@@ -46,55 +52,24 @@ export function ToonloraIcon({
   size?: number;
   className?: string;
 }) {
-  return (
-    <Image
-      src={LOGO_SRC}
-      alt=""
-      width={320}
-      height={96}
-      aria-hidden
-      className={`w-auto object-contain object-left ${className}`}
-      style={{ height: size }}
-    />
-  );
+  return <LogoImage height={size} className={className} />;
 }
 
 export default function ToonloraLogo({
   variant = "full",
   className = "",
   iconSize,
-  onLight = false,
 }: ToonloraLogoProps) {
-  if (variant === "nav") {
-    return <WordmarkLogo className={className} onLight={onLight} size="nav" />;
-  }
-
-  if (variant === "compact") {
-    return (
-      <WordmarkLogo
-        className={className}
-        onLight={onLight}
-        size="compact"
-      />
-    );
-  }
-
-  if (variant === "full") {
-    return (
-      <WordmarkLogo className={className} onLight={onLight} size="full" />
-    );
-  }
-
-  const height = iconSize ?? 32;
+  const height =
+    iconSize ??
+    VARIANT_HEIGHT[variant === "icon" ? "icon" : variant] ??
+    VARIANT_HEIGHT.full;
 
   return (
-    <Image
-      src={LOGO_SRC}
-      alt={APP_NAME}
-      width={480}
-      height={144}
-      className={`w-auto object-contain object-left ${className}`}
-      style={{ height }}
+    <LogoImage
+      height={height}
+      className={className}
+      priority={variant === "nav"}
     />
   );
 }

@@ -8,6 +8,7 @@ interface NetflixEmailFormProps {
   className?: string;
   inputClassName?: string;
   buttonClassName?: string;
+  variant?: "dark" | "light";
 }
 
 export default function NetflixEmailForm({
@@ -15,6 +16,7 @@ export default function NetflixEmailForm({
   className = "",
   inputClassName = "",
   buttonClassName = "",
+  variant = "dark",
 }: NetflixEmailFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -29,11 +31,13 @@ export default function NetflixEmailForm({
     );
   };
 
+  const isLight = variant === "light";
+
   return (
     <form
       id={id}
       onSubmit={handleSubmit}
-      className={`flex w-full max-w-3xl flex-col gap-3 sm:flex-row ${className}`}
+      className={`flex w-full max-w-2xl flex-col gap-3 sm:flex-row ${className}`}
     >
       <input
         type="email"
@@ -41,11 +45,15 @@ export default function NetflixEmailForm({
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         placeholder="Email address"
-        className={`min-h-[56px] flex-1 rounded bg-black/60 px-4 text-base text-white placeholder:text-white/50 ring-1 ring-white/30 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-accent ${inputClassName}`}
+        className={`min-h-[50px] flex-1 rounded-lg px-4 text-base focus:outline-none focus:ring-2 focus:ring-[#2F80ED] ${
+          isLight
+            ? "border border-[#E7DDCC] bg-[#FFFDF7] text-[#0E1726] placeholder:text-[#64748B]"
+            : "bg-black/60 text-white placeholder:text-white/50 ring-1 ring-white/30 backdrop-blur-sm focus:ring-accent"
+        } ${inputClassName}`}
       />
       <button
         type="submit"
-        className={`inline-flex min-h-[56px] shrink-0 items-center justify-center gap-2 rounded bg-accent px-6 text-lg font-bold text-white transition hover:bg-accent-hover sm:px-8 ${buttonClassName}`}
+        className={`inline-flex min-h-[50px] shrink-0 items-center justify-center gap-2 rounded-lg bg-[#2F80ED] px-6 text-base font-bold text-white transition hover:bg-[#1F6FD6] sm:px-7 ${buttonClassName}`}
       >
         Get Started
         <span aria-hidden className="text-xl leading-none">

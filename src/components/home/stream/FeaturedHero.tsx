@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo } from "react";
 import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import CinematicStoryCover from "@/components/home/stream/CinematicStoryCover";
+import { useMyList } from "@/hooks/useMyList";
 import { FEATURED_HERO } from "@/lib/home/featuredHero";
+import { formatSagaFollowTitle } from "@/lib/library/preferences";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 import type { CatalogSeries } from "@/types/catalog";
 
@@ -12,10 +14,26 @@ interface FeaturedHeroProps {
 }
 
 export default function FeaturedHero({ featuredStory }: FeaturedHeroProps) {
-  const [onList, setOnList] = useState(false);
   const storyHref = `/story/${FEATURED_HERO.storyId}`;
   const keyArt =
     FEATURED_HERO.keyArtUrl ?? featuredStory?.coverArtUrl ?? undefined;
+
+  const listEntry = useMemo(
+    () => ({
+      seriesId: FEATURED_HERO.storyId,
+      title: formatSagaFollowTitle(
+        featuredStory?.title ?? FEATURED_HERO.title,
+        FEATURED_HERO.subtitle
+      ),
+      scheduleLabel: FEATURED_HERO.weeklyDrop
+        ? "New chapter every week"
+        : "Weekly episodes",
+      href: storyHref,
+    }),
+    [featuredStory?.title, storyHref]
+  );
+
+  const { onList, toggle } = useMyList(listEntry);
 
   return (
     <section
@@ -87,7 +105,7 @@ export default function FeaturedHero({ featuredStory }: FeaturedHeroProps) {
           />
 
           <div className="relative">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#E8C06A]">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#2F80ED]">
             {FEATURED_HERO.eyebrow}
           </p>
 
@@ -122,7 +140,7 @@ export default function FeaturedHero({ featuredStory }: FeaturedHeroProps) {
                 <span className="text-white/30" aria-hidden>
                   ·
                 </span>
-                <span className="text-[11px] font-bold uppercase tracking-wide text-[#F0D48A]">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[#2F80ED]">
                   New this week
                 </span>
               </>
@@ -156,11 +174,12 @@ export default function FeaturedHero({ featuredStory }: FeaturedHeroProps) {
 
             <button
               type="button"
-              onClick={() => setOnList((v) => !v)}
+              onClick={toggle}
+              aria-pressed={onList}
               className="inline-flex h-11 items-center gap-1.5 px-2 text-sm font-semibold text-[#E8EDF4] transition hover:text-white"
             >
               <span
-                className={`text-base leading-none ${onList ? "text-[#F0D48A]" : ""}`}
+                className={`text-base leading-none ${onList ? "text-[#2F80ED]" : ""}`}
                 aria-hidden
               >
                 {onList ? "✓" : "+"}

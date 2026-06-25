@@ -22,9 +22,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isMinimal = MINIMAL_ROUTES.some((route) => pathname.startsWith(route));
   const isReader = isReaderRoute(pathname);
   const isCreate = pathname.startsWith("/create");
-  const isCreator = pathname.startsWith("/creator");
+  const isCreatorAdmin = pathname.startsWith("/creator-admin");
+  const isCreator =
+    pathname.startsWith("/creator") && !isCreatorAdmin;
   const isDraftReader = pathname.includes("/creator/episode-builder/draft/");
-  const hideNav = isAuth || isMinimal || isReader || isCreator;
+  const hideNav = isAuth || isMinimal || isReader || isCreator || isCreatorAdmin;
   const hideFooter = pathname === "/" || hideNav;
   const fixedViewport = isCreate || (isCreator && !isDraftReader);
   const isHome = pathname === "/";

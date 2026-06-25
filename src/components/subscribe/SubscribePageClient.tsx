@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SubscriptionPaywall from "@/components/reader/SubscriptionPaywall";
 import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
+import { checkEpisodeReadAccess } from "@/lib/reader/episodeAccessGate";
 import { storyToSeriesDetail } from "@/lib/seriesCatalog";
 import { useStoryStore } from "@/store/useStoryStore";
 import { useSubscriptionStore } from "@/store/useSubscriptionStore";
@@ -21,6 +22,9 @@ export default function SubscribePageClient() {
     useSubscriptionStore();
   const [storyTitle, setStoryTitle] = useState(storyTitleParam ?? "");
   const [coverArtUrl, setCoverArtUrl] = useState<string | undefined>();
+  const [weeklyFreeResetsAt, setWeeklyFreeResetsAt] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     void hydrateSubscription();
@@ -49,6 +53,15 @@ export default function SubscribePageClient() {
       cancelled = true;
     };
   }, [storyId, getStoryById]);
+
+  useEffect(() => {
+    if (!weeklyLimitReached || !storyId) return;
+    void checkEpisodeReadAccess(storyId, Math.max(2, nextEpisode)).then(
+      (access) => {
+        setWeeklyFreeResetsAt(access.weeklyFreeResetsAt ?? null);
+      }
+    );
+  }, [weeklyLimitReached, storyId, nextEpisode]);
 
   useEffect(() => {
     if (status !== "active" && !isSubscriber()) return;
@@ -81,6 +94,7 @@ export default function SubscribePageClient() {
       storyId={storyId || undefined}
       episodeNumber={storyId ? nextEpisode : undefined}
       weeklyLimitReached={weeklyLimitReached}
+      weeklyFreeResetsAt={weeklyFreeResetsAt}
       fastPass={fastPass}
     />
   );

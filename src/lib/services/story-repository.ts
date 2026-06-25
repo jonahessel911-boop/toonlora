@@ -13,6 +13,11 @@ export interface SaveStoryOptions {
 }
 
 function rowToStory(series: SeriesRow, episodeRows: EpisodeRow[]): Story {
+  const extended = series as SeriesRow & {
+    display_title?: string | null;
+    cover_art_url?: string | null;
+  };
+
   const episodes: StoryEpisode[] = episodeRows
     .sort((a, b) => a.episode_number - b.episode_number)
     .map((ep) => ({
@@ -28,9 +33,11 @@ function rowToStory(series: SeriesRow, episodeRows: EpisodeRow[]): Story {
 
   return {
     id: series.id,
-    title: series.title,
+    title: extended.display_title?.trim() || series.title,
     genre: series.genre,
     coverGradient: series.cover_gradient,
+    coverArtUrl: extended.cover_art_url?.trim() || undefined,
+    displayTitle: extended.display_title?.trim() || undefined,
     chapters: (series.legacy_pages?.chapters ?? []) as Story["chapters"],
     pages: (series.legacy_pages?.pages ?? []) as Story["pages"],
     createdAt: series.created_at,

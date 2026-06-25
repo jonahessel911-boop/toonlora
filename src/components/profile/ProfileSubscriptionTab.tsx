@@ -7,6 +7,7 @@ import type { RetentionStory } from "@/lib/profile/retentionStories";
 import {
   ACHIEVER_PLAN,
   ENTREPRENEUR_PLAN,
+  FREE_PLAN,
   getSubscriptionPlan,
 } from "@/lib/payments/subscription-plans";
 import { apiFetch } from "@/lib/session";
@@ -42,7 +43,27 @@ function formatDate(iso: string | null): string | null {
   }
 }
 
+function planPriceLabel(tier: string, planId: string | null): string {
+  if (tier === "free") return FREE_PLAN.priceLabel;
+  const plan = planId ? getSubscriptionPlan(planId) : undefined;
+  if (plan?.priceLabel) return plan.priceLabel;
+  if (tier === "entrepreneur") return ENTREPRENEUR_PLAN.priceLabel;
+  if (tier === "achiever") return ACHIEVER_PLAN.priceLabel;
+  return FREE_PLAN.priceLabel;
+}
+
+function planBenefitSummary(tier: string): string {
+  if (tier === "entrepreneur") {
+    return "Unlimited access with early chapter releases.";
+  }
+  if (tier === "achiever") {
+    return "Unlimited access to Toonlora Originals.";
+  }
+  return "Chapter 1 free on every story · 1 extra chapter per week.";
+}
+
 function planDisplayName(tier: string, planId: string | null): string {
+  if (tier === "free") return "Free plan";
   if (tier === "entrepreneur") return "Entrepreneur plan";
   if (tier === "achiever") return "Plus plan";
   const plan = planId ? getSubscriptionPlan(planId) : undefined;
@@ -65,6 +86,7 @@ export default function ProfileSubscriptionTab({
 
   const nextPayment = formatDate(periodEnd);
   const planName = planDisplayName(tier, planId);
+  const priceLabel = planPriceLabel(hasPlus ? tier : "free", planId);
   const isPaused = status === "paused";
 
   async function handlePause() {
@@ -133,33 +155,57 @@ export default function ProfileSubscriptionTab({
           Subscription
         </h2>
 
+        <p className="mt-6 text-sm font-semibold" style={{ color: MUTED }}>
+          Your membership
+        </p>
+
         <div
-          className="mt-6 rounded-2xl p-6"
+          className="mt-3 overflow-hidden rounded-2xl"
           style={{ background: PAPER_CARD, border: `1px solid ${BORDER}` }}
         >
-          <p className="text-sm leading-relaxed" style={{ color: MUTED }}>
-            Read the first chapter for free. Upgrade to unlock every Toonlora
-            Original.
-          </p>
-          <p
-            className="mt-4 font-heading text-2xl font-extrabold"
-            style={{ color: TEXT_DARK }}
-          >
-            {ACHIEVER_PLAN.priceLabel}
-            <span className="text-base font-semibold" style={{ color: MUTED }}>
-              /month
+          <div className="p-5">
+            <span
+              className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide"
+              style={{ background: "rgba(100,116,139,0.12)", color: MUTED }}
+            >
+              Current plan
             </span>
-          </p>
-          <p className="mt-1 text-xs" style={{ color: MUTED }}>
-            Entrepreneur plan {ENTREPRENEUR_PLAN.priceLabel}/month
-          </p>
-          <Link
-            href="/subscribe"
-            className="mt-5 inline-flex h-[42px] items-center justify-center rounded-full px-5 text-sm font-bold text-white"
-            style={{ background: BLUE }}
+            <p
+              className="mt-3 font-heading text-lg font-extrabold"
+              style={{ color: TEXT_DARK }}
+            >
+              {planName}
+            </p>
+            <p
+              className="mt-1 font-heading text-2xl font-extrabold"
+              style={{ color: TEXT_DARK }}
+            >
+              {priceLabel}
+              <span className="text-base font-semibold" style={{ color: MUTED }}>
+                /month
+              </span>
+            </p>
+            <p className="mt-2 text-sm" style={{ color: MUTED }}>
+              {planBenefitSummary("free")}
+            </p>
+          </div>
+
+          <div
+            className="border-t px-5 py-4"
+            style={{ borderColor: BORDER }}
           >
-            Upgrade to Plus
-          </Link>
+            <Link
+              href="/subscribe"
+              className="inline-flex h-[42px] w-full items-center justify-center rounded-full text-sm font-bold text-white sm:w-auto sm:px-6"
+              style={{ background: BLUE }}
+            >
+              Upgrade
+            </Link>
+            <p className="mt-3 text-xs" style={{ color: MUTED }}>
+              Plus from {ACHIEVER_PLAN.priceLabel}/month · Entrepreneur{" "}
+              {ENTREPRENEUR_PLAN.priceLabel}/month
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -320,7 +366,7 @@ export default function ProfileSubscriptionTab({
       ) : null}
 
       <p className="mt-6 text-sm font-semibold" style={{ color: MUTED }}>
-        Membership details
+        Your membership
       </p>
 
       <div
@@ -336,7 +382,7 @@ export default function ProfileSubscriptionTab({
                 : "linear-gradient(90deg, #2F80ED, #1F6FD6)",
             }}
           >
-            {isPaused ? "Paused" : "Active member"}
+            {isPaused ? "Paused" : "Active"}
           </span>
           <p
             className="mt-3 font-heading text-lg font-extrabold"
@@ -344,16 +390,42 @@ export default function ProfileSubscriptionTab({
           >
             {planName}
           </p>
+          <p
+            className="mt-1 font-heading text-2xl font-extrabold"
+            style={{ color: TEXT_DARK }}
+          >
+            {priceLabel}
+            <span className="text-base font-semibold" style={{ color: MUTED }}>
+              /month
+            </span>
+          </p>
           {nextPayment ? (
             <p className="mt-1 text-sm" style={{ color: MUTED }}>
               {isPaused ? "Resumes billing" : "Next payment"}: {nextPayment}
             </p>
           ) : null}
           <p className="mt-2 text-sm" style={{ color: MUTED }}>
-            Unlimited access to Toonlora Originals
-            {tier === "entrepreneur" ? " · Early chapter access" : ""}
+            {planBenefitSummary(tier)}
           </p>
         </div>
+
+        {tier === "achiever" ? (
+          <div
+            className="border-t px-5 py-4"
+            style={{ borderColor: BORDER }}
+          >
+            <Link
+              href="/subscribe"
+              className="inline-flex h-[42px] w-full items-center justify-center rounded-full text-sm font-bold text-white sm:w-auto sm:px-6"
+              style={{ background: BLUE }}
+            >
+              Upgrade
+            </Link>
+            <p className="mt-2 text-xs" style={{ color: MUTED }}>
+              Entrepreneur {ENTREPRENEUR_PLAN.priceLabel}/month · early access
+            </p>
+          </div>
+        ) : null}
 
         <Link
           href="/subscribe"

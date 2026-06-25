@@ -13,6 +13,7 @@ export interface EpisodeAccessResult {
     episodeNumber: number;
     claimedAt: string;
   } | null;
+  weeklyFreeResetsAt?: string | null;
 }
 
 function isBrowser(): boolean {
@@ -43,6 +44,7 @@ export async function checkEpisodeReadAccess(
       tier: "free",
       weeklyFreeRemaining: 1,
       claimedThisWeek: null,
+      weeklyFreeResetsAt: null,
     };
   }
 
@@ -62,6 +64,7 @@ export async function checkEpisodeReadAccess(
       tier: "free",
       weeklyFreeRemaining: 1,
       claimedThisWeek: null,
+      weeklyFreeResetsAt: null,
     };
   }
 }

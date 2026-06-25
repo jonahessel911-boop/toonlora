@@ -18,21 +18,10 @@ export function SignupCtaButton({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className="group flex h-14 w-full items-center justify-between rounded-2xl bg-gradient-to-r from-[#5340FF] via-[#6B4FFF] to-[#7C3AED] px-6 shadow-[0_12px_32px_rgba(83,64,255,0.35)] transition hover:brightness-105 active:scale-[0.99] disabled:opacity-50"
+      className="group flex h-14 w-full items-center justify-center rounded-full bg-[#2F80ED] px-6 shadow-[0_4px_16px_rgba(47,128,237,0.28)] transition hover:bg-[#1F6FD6] active:scale-[0.99] disabled:opacity-50"
     >
       <span className="font-heading text-base font-extrabold text-white sm:text-lg">
         {children}
-      </span>
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-sm">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-          <path
-            d="M4 9H14M14 9L10 5M14 9L10 13"
-            stroke="#5340FF"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
       </span>
     </button>
   );

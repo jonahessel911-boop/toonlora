@@ -115,7 +115,7 @@ export function trackLogin() {
 export function trackPaywallView(params: {
   storyId?: string;
   storyTitle?: string;
-  variant: "page" | "modal";
+  variant: "page" | "modal" | "inline_preview";
   episodeNumber?: number;
 }) {
   gtagEvent("paywall_view", {

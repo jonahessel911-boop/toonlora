@@ -67,11 +67,13 @@ export default function SigninPageClient() {
         <SignupLogo />
 
         <div className="mt-8 flex-1">
-          <div className="overflow-hidden rounded-[28px] border border-[#E7D8FF] bg-white p-6 shadow-[0_20px_60px_rgba(83,64,255,0.08)] sm:p-7">
-            <h2 className="font-heading text-2xl font-extrabold text-[#2A114B]">
+          <div
+            className="overflow-hidden rounded-[20px] border border-[#E7DDCC] bg-[#FFFDF7] p-6 shadow-[0_4px_24px_rgba(14,23,38,0.06)] sm:p-7"
+          >
+            <h2 className="font-heading text-2xl font-extrabold text-[#0E1726]">
               Welcome back
             </h2>
-            <p className="mt-2 text-sm text-[#667085]">
+            <p className="mt-2 text-sm text-[#64748B]">
               Sign in to continue your stories and saved chapters.
             </p>
 
@@ -101,11 +103,11 @@ export default function SigninPageClient() {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-sm text-[#667085]">
+        <p className="mt-6 text-center text-sm text-[#64748B]">
           Don&apos;t have an account?{" "}
           <Link
             href="/signup"
-            className="font-bold text-[#5340FF] hover:text-[#2A114B]"
+            className="font-bold text-[#2F80ED] hover:text-[#1F6FD6]"
           >
             Create account
           </Link>

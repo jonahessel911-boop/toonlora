@@ -89,6 +89,8 @@ export interface Story {
   viewsCount?: number;
   likesCount?: number;
   isPublic?: boolean;
+  coverArtUrl?: string;
+  displayTitle?: string;
 }
 
 /** @deprecated Use CatalogSeries from @/types/catalog */

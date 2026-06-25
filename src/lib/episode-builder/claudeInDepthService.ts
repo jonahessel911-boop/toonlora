@@ -1,9 +1,10 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import {
+  CLAUDE_WEB_SEARCH_TOOL,
+  extractWebSearchSources,
   getAnthropicClient,
   getAnthropicModel,
   hasAnthropicKey,
-  WEB_SEARCH_TOOL,
 } from "@/lib/engine/anthropic-client";
 
 export interface InDepthEpisodeRequest {
@@ -21,51 +22,6 @@ export interface InDepthEpisodeResult {
   script: string;
   researchSources: string[];
   panelCount: number;
-}
-
-function hasTavilyKey(): boolean {
-  return Boolean(process.env.TAVILY_API_KEY?.trim());
-}
-
-async function runWebSearch(query: string): Promise<{
-  content: string;
-  sources: string[];
-}> {
-  const apiKey = process.env.TAVILY_API_KEY?.trim();
-  if (!apiKey) {
-    return {
-      content: "Web search unavailable — TAVILY_API_KEY not configured.",
-      sources: [],
-    };
-  }
-
-  const res = await fetch("https://api.tavily.com/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      api_key: apiKey,
-      query,
-      search_depth: "advanced",
-      max_results: 5,
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Tavily search failed: ${err}`);
-  }
-
-  const data = (await res.json()) as {
-    results?: { url: string; content: string }[];
-  };
-
-  const results = data.results ?? [];
-  const sources = results.map((r) => r.url);
-  const content = results
-    .map((r) => `Source: ${r.url}\n${r.content}`)
-    .join("\n\n");
-
-  return { content: content || "No results found.", sources };
 }
 
 function extractText(content: Anthropic.Message["content"]): string {
@@ -122,54 +78,15 @@ Before writing, search the web for:
 
 Then write the full ${panels}-panel script.`;
 
-  const messages: Anthropic.MessageParam[] = [
-    { role: "user", content: userPrompt },
-  ];
-  const allSources: string[] = [];
-  const maxTurns = 12;
-  let response: Anthropic.Message | null = null;
+  const response = await client.messages.create({
+    model,
+    max_tokens: 16000,
+    system: systemPrompt,
+    tools: [CLAUDE_WEB_SEARCH_TOOL],
+    messages: [{ role: "user", content: userPrompt }],
+  });
 
-  for (let turn = 0; turn < maxTurns; turn++) {
-    response = await client.messages.create({
-      model,
-      max_tokens: 16000,
-      system: systemPrompt,
-      tools: hasTavilyKey() ? [WEB_SEARCH_TOOL] : undefined,
-      messages,
-    });
-
-    messages.push({ role: "assistant", content: response.content });
-
-    if (response.stop_reason === "end_turn") break;
-
-    if (response.stop_reason === "tool_use") {
-      const toolResults: Anthropic.ToolResultBlockParam[] = [];
-
-      for (const block of response.content) {
-        if (block.type === "tool_use" && block.name === "web_search") {
-          const input = block.input as { query?: string };
-          const query = input.query?.trim() || request.topic;
-          const searchResult = await runWebSearch(query);
-          allSources.push(...searchResult.sources);
-
-          toolResults.push({
-            type: "tool_result",
-            tool_use_id: block.id,
-            content: searchResult.content,
-          });
-        }
-      }
-
-      if (toolResults.length === 0) break;
-
-      messages.push({ role: "user", content: toolResults });
-      continue;
-    }
-
-    break;
-  }
-
-  const script = response ? extractText(response.content) : "";
+  const script = extractText(response.content);
   if (!script.trim()) {
     throw new Error("Claude returned an empty episode script");
   }
@@ -179,7 +96,7 @@ Then write the full ${panels}-panel script.`;
     episode: request.episode,
     title: request.episodeTitle,
     script: script.trim(),
-    researchSources: [...new Set(allSources)],
+    researchSources: extractWebSearchSources(response.content),
     panelCount: panels,
   };
 }

@@ -10,6 +10,8 @@ export async function GET(request: Request) {
         recentReads: [],
         genreAffinity: [],
         topEngagedStories: [],
+        storiesReadCount: 0,
+        readStories: [],
         skipped: true,
       });
     }
@@ -25,6 +27,8 @@ export async function GET(request: Request) {
         recentReads: [],
         genreAffinity: [],
         topEngagedStories: [],
+        storiesReadCount: 0,
+        readStories: [],
       }
     );
   } catch (err) {

@@ -13,7 +13,11 @@ export function requireAnthropicKey(): void {
 }
 
 export function getAnthropicModel(): string {
-  return process.env.ANTHROPIC_MODEL?.trim() || "claude-opus-4-20250514";
+  const raw = process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-5";
+  if (raw === "claude-sonnet-4-20250514" || raw === "claude-opus-4-20250514") {
+    return "claude-sonnet-4-5";
+  }
+  return raw;
 }
 
 let client: Anthropic | null = null;
@@ -26,18 +30,27 @@ export function getAnthropicClient(): Anthropic {
   return client;
 }
 
-export const WEB_SEARCH_TOOL: Anthropic.Tool = {
+/** Anthropic built-in web search — no third-party search API needed. */
+export const CLAUDE_WEB_SEARCH_TOOL: Anthropic.Messages.WebSearchTool20250305 = {
+  type: "web_search_20250305",
   name: "web_search",
-  description:
-    "Search the web for detailed, factual information about a topic. Use this to find specific dates, quotes, events, and details needed to write an accurate and compelling story.",
-  input_schema: {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description: "The search query to find specific facts and details",
-      },
-    },
-    required: ["query"],
-  },
+  max_uses: 12,
 };
+
+export function extractWebSearchSources(
+  content: Anthropic.Message["content"]
+): string[] {
+  const sources: string[] = [];
+
+  for (const block of content) {
+    if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
+      for (const result of block.content) {
+        if (result.type === "web_search_result" && result.url) {
+          sources.push(result.url);
+        }
+      }
+    }
+  }
+
+  return [...new Set(sources)];
+}

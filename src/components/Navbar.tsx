@@ -60,14 +60,6 @@ function useActiveHash() {
   return { hash, navigateToSection };
 }
 
-function SearchIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
-  );
-}
-
 function BrowseTab({
   href,
   id,
@@ -138,11 +130,10 @@ export default function Navbar() {
   const isBrowseActive = (href: string, id: string) => {
     if (pathname !== "/") return false;
     if (id === "home") {
-      return !activeHash || activeHash === "#this-week";
+      return !activeHash;
     }
     const target = href.includes("#") ? href.slice(href.indexOf("#")) : "";
-    if (!activeHash && target === "#this-week") return id === "this-week";
-    return activeHash === target;
+    return Boolean(target) && activeHash === target;
   };
 
   const handleBrowseNavigate = (href: string) => {
@@ -201,14 +192,6 @@ export default function Navbar() {
             )}
 
             <ProfileMenu />
-
-            <AffiliateLink
-              href="/#this-week"
-              className="hidden h-10 w-10 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white sm:flex"
-              aria-label="Search stories"
-            >
-              <SearchIcon />
-            </AffiliateLink>
 
             <button
               type="button"

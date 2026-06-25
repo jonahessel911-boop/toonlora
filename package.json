@@ -6,18 +6,25 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pipeline": "tsx pipeline/run.ts",
+    "pipeline:run": "tsx pipeline/run.ts",
+    "pipeline:worker": "tsx server/pipeline-worker.ts",
+    "pipeline:mcp": "tsx server/mcp-server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@stripe/stripe-js": "^9.8.0",
     "@supabase/supabase-js": "^2.108.1",
     "framer-motion": "^12.40.0",
     "jspdf": "^4.2.1",
     "next": "16.2.9",
+    "openai": "^6.45.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "stripe": "^22.2.1",
+    "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -28,6 +35,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }

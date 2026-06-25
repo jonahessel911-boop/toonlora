@@ -10,26 +10,10 @@ function Sparkle({ className }: { className?: string }) {
   );
 }
 
-/** Lavender ambient background for auth pages */
+/** Cream ambient background for auth pages */
 export function SignupPageBackground({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-[100dvh] bg-[#FCFAFF]">
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#F3ECFF]/70 via-[#FCFAFF] to-[#FCFAFF]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -left-16 top-20 h-56 w-56 rounded-full bg-[#5340FF]/10 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-12 top-1/3 h-48 w-48 rounded-full bg-[#FF4FA3]/8 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute bottom-20 left-1/4 h-40 w-40 rounded-full bg-[#22D3EE]/8 blur-3xl"
-        aria-hidden
-      />
+    <div className="relative min-h-[100dvh] bg-[#F6F1E7]">
       <div className="relative">{children}</div>
     </div>
   );
@@ -49,10 +33,7 @@ export function SignupBackButton({ href = "/signup" }: { href?: string }) {
 
 export default function SignupLogo() {
   return (
-    <div className="relative flex flex-col items-center pt-2">
-      <Sparkle className="absolute left-[18%] top-0 text-sm" />
-      <Sparkle className="absolute right-[20%] top-3 text-xs opacity-80" />
-      <Sparkle className="absolute left-[28%] top-8 text-xs opacity-60" />
+    <div className="flex flex-col items-center pt-2">
       <ToonloraLogo variant="full" iconSize={44} />
     </div>
   );
@@ -132,15 +113,15 @@ export function SignupStepIndicator({ step = 1, total = 2 }: SignupStepProps) {
             key={i}
             className={`rounded-full transition-all ${
               i === step - 1
-                ? "h-2.5 w-6 bg-[#5340FF]"
+                ? "h-2.5 w-6 bg-[#2F80ED]"
                 : i < step - 1
-                  ? "h-2 w-2 bg-[#7C3AED]/50"
-                  : "h-2 w-2 bg-[#E7D8FF]"
+                  ? "h-2 w-2 bg-[#2F80ED]/40"
+                  : "h-2 w-2 bg-[#E7DDCC]"
             }`}
           />
         ))}
       </div>
-      <span className="text-xs font-bold text-[#5340FF]">
+      <span className="text-xs font-bold text-[#64748B]">
         Step {step} of {total}
       </span>
     </div>
@@ -160,14 +141,14 @@ export function SignupInput({
 }) {
   const inputClass =
     tone === "dark"
-      ? "w-full rounded-2xl border-2 border-[#5340FF]/30 bg-[#1a1040] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#5340FF] focus:bg-[#1a1040] focus:ring-4 focus:ring-[#5340FF]/20"
-      : "w-full rounded-2xl border-2 border-[#E7D8FF] bg-white px-4 py-3.5 text-sm text-[#101828] outline-none transition placeholder:text-[#667085]/60 focus:border-[#5340FF] focus:bg-[#FCFAFF] focus:ring-4 focus:ring-[#5340FF]/10";
+      ? "w-full rounded-xl border border-white/20 bg-[#101827] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-[#2F80ED] focus:ring-2 focus:ring-[#2F80ED]/20"
+      : "w-full rounded-xl border border-[#E7DDCC] bg-[#FFFDF7] px-4 py-3.5 text-sm text-[#0E1726] outline-none transition placeholder:text-[#64748B] focus:border-[#2F80ED] focus:ring-2 focus:ring-[#2F80ED]/15";
 
   return (
     <div>
       {label && (
         <label
-          className={`mb-1.5 block px-1 text-xs font-bold text-[#667085] ${labelClassName ?? ""}`}
+          className={`mb-1.5 block px-1 text-xs font-bold text-[#64748B] ${labelClassName ?? ""}`}
         >
           {label}
         </label>
@@ -277,13 +258,38 @@ export function SignupSubmitButton({
   );
 }
 
+export function SignupCheckbox({
+  checked,
+  onChange,
+  label,
+  required,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: ReactNode;
+  required?: boolean;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E7DDCC] bg-[#FFFDF7] px-3.5 py-3 transition hover:bg-[#F6F1E7]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        required={required}
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#E7DDCC] accent-[#2F80ED]"
+      />
+      <span className="text-sm leading-snug text-[#0E1726]">{label}</span>
+    </label>
+  );
+}
+
 export function SignupFooterLink() {
   return (
-    <p className="text-center text-sm text-[#667085]">
+    <p className="text-center text-sm text-[#64748B]">
       Already have an account?{" "}
       <Link
         href="/signin"
-        className="font-bold text-[#5340FF] hover:text-[#2A114B]"
+        className="font-bold text-[#2F80ED] hover:text-[#1F6FD6]"
       >
         Sign in
       </Link>

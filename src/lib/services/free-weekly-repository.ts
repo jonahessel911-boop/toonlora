@@ -1,7 +1,7 @@
 import {
   evaluateEpisodeAccess,
   getEpisodePublicReleaseAt,
-  getIsoWeekKey,
+  getWeeklyFreeResetAt,
   isEpisodeReleasedForTier,
   type EpisodeAccessDenyReason,
 } from "@/lib/payments/subscription-access";
@@ -31,13 +31,23 @@ export interface EpisodeAccessResult {
   reason?: EpisodeAccessDenyReason;
   weeklyFreeRemaining: number;
   claimedThisWeek: WeeklyFreeClaim | null;
+  /** ISO timestamp when the active weekly claim resets (claimedAt + 7 days). */
+  weeklyFreeResetsAt: string | null;
 }
 
 function parseClaim(raw: unknown): WeeklyFreeClaim | null {
   if (!raw || typeof raw !== "object") return null;
   const claim = raw as WeeklyFreeClaim;
-  if (!claim.seriesId || !claim.episodeNumber) return null;
+  if (!claim.seriesId || !claim.episodeNumber || !claim.claimedAt) return null;
   return claim;
+}
+
+function isActiveWeeklyClaim(
+  claim: WeeklyFreeClaim | null,
+  now = new Date()
+): claim is WeeklyFreeClaim {
+  if (!claim?.claimedAt) return false;
+  return now < getWeeklyFreeResetAt(claim.claimedAt);
 }
 
 export async function resolveUserTier(sessionId: string): Promise<SubscriptionTierId> {
@@ -58,6 +68,7 @@ function resolveGuestEpisodeAccess(
       reason: "signup_required",
       weeklyFreeRemaining: 1,
       claimedThisWeek: null,
+      weeklyFreeResetsAt: null,
     };
   }
 
@@ -69,6 +80,7 @@ function resolveGuestEpisodeAccess(
       reason: "not_released",
       weeklyFreeRemaining: 1,
       claimedThisWeek: null,
+      weeklyFreeResetsAt: null,
     };
   }
 
@@ -78,6 +90,7 @@ function resolveGuestEpisodeAccess(
     isRegistered: false,
     weeklyFreeRemaining: 1,
     claimedThisWeek: null,
+    weeklyFreeResetsAt: null,
   };
 }
 
@@ -89,7 +102,6 @@ export async function resolveEpisodeAccess(
 ): Promise<EpisodeAccessResult> {
   const tier = await resolveUserTier(sessionId);
   const publicReleaseAt = getEpisodePublicReleaseAt(episodePublishedAt);
-  const weekKey = getIsoWeekKey();
   const profile = await getProfileBySessionFromDb(sessionId);
   const isRegistered = Boolean(profile);
 
@@ -108,6 +120,7 @@ export async function resolveEpisodeAccess(
       reason: allowed ? undefined : "not_released",
       weeklyFreeRemaining: 0,
       claimedThisWeek: null,
+      weeklyFreeResetsAt: null,
     };
   }
 
@@ -128,8 +141,9 @@ export async function resolveEpisodeAccess(
       tier,
       isRegistered: true,
       reason: result.reason,
-      weeklyFreeRemaining: result.allowed ? 0 : 1,
+      weeklyFreeRemaining: episodeNumber <= 1 ? 1 : result.allowed ? 0 : 1,
       claimedThisWeek: null,
+      weeklyFreeResetsAt: null,
     };
   }
 
@@ -137,31 +151,48 @@ export async function resolveEpisodeAccess(
 
   const { data } = await supabase
     .from("user_sessions")
-    .select("free_episode_week, free_episode_claim")
+    .select("free_episode_claim")
     .eq("session_id", sessionId)
     .maybeSingle();
 
-  const storedWeek = data?.free_episode_week ?? null;
-  const claim = storedWeek === weekKey ? parseClaim(data?.free_episode_claim) : null;
-  const weeklyFreeUsedThisWeek = Boolean(claim);
+  let storedClaim = parseClaim(data?.free_episode_claim);
+
+  // Legacy bug: chapter 1 reads were incorrectly stored as the weekly claim.
+  if (storedClaim && storedClaim.episodeNumber <= 1) {
+    storedClaim = null;
+    await supabase
+      .from("user_sessions")
+      .update({ free_episode_week: null, free_episode_claim: null })
+      .eq("session_id", sessionId);
+  }
+
+  const activeClaim = isActiveWeeklyClaim(storedClaim) ? storedClaim : null;
+  const weeklyFreeUsed = Boolean(activeClaim);
 
   const result = evaluateEpisodeAccess({
     tier,
     episodeNumber,
     publicReleaseAt,
-    weeklyFreeUsedThisWeek,
+    weeklyFreeUsedThisWeek: weeklyFreeUsed,
   });
 
   const sameClaim =
-    claim?.seriesId === seriesId && claim.episodeNumber === episodeNumber;
+    activeClaim?.seriesId === seriesId &&
+    activeClaim.episodeNumber === episodeNumber;
+
+  const weeklyFreeResetsAt = activeClaim
+    ? getWeeklyFreeResetAt(activeClaim.claimedAt).toISOString()
+    : null;
 
   return {
     allowed: result.allowed || sameClaim,
     tier,
     isRegistered: true,
     reason: result.allowed || sameClaim ? undefined : result.reason,
-    weeklyFreeRemaining: weeklyFreeUsedThisWeek && !sameClaim ? 0 : 1,
-    claimedThisWeek: claim,
+    weeklyFreeRemaining:
+      episodeNumber <= 1 ? 1 : weeklyFreeUsed && !sameClaim ? 0 : 1,
+    claimedThisWeek: activeClaim,
+    weeklyFreeResetsAt,
   };
 }
 
@@ -170,6 +201,8 @@ export async function claimWeeklyFreeEpisode(
   seriesId: string,
   episodeNumber: number
 ): Promise<void> {
+  if (episodeNumber <= 1) return;
+
   const profile = await getProfileBySessionFromDb(sessionId);
   if (!profile) return;
 
@@ -178,7 +211,6 @@ export async function claimWeeklyFreeEpisode(
 
   await ensureSession(sessionId);
 
-  const weekKey = getIsoWeekKey();
   const claim: WeeklyFreeClaim = {
     seriesId,
     episodeNumber,
@@ -188,7 +220,7 @@ export async function claimWeeklyFreeEpisode(
   const { error } = await supabase
     .from("user_sessions")
     .update({
-      free_episode_week: weekKey,
+      free_episode_week: null,
       free_episode_claim: claim,
     })
     .eq("session_id", sessionId);

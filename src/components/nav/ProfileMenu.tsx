@@ -15,7 +15,7 @@ function ProfileAvatar({
 
   return (
     <span
-      className={`inline-flex ${dim} items-center justify-center rounded-full bg-gradient-to-br from-accent to-[#2563eb] font-extrabold text-white shadow-[0_4px_14px_rgba(59,158,255,0.35)] ring-2 ring-nav-bg`}
+      className={`inline-flex ${dim} items-center justify-center rounded-full bg-[#2F80ED] font-extrabold text-white shadow-[0_2px_10px_rgba(47,128,237,0.35)]`}
     >
       {initial}
     </span>
@@ -34,12 +34,7 @@ export default function ProfileMenu() {
       aria-label={loggedIn ? "Go to profile" : "Account"}
     >
       {loggedIn ? (
-        <>
-          <ProfileAvatar name={displayName} />
-          <span className="hidden max-w-[120px] truncate text-sm font-semibold text-white lg:inline">
-            {displayName.split(" ")[0]}
-          </span>
-        </>
+        <ProfileAvatar name={displayName} />
       ) : (
         <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-accent">
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -46,23 +46,37 @@ async function episodeMetaForSeriesIds(
   return meta;
 }
 
+function coverFromSeriesRow(series: SeriesRow): string | undefined {
+  const row = series as SeriesRow & { cover_art_url?: string | null };
+  return row.cover_art_url?.trim() || undefined;
+}
+
 function rowToCatalog(
   series: SeriesRow,
   episodeCount: number,
   coverArtUrl?: string
 ): CatalogSeries {
+  const extended = series as SeriesRow & {
+    display_title?: string | null;
+    category?: string | null;
+    cover_art_url?: string | null;
+  };
+
   const logline =
     series.synopsis ??
     (series.story_bible as { logline?: string } | null)?.logline ??
     series.story_idea ??
     "";
 
+  const resolvedCover =
+    coverArtUrl ?? coverFromSeriesRow(series) ?? undefined;
+
   return {
     id: series.id,
-    title: series.title,
-    genre: series.genre,
+    title: extended.display_title?.trim() || series.title,
+    genre: extended.category?.trim() || series.genre,
     coverGradient: series.cover_gradient,
-    coverArtUrl,
+    coverArtUrl: resolvedCover,
     source: series.source === "admin" ? "admin" : "creator",
     status: series.status === "published" ? "published" : "draft",
     creatorDisplayName:
@@ -119,7 +133,49 @@ export async function listPublishedCatalog(
 
   return rows.map((row) => {
     const episodeMeta = meta.get(row.id) ?? { count: 0 };
-    return rowToCatalog(row, episodeMeta.count, episodeMeta.cover);
+    return rowToCatalog(
+      row,
+      episodeMeta.count,
+      coverFromSeriesRow(row) ?? episodeMeta.cover
+    );
+  });
+}
+
+/** Series with a generated cover — shown on the browse index (incl. draft pipeline). */
+export async function listIndexCatalog(
+  query: CatalogQuery = {}
+): Promise<CatalogSeries[]> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+
+  let dbQuery = supabase
+    .from("series")
+    .select("*")
+    .not("cover_art_url", "is", null)
+    .order("created_at", { ascending: false });
+
+  if (query.genre) {
+    dbQuery = dbQuery.or(`category.eq.${query.genre},genre.eq.${query.genre}`);
+  }
+  if (query.source) {
+    dbQuery = dbQuery.eq("source", query.source);
+  }
+
+  dbQuery = dbQuery.limit(query.limit ?? 48);
+
+  const { data, error } = await dbQuery;
+  if (error || !data?.length) return [];
+
+  const rows = data as SeriesRow[];
+  const meta = await episodeMetaForSeriesIds(rows.map((row) => row.id));
+
+  return rows.map((row) => {
+    const episodeMeta = meta.get(row.id) ?? { count: 0 };
+    return rowToCatalog(
+      row,
+      episodeMeta.count,
+      coverFromSeriesRow(row) ?? episodeMeta.cover
+    );
   });
 }
 
@@ -139,7 +195,11 @@ export async function listAllSeriesAdmin(): Promise<CatalogSeries[]> {
 
   return rows.map((row) => {
     const episodeMeta = meta.get(row.id) ?? { count: 0 };
-    return rowToCatalog(row, episodeMeta.count, episodeMeta.cover);
+    return rowToCatalog(
+      row,
+      episodeMeta.count,
+      coverFromSeriesRow(row) ?? episodeMeta.cover
+    );
   });
 }
 

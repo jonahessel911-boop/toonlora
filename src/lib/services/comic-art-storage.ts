@@ -45,6 +45,29 @@ export async function persistEpisodeBuilderArt(
   );
 }
 
+/** Upload pipeline CLI panel art. */
+export async function persistPipelinePanelArt(
+  imageData: string,
+  seriesId: string,
+  panelId: string
+): Promise<string> {
+  return persistImageToBucket(
+    imageData,
+    `pipeline/${seriesId}/${panelId}-${crypto.randomUUID()}.png`
+  );
+}
+
+/** Upload pipeline series cover poster. */
+export async function persistSeriesCoverArt(
+  imageData: string,
+  seriesId: string
+): Promise<string> {
+  return persistImageToBucket(
+    imageData,
+    `pipeline/${seriesId}/cover-${crypto.randomUUID()}.png`
+  );
+}
+
 /** Upload admin-provided panel image bytes. */
 export async function persistAdminPanelUpload(
   bytes: Buffer,

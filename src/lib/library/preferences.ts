@@ -12,27 +12,6 @@ export interface NotificationPreferences {
   newChaptersDigest: boolean;
 }
 
-const DEFAULT_FOLLOWS: FollowingStory[] = [
-  {
-    seriesId: "elon-musk",
-    title: "Elon Musk — The Man Who Refused to Lose",
-    scheduleLabel: "New chapter every Monday",
-    href: "/story/elon-musk",
-  },
-  {
-    seriesId: "steve-jobs",
-    title: "Steve Jobs — The Return",
-    scheduleLabel: "New chapter every Wednesday",
-    href: "/story/steve-jobs",
-  },
-  {
-    seriesId: "ferrari",
-    title: "Ferrari — Built on Rage",
-    scheduleLabel: "New chapter every Friday",
-    href: "/story/ferrari",
-  },
-];
-
 const DEFAULT_NOTIFICATIONS: NotificationPreferences = {
   newChaptersDigest: true,
 };
@@ -55,22 +34,16 @@ function normalizeFollow(story: FollowingStory & { emailNotifications?: boolean 
 }
 
 export function getFollowingStories(): FollowingStory[] {
-  if (!isBrowser()) return DEFAULT_FOLLOWS;
+  if (!isBrowser()) return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.followingStories);
-    if (!raw) {
-      localStorage.setItem(
-        STORAGE_KEYS.followingStories,
-        JSON.stringify(DEFAULT_FOLLOWS)
-      );
-      return DEFAULT_FOLLOWS;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as Array<
       FollowingStory & { emailNotifications?: boolean }
     >;
     return parsed.map(normalizeFollow);
   } catch {
-    return DEFAULT_FOLLOWS;
+    return [];
   }
 }
 

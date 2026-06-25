@@ -10,6 +10,8 @@ export interface UseCatalogOptions {
   sort?: "featured" | "newest" | "popular";
   limit?: number;
   enabled?: boolean;
+  /** Include draft pipeline series that have a cover_art_url */
+  index?: boolean;
 }
 
 function catalogCacheKey(options: UseCatalogOptions): string {
@@ -18,6 +20,7 @@ function catalogCacheKey(options: UseCatalogOptions): string {
     source: options.source ?? "",
     sort: options.sort ?? "featured",
     limit: options.limit ?? 48,
+    index: options.index ?? false,
   });
 }
 
@@ -38,6 +41,7 @@ async function fetchCatalog(options: UseCatalogOptions): Promise<CatalogSeries[]
     if (options.source) params.set("source", options.source);
     if (options.sort) params.set("sort", options.sort);
     if (options.limit) params.set("limit", String(options.limit));
+    if (options.index) params.set("index", "1");
 
     const res = await fetch(`/api/catalog?${params.toString()}`);
     const data = await res.json();
@@ -81,7 +85,7 @@ export function useCatalog(options: UseCatalogOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [enabled, options.genre, options.source, options.sort, options.limit]);
+  }, [enabled, options.genre, options.source, options.sort, options.limit, options.index]);
 
   useEffect(() => {
     void load();

@@ -29,6 +29,8 @@ interface SubscriptionPaywallProps {
   episodeNumber?: number;
   /** Logged-in free user already used their weekly chapter read. */
   weeklyLimitReached?: boolean;
+  /** When the weekly free claim resets (from episode-access API). */
+  weeklyFreeResetsAt?: string | null;
   /** Entrepreneur fast pass — next chapter 1 week before public release. */
   fastPass?: boolean;
   /** Pre-select a plan (e.g. Entrepreneur for fast pass). */
@@ -45,6 +47,7 @@ export default function SubscriptionPaywall({
   storyId,
   episodeNumber,
   weeklyLimitReached = false,
+  weeklyFreeResetsAt = null,
   fastPass = false,
   initialPlanId,
 }: SubscriptionPaywallProps) {
@@ -52,7 +55,10 @@ export default function SubscriptionPaywall({
   const { hasPaidAccess, hydrate: hydrateSubscription } = useSubscriptionStore();
   const loggedIn = Boolean(email);
   const isOnFreePlan = loggedIn && !hasPaidAccess();
-  const weeklyResetIn = useWeeklyResetCountdown(weeklyLimitReached);
+  const weeklyResetIn = useWeeklyResetCountdown(
+    weeklyLimitReached,
+    weeklyFreeResetsAt
+  );
 
   const defaultPlanId =
     initialPlanId ??

@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import EpisodeCompleteCard from "@/components/reader/EpisodeCompleteCard";
 import BeginnerLevelUpOverlay from "@/components/reader/BeginnerLevelUpOverlay";
+import {
+  EpisodePreviewGateShell,
+  type EpisodePreviewGateMode,
+} from "@/components/reader/EpisodePreviewGate";
 import PanelBlock from "@/components/reader/PanelBlock";
 import ReaderBackButton from "@/components/reader/ReaderBackButton";
 import { trackReadingProgress } from "@/components/analytics/AnalyticsProvider";
-import {
-  trackEpisodeComplete,
-  trackNextEpisodeClick,
-} from "@/lib/analytics/gtag";
+import { trackEpisodeComplete, trackNextEpisodeClick, trackPaywallView } from "@/lib/analytics/gtag";
 import { formatChapterTitle } from "@/lib/brand";
 import {
   appendAffiliateToHref,
@@ -86,6 +87,10 @@ export default function WebtoonReader({
   );
   const [showEndCard, setShowEndCard] = useState(false);
   const [showBeginnerLevelUp, setShowBeginnerLevelUp] = useState(false);
+  const [previewGate, setPreviewGate] = useState<EpisodePreviewGateMode | null>(
+    null
+  );
+  const previewViewTracked = useRef(false);
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const lastPanelRef = useRef<HTMLElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -99,6 +104,7 @@ export default function WebtoonReader({
   const needsSignup = isCatalog && !loggedIn;
   const needsSubscription = isCatalog && loggedIn && !paidAccess;
   const gatedNextEpisode = needsSignup || needsSubscription;
+  const previewMode = Boolean(previewGate);
   const total = panels.length;
   const safeInitialPanel = Math.min(
     Math.max(0, initialPanelIndex),
@@ -234,6 +240,20 @@ export default function WebtoonReader({
   }, [isCatalog, seriesId]);
 
   useEffect(() => {
+    if (!isCatalog || episodeNumber < 2) {
+      setPreviewGate(null);
+      return;
+    }
+    if (!loggedIn) {
+      setPreviewGate("signup");
+      return;
+    }
+    if (!paidAccess) {
+      setPreviewGate("upgrade");
+    }
+  }, [isCatalog, episodeNumber, loggedIn, paidAccess]);
+
+  useEffect(() => {
     if (!isCatalog) return;
 
     let cancelled = false;
@@ -241,9 +261,30 @@ export default function WebtoonReader({
       if (cancelled) return;
 
       if (result.allowed) {
-        if (result.tier === "free" && loggedIn) {
+        setPreviewGate(null);
+        if (result.tier === "free" && loggedIn && episodeNumber > 1) {
           await claimEpisodeRead(seriesId, episodeNumber);
         }
+        return;
+      }
+
+      if (episodeNumber >= 2) {
+        if (
+          result.reason === "signup_required" ||
+          (!loggedIn && episodeNumber > 1)
+        ) {
+          setPreviewGate("signup");
+          return;
+        }
+        if (result.reason === "weekly_free_used") {
+          setPreviewGate(loggedIn ? "upgrade_weekly" : "signup");
+          return;
+        }
+        if (loggedIn) {
+          setPreviewGate("upgrade");
+          return;
+        }
+        setPreviewGate("signup");
         return;
       }
 
@@ -287,22 +328,15 @@ export default function WebtoonReader({
   }, [isCatalog, loggedIn, seriesId, episodeNumber, seriesTitle, navigateWithAffiliate]);
 
   useEffect(() => {
-    if (episodeNumber > 1 && needsSignup) {
-      navigateWithAffiliate(
-        buildReaderSignupPath(seriesId, seriesTitle, episodeNumber - 1),
-        true
-      );
-    }
-  }, [episodeNumber, needsSignup, seriesId, seriesTitle, navigateWithAffiliate]);
-
-  useEffect(() => {
-    if (episodeNumber > 1 && needsSubscription) {
-      navigateWithAffiliate(
-        buildPaywallPath(seriesId, episodeNumber, seriesTitle),
-        true
-      );
-    }
-  }, [episodeNumber, needsSubscription, seriesId, seriesTitle, navigateWithAffiliate]);
+    if (!previewGate || previewViewTracked.current) return;
+    previewViewTracked.current = true;
+    trackPaywallView({
+      storyId: seriesId,
+      storyTitle: seriesTitle,
+      variant: "inline_preview",
+      episodeNumber,
+    });
+  }, [previewGate, seriesId, seriesTitle, episodeNumber]);
 
   useEffect(() => {
     if (stripUrl) return;
@@ -403,13 +437,13 @@ export default function WebtoonReader({
   }, [maxPanelIndex, persistReadingProgress]);
 
   useEffect(() => {
-    if (maxPanelIndex >= total - 1 && showControls) {
+    if (!previewMode && maxPanelIndex >= total - 1 && showControls) {
       setShowEndCard(true);
     }
-  }, [maxPanelIndex, total, showControls]);
+  }, [maxPanelIndex, total, showControls, previewMode]);
 
   useEffect(() => {
-    if (episodeCompleteTracked.current || total === 0) return;
+    if (previewMode || episodeCompleteTracked.current || total === 0) return;
     if (maxPanelIndex >= total - 1) {
       episodeCompleteTracked.current = true;
       recordEpisodeComplete(seriesId, episodeNumber, totalEpisodesInSeries);
@@ -466,6 +500,10 @@ export default function WebtoonReader({
   if (total === 0) return null;
 
   const panelsWithGenre = panels.map((p) => ({ ...p, genre: p.genre ?? genre }));
+  const previewLeadPanels =
+    previewMode && total > 1 ? panelsWithGenre.slice(0, 1) : [];
+  const previewPeekPanel =
+    previewMode && total > 1 ? panelsWithGenre[1] : panelsWithGenre[0];
 
   return (
     <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#08040F]">
@@ -477,7 +515,51 @@ export default function WebtoonReader({
 
       <main className="mx-auto w-full max-w-[720px] pt-12">
         <div className="flex flex-col">
-          {stripUrl ? (
+          {previewMode ? (
+            stripUrl ? (
+              <EpisodePreviewGateShell
+                mode={previewGate!}
+                seriesId={seriesId}
+                seriesTitle={seriesTitle}
+                episodeNumber={episodeNumber}
+              >
+                <img
+                  src={stripUrl}
+                  alt={`${seriesTitle} — chapter ${episodeNumber}`}
+                  className="block h-auto w-full"
+                  draggable={false}
+                />
+              </EpisodePreviewGateShell>
+            ) : total > 1 ? (
+              <>
+                {previewLeadPanels.map((panel, index) => (
+                  <PanelBlock
+                    key={panel.id}
+                    ref={(el) => setPanelRef(index, el)}
+                    panel={panel}
+                    panelIndex={index}
+                  />
+                ))}
+                <EpisodePreviewGateShell
+                  mode={previewGate!}
+                  seriesId={seriesId}
+                  seriesTitle={seriesTitle}
+                  episodeNumber={episodeNumber}
+                >
+                  <PanelBlock panel={previewPeekPanel} panelIndex={1} />
+                </EpisodePreviewGateShell>
+              </>
+            ) : (
+              <EpisodePreviewGateShell
+                mode={previewGate!}
+                seriesId={seriesId}
+                seriesTitle={seriesTitle}
+                episodeNumber={episodeNumber}
+              >
+                <PanelBlock panel={previewPeekPanel} panelIndex={0} />
+              </EpisodePreviewGateShell>
+            )
+          ) : stripUrl ? (
             <div
               ref={(el) => {
                 stripRef.current = el;
@@ -504,7 +586,7 @@ export default function WebtoonReader({
           )}
         </div>
 
-        {showEndCard && showControls && (
+        {showEndCard && showControls && !previewMode && (
           <EpisodeCompleteCard
             seriesId={seriesId}
             seriesTitle={seriesTitle}
@@ -527,7 +609,7 @@ export default function WebtoonReader({
           />
         )}
 
-        {!showEndCard && maxPanelIndex >= total - 1 && showControls && (
+        {!showEndCard && !previewMode && maxPanelIndex >= total - 1 && showControls && (
           <button
             type="button"
             onClick={() => setShowEndCard(true)}

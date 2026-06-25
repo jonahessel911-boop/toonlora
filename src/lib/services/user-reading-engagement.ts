@@ -1,4 +1,3 @@
-import { findMockStory } from "@/lib/mock/businessStoryCatalog";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveProfileId } from "@/lib/services/analytics-repository";
 import type { ReadingProgressRow } from "@/lib/supabase/types";
@@ -32,6 +31,8 @@ export interface UserReadingEngagement {
   recentReads: RecentReadItem[];
   genreAffinity: GenreAffinityItem[];
   topEngagedStories: TopEngagedStory[];
+  storiesReadCount: number;
+  readStories: TopEngagedStory[];
 }
 
 type ProgressRow = ReadingProgressRow & {
@@ -41,12 +42,29 @@ type ProgressRow = ReadingProgressRow & {
 
 function resolveGenre(seriesId: string, stored?: string | null): string {
   if (stored?.trim()) return stored.trim();
-  return findMockStory(seriesId)?.sagaLabel ?? "Business";
+  return "Business";
 }
 
 function resolveTitle(seriesId: string, stored?: string | null): string {
   if (stored?.trim()) return stored.trim();
-  return findMockStory(seriesId)?.title ?? seriesId;
+  return seriesId;
+}
+
+function dedupeBySeries(rows: ProgressRow[]): ProgressRow[] {
+  const bySeries = new Map<string, ProgressRow>();
+  for (const row of rows) {
+    const existing = bySeries.get(row.series_id);
+    if (
+      !existing ||
+      new Date(row.updated_at).getTime() > new Date(existing.updated_at).getTime()
+    ) {
+      bySeries.set(row.series_id, row);
+    }
+  }
+  return [...bySeries.values()].sort(
+    (a, b) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
 }
 
 /** Chapter counts as read when completed or user scrolled past early panels. */
@@ -90,7 +108,7 @@ export async function getUserReadingEngagement(
   const { data, error } = await query;
   if (error) throw new Error(error.message);
 
-  const rows = (data ?? []) as ProgressRow[];
+  const rows = dedupeBySeries((data ?? []) as ProgressRow[]);
 
   const recentReads: RecentReadItem[] = rows.slice(0, 12).map((row) => ({
     seriesId: row.series_id,
@@ -163,5 +181,15 @@ export async function getUserReadingEngagement(
     recentReads,
     genreAffinity,
     topEngagedStories,
+    storiesReadCount: engagedBySeries.size,
+    readStories: [...engagedBySeries.entries()]
+      .map(([seriesId, stats]) => ({
+        seriesId,
+        seriesTitle: stats.title,
+        genre: stats.genre,
+        chaptersRead: stats.chaptersRead,
+        lastReadAt: stats.lastReadAt,
+      }))
+      .sort((a, b) => b.lastReadAt.localeCompare(a.lastReadAt)),
   };
 }

@@ -8,7 +8,11 @@ export async function fetchPublishedStory(id: string): Promise<Story | null> {
     const data = (await res.json()) as { story?: Story };
     const story = data.story;
     if (!story) return null;
-    if (story.status !== "published" && !story.isPublic) return null;
+    const browsable =
+      story.status === "published" ||
+      story.isPublic ||
+      Boolean(story.coverArtUrl);
+    if (!browsable) return null;
     return story;
   } catch {
     return null;
@@ -16,6 +20,8 @@ export async function fetchPublishedStory(id: string): Promise<Story | null> {
 }
 
 export function getStoryCoverArtUrl(story: Story): string | undefined {
+  if (story.coverArtUrl) return story.coverArtUrl;
+
   const episode = story.episodes?.[0];
   if (!episode) return undefined;
 
