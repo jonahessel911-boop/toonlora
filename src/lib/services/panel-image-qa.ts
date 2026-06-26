@@ -13,6 +13,10 @@ import {
 } from "@/lib/services/pipeline-panels-repository";
 import { persistPipelinePanelArt } from "@/lib/services/comic-art-storage";
 import { enforceCaptionBoxRules } from "@/lib/prompts/caption-box-rules";
+import {
+  isImageSafetyViolation,
+  softenImagePromptForSafety,
+} from "@/lib/prompts/image-safety";
 import { hasOpenAIKey, requireOpenAIKey } from "@/lib/engine/openai-client";
 import { parseJsonFromModel } from "@/lib/parseModelJson";
 import type { CreatorAdminPanel, ImageQaResult } from "@/types/creator-admin";
@@ -132,12 +136,48 @@ async function callOpenAIVision(params: {
   return { content, usage };
 }
 
-async function generatePanelImage(prompt: string): Promise<{
+async function generatePanelImage(
+  prompt: string,
+  options: {
+    onSafetyViolation?: (info: {
+      attempt: number;
+      maxAttempts: number;
+    }) => void | Promise<void>;
+  } = {}
+): Promise<{
   url: string;
   usage: ApiUsageSummary;
 }> {
   requireOpenAIKey();
 
+  const maxAttempts = 3;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const attemptPrompt =
+      attempt === 0 ? prompt : softenImagePromptForSafety(prompt, attempt);
+
+    try {
+      return await generatePanelImageOnce(attemptPrompt);
+    } catch (err) {
+      lastError = err;
+      if (!isImageSafetyViolation(err) || attempt === maxAttempts - 1) {
+        throw err;
+      }
+      await options.onSafetyViolation?.({
+        attempt: attempt + 1,
+        maxAttempts: maxAttempts - 1,
+      });
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+async function generatePanelImageOnce(prompt: string): Promise<{
+  url: string;
+  usage: ApiUsageSummary;
+}> {
   const response = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: {
@@ -353,12 +393,25 @@ export async function regeneratePanelImage(
     enrichedPrompt += `\n\nMatch the quality of approved panels. Example approved prompt style: ${approvedExamples[0].image_prompt.slice(0, 400)}`;
   }
 
+  const initialPrompt = enrichedPrompt;
+
   await updatePanelFields(panelId, {
     image_prompt: options.prompt?.trim() || basePrompt,
     status: "generating",
   });
 
-  const { url: tempUrl, usage: imageUsage } = await generatePanelImage(enrichedPrompt);
+  const { url: tempUrl, usage: imageUsage } = await generatePanelImage(
+    initialPrompt,
+    {
+      onSafetyViolation: async ({ attempt }) => {
+        const softened = softenImagePromptForSafety(initialPrompt, attempt);
+        await updatePanelFields(panelId, {
+          image_prompt: softened,
+          status: "safety_violation",
+        });
+      },
+    }
+  );
   const publicUrl = await persistPipelinePanelArt(
     tempUrl,
     context.seriesId,

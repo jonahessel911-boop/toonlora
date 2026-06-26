@@ -4,6 +4,7 @@ import {
 } from "../lib/anthropic.js";
 import type { WebSearchLog } from "../lib/anthropic.js";
 import { parseJsonFromModel } from "../lib/json.js";
+import { formatCategoryBriefForPrompt } from "../../src/lib/content-pipeline/category-briefs.js";
 import { getSeries, saveResearchJson } from "../lib/supabase.js";
 import type { ResearchJson } from "../lib/types.js";
 
@@ -27,7 +28,10 @@ export async function runResearcher(params: {
 }): Promise<ResearchJson> {
   console.log(`[researcher] Researching "${params.topic}"…`);
 
-  const user = `Research the business story: "${params.topic}".
+  const series = await getSeries(params.seriesId);
+  const categoryBrief = formatCategoryBriefForPrompt(series.category);
+
+  const user = `Research the business story: "${params.topic}".${categoryBrief}
 
 Run multiple web searches until you have at least 50 distinct, verifiable facts.
 Prioritize: founding, fundraising, hype, fraud/conflict, collapse or triumph, comeback, cultural impact.

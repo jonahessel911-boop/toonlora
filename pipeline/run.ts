@@ -31,6 +31,8 @@ function parseArgs(argv: string[]): {
   seriesId?: string;
   resume?: boolean;
   lean?: boolean;
+  full?: boolean;
+  maxPanels?: number;
 } {
   const result: {
     topic?: string;
@@ -38,6 +40,8 @@ function parseArgs(argv: string[]): {
     seriesId?: string;
     resume?: boolean;
     lean?: boolean;
+    full?: boolean;
+    maxPanels?: number;
   } = {};
 
   for (let i = 0; i < argv.length; i++) {
@@ -48,10 +52,14 @@ function parseArgs(argv: string[]): {
       result.category = argv[++i];
     } else if (arg === "--series-id" && argv[i + 1]) {
       result.seriesId = argv[++i];
+    } else if (arg === "--max-panels" && argv[i + 1]) {
+      result.maxPanels = Number(argv[++i]);
     } else if (arg === "--resume") {
       result.resume = true;
     } else if (arg === "--lean") {
       result.lean = true;
+    } else if (arg === "--full") {
+      result.full = true;
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
@@ -71,10 +79,12 @@ Usage:
 
 Options:
   --topic       Story topic / series title (required for new runs)
-  --category    Category slug e.g. rise_and_fall, founder_stories
+  --category    Category slug e.g. rise_and_fall, founder_stories, heists_and_frauds, empires
   --series-id   Resume an existing series
   --resume      Skip steps already marked completed in pipeline_runs
   --lean        Fast preview: 1 web search, 1 panel, image
+  --full        Full pipeline (research → bible → scripts → images)
+  --max-panels  Episode 1 panel count for full pipeline (default 36)
 
 Requires: ANTHROPIC_API_KEY, OPENAI_API_KEY, NEXT_PUBLIC_SUPABASE_URL,
           SUPABASE_SERVICE_ROLE_KEY
@@ -102,14 +112,21 @@ async function main(): Promise<void> {
   }
 
   try {
+    const useLean = args.lean && !args.full;
+    const maxPanels = args.maxPanels
+      ? Math.min(40, Math.max(5, Math.floor(args.maxPanels)))
+      : undefined;
+
     const runOptions = {
       topic: args.topic ?? "Untitled",
       category: args.category ?? "business",
       seriesId: args.seriesId,
       resume: args.resume ?? Boolean(args.seriesId),
+      maxPanels,
+      generateEpisodeNumbers: useLean ? undefined : [1],
     };
 
-    const { seriesId } = args.lean
+    const { seriesId } = useLean
       ? await runLeanPipeline(runOptions)
       : await runPipeline(runOptions);
     console.log(`Series ID: ${seriesId}`);

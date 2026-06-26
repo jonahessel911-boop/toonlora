@@ -1,5 +1,9 @@
 import OpenAI from "openai";
 import { enforceCaptionBoxRules } from "../../src/lib/prompts/caption-box-rules.js";
+import {
+  isImageSafetyViolation,
+  softenImagePromptForSafety,
+} from "../../src/lib/prompts/image-safety.js";
 import { requireEnv } from "./config.js";
 import { getSupabase } from "./supabase.js";
 import { getStepUsage } from "./usage.js";
@@ -16,9 +20,54 @@ export function getOpenAI(): OpenAI {
 export interface GeneratedImageResult {
   url: string;
   usage?: OpenAI.Images.ImagesResponse.Usage;
+  hadSafetyViolation?: boolean;
 }
 
-export async function generateDalleImage(prompt: string): Promise<GeneratedImageResult> {
+export interface GenerateDalleImageOptions {
+  /** Called when OpenAI rejects for safety — before auto-retry with softened prompt. */
+  onSafetyViolation?: (info: {
+    attempt: number;
+    maxAttempts: number;
+  }) => void | Promise<void>;
+}
+
+export async function generateDalleImage(
+  prompt: string,
+  options: GenerateDalleImageOptions = {}
+): Promise<GeneratedImageResult> {
+  const maxAttempts = 3;
+  let lastError: unknown;
+  let hadSafetyViolation = false;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const attemptPrompt =
+      attempt === 0
+        ? prompt
+        : softenImagePromptForSafety(prompt, attempt);
+
+    try {
+      const result = await generateDalleImageOnce(attemptPrompt);
+      return { ...result, hadSafetyViolation };
+    } catch (err) {
+      lastError = err;
+      if (!isImageSafetyViolation(err) || attempt === maxAttempts - 1) {
+        throw err;
+      }
+      hadSafetyViolation = true;
+      await options.onSafetyViolation?.({
+        attempt: attempt + 1,
+        maxAttempts: maxAttempts - 1,
+      });
+      console.warn(
+        `[openai] Violation detected — auto-retry ${attempt + 1}/${maxAttempts - 1} with softened prompt`
+      );
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+async function generateDalleImageOnce(prompt: string): Promise<GeneratedImageResult> {
   const openai = getOpenAI();
 
   const response = await openai.images.generate({

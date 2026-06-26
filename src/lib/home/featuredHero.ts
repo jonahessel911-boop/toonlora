@@ -1,16 +1,19 @@
-import { WEEKLY_HERO } from "@/lib/mock/businessStoryCatalog";
-
-/** Featured hero story — cinematic spotlight on the browse index. */
+/** Curated hero spotlight on the browse index. */
 export const FEATURED_HERO = {
-  storyId: WEEKLY_HERO.id,
-  eyebrow: "TOONLORA ORIGINAL",
-  title: "Against All Odds",
-  subtitle: "The year Elon Musk nearly lost Tesla, SpaceX, and everything else.",
+  /** Fallback id when the series is not yet in the catalog. */
+  storyId: "voc",
+  storyMatch: /voc|east india|verenigde oost|oost-ind/i,
+  eyebrow: "THIS WEEK'S DROP",
+  /** Full title for list / SEO */
+  title: "The Biggest Company That Ever Existed",
+  /** Two-line hero headline — reads better than one giant uppercase block */
+  headline: ["The Biggest Company", "That Ever Existed"] as const,
+  subtitle: "The true story of the Dutch East India Company.",
   description:
-    "A cinematic illustrated series about collapse, obsession, rockets, money, and the final bet that changed everything.",
-  sagaLabel: WEEKLY_HERO.sagaLabel,
-  chapters: WEEKLY_HERO.chapters,
-  readMinutes: WEEKLY_HERO.readMinutes,
+    "Before Wall Street — one flag ruled the Indian Ocean. Spices worth more than gold. Shareholders who demanded blood for dividends.",
+  sagaLabel: "Empire",
+  chapters: 6,
+  readMinutes: 8,
   weeklyDrop: true,
-  keyArtUrl: "/images/heroes/elon-musk-against-all-odds.png",
+  keyArtUrl: "/images/heroes/voc-empire.png",
 };

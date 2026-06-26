@@ -15,16 +15,21 @@ import {
   startPipelineRun,
 } from "./lib/supabase.js";
 import { slugify } from "./lib/json.js";
+import { tryCompleteQueueJobForSeries } from "./lib/queue-sync.js";
 import {
   clearPipelineContext,
+  getGenerateEpisodeNumbers,
   setPipelineContext,
 } from "./lib/pipeline-context.js";
 
 async function runStep(
   step: PipelineStep,
   seriesId: string,
-  topic: string
+  topic: string,
+  episodeNumbers?: number[]
 ): Promise<void> {
+  const episodeOpts = episodeNumbers?.length ? { episodeNumbers } : {};
+
   switch (step) {
     case "research":
       await runResearcher({ seriesId, topic });
@@ -36,13 +41,13 @@ async function runStep(
       await runStoryArchitect(seriesId);
       break;
     case "script":
-      await runScriptWriter(seriesId);
+      await runScriptWriter(seriesId, episodeOpts);
       break;
     case "prompts":
-      await runPromptGenerator(seriesId);
+      await runPromptGenerator(seriesId, episodeOpts);
       break;
     case "images":
-      await runImageGenerator(seriesId);
+      await runImageGenerator(seriesId, episodeOpts);
       break;
     default:
       throw new Error(`Unknown pipeline step: ${step}`);
@@ -56,11 +61,17 @@ function nextStepsToRun(completed: PipelineStep[]): PipelineStep[] {
 export async function runPipeline(
   options: PipelineRunOptions
 ): Promise<{ seriesId: string }> {
-  if (options.maxPanels || options.singleEpisode || options.generateCover) {
+  if (
+    options.maxPanels ||
+    options.singleEpisode ||
+    options.generateCover ||
+    options.generateEpisodeNumbers?.length
+  ) {
     setPipelineContext({
       maxPanels: options.maxPanels,
       singleEpisode: options.singleEpisode,
       generateCover: options.generateCover,
+      generateEpisodeNumbers: options.generateEpisodeNumbers,
     });
   }
 
@@ -103,12 +114,14 @@ async function runPipelineInner(
   const topic =
     options.topic || (seriesId ? (await getSeries(seriesId)).title : "Untitled");
 
+  const episodeNumbers = getGenerateEpisodeNumbers();
+
   for (const step of steps) {
     const runId = await startPipelineRun(seriesId, step);
     console.log(`\n[pipeline] ▶ ${step}`);
 
     try {
-      await runStep(step, seriesId, topic);
+      await runStep(step, seriesId, topic, episodeNumbers);
       await completePipelineRun(runId, { finished_at: new Date().toISOString() });
       console.log(`[pipeline] ✓ ${step} complete`);
     } catch (err) {
@@ -122,6 +135,8 @@ async function runPipelineInner(
   const completeRunId = await startPipelineRun(seriesId, "complete");
   await completePipelineRun(completeRunId);
   console.log(`\n[pipeline] Done — series ${seriesId}`);
+
+  await tryCompleteQueueJobForSeries(seriesId);
 
   return { seriesId };
 }

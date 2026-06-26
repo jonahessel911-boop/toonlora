@@ -96,11 +96,23 @@ function buildPipelineSpawnEnv(): NodeJS.ProcessEnv {
   };
 }
 
+const FULL_PIPELINE_STEPS = new Set(["bible", "architect", "script"]);
+
+export function isFullPipelineSeries(status: PipelineRunStatus): boolean {
+  if (status.panelProgress.total > 1) return true;
+  return (
+    status.completedSteps.some((step) => FULL_PIPELINE_STEPS.has(step)) ||
+    status.runs.some((run) => FULL_PIPELINE_STEPS.has(run.step))
+  );
+}
+
 export function spawnContentPipeline(options: {
   topic: string;
   category: string;
   seriesId: string;
   lean?: boolean;
+  resume?: boolean;
+  maxPanels?: number;
 }): void {
   const script = path.join(process.cwd(), "pipeline", "run.ts");
   const args = [
@@ -112,9 +124,21 @@ export function spawnContentPipeline(options: {
     options.topic,
     "--category",
     options.category,
-    "--resume",
-    "--lean",
   ];
+
+  if (options.resume !== false) {
+    args.push("--resume");
+  }
+
+  if (options.lean !== false) {
+    args.push("--lean");
+  } else {
+    args.push("--full");
+  }
+
+  if (options.maxPanels) {
+    args.push("--max-panels", String(options.maxPanels));
+  }
 
   const child = spawn("npx", args, {
     cwd: process.cwd(),
@@ -125,6 +149,93 @@ export function spawnContentPipeline(options: {
   child.unref();
 }
 
+export async function resumePipelineSeries(seriesId: string): Promise<void> {
+  const series = await getSeriesBasics(seriesId);
+  if (!series) throw new Error("Series not found");
+
+  const status = await getPipelineRunStatus(seriesId);
+  const isFull = isFullPipelineSeries(status);
+
+  await clearStalePipelineRuns(seriesId);
+  spawnContentPipeline({
+    seriesId: series.id,
+    topic: series.title,
+    category: series.category ?? "business",
+    lean: !isFull,
+    resume: true,
+    maxPanels: isFull ? await getMaxPanelsForSeries(seriesId) : undefined,
+  });
+}
+
+async function getMaxPanelsForSeries(seriesId: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    const { data: job } = await supabase
+      .from("pipeline_queue")
+      .select("max_panels")
+      .eq("series_id", seriesId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (job?.max_panels) {
+      return Math.min(40, Math.max(5, Number(job.max_panels) || 36));
+    }
+  }
+
+  const progress = await getPanelProgress(seriesId);
+  if (progress.total > 0) return progress.total;
+
+  return 36;
+}
+
+/** Wipe pipeline artifacts so a full rerun uses the latest pipeline logic. */
+export async function resetPipelineSeries(seriesId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("Database not configured");
+
+  await clearStalePipelineRuns(seriesId);
+
+  const { error: runsError } = await supabase
+    .from("pipeline_runs")
+    .delete()
+    .eq("series_id", seriesId);
+  if (runsError) throw new Error(runsError.message);
+
+  const { error: episodesError } = await supabase
+    .from("episodes")
+    .delete()
+    .eq("series_id", seriesId);
+  if (episodesError) throw new Error(episodesError.message);
+
+  const { error: seriesError } = await supabase
+    .from("series")
+    .update({
+      research_json: null,
+      storyline_bible_json: null,
+      cover_art_url: null,
+    })
+    .eq("id", seriesId);
+  if (seriesError) throw new Error(seriesError.message);
+}
+
+export async function restartPipelineSeries(seriesId: string): Promise<void> {
+  const series = await getSeriesBasics(seriesId);
+  if (!series) throw new Error("Series not found");
+
+  const maxPanels = await getMaxPanelsForSeries(seriesId);
+  await resetPipelineSeries(seriesId);
+
+  spawnContentPipeline({
+    seriesId: series.id,
+    topic: series.title,
+    category: series.category ?? "business",
+    lean: false,
+    resume: false,
+    maxPanels,
+  });
+}
+
 async function getPanelProgress(seriesId: string): Promise<PanelProgress> {
   const supabase = getSupabaseAdmin();
   const empty: PanelProgress = {
@@ -133,6 +244,8 @@ async function getPanelProgress(seriesId: string): Promise<PanelProgress> {
     withPrompt: 0,
     withImage: 0,
     generating: 0,
+    safetyViolation: 0,
+    safetyViolationPanel: null,
   };
   if (!supabase) return empty;
 
@@ -147,20 +260,31 @@ async function getPanelProgress(seriesId: string): Promise<PanelProgress> {
 
   const { data: panels } = await supabase
     .from("panels")
-    .select("status, image_prompt, image_url")
+    .select("status, image_prompt, image_url, panel_number")
     .eq("episode_id", episode.id);
 
   const rows = panels ?? [];
+  const violating = rows.find((p) => p.status === "safety_violation");
   return {
     total: rows.length,
     scripted: rows.filter((p) =>
-      ["scripted", "prompt_ready", "generating", "complete", "approved", "needs_fix"].includes(
-        p.status as string
-      )
+      [
+        "scripted",
+        "prompt_ready",
+        "generating",
+        "safety_violation",
+        "complete",
+        "approved",
+        "needs_fix",
+      ].includes(p.status as string)
     ).length,
     withPrompt: rows.filter((p) => p.image_prompt).length,
     withImage: rows.filter((p) => p.image_url).length,
     generating: rows.filter((p) => p.status === "generating").length,
+    safetyViolation: rows.filter((p) => p.status === "safety_violation").length,
+    safetyViolationPanel: violating
+      ? (violating.panel_number as number)
+      : null,
   };
 }
 

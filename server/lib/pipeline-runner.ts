@@ -3,6 +3,7 @@ import { runPipeline } from "../../pipeline/pipeline.js";
 import { slugify } from "../../pipeline/lib/json.js";
 import { createSeriesRecord, getSeries } from "../../pipeline/lib/supabase.js";
 import type { PipelineQueueMode } from "./pipeline-queue.js";
+import { linkQueueJobToSeries } from "./pipeline-queue.js";
 import { configurePipelineEnv, loadServerEnv } from "./env.js";
 
 export interface RunStoryOptions {
@@ -12,6 +13,7 @@ export interface RunStoryOptions {
   seriesId?: string;
   resume?: boolean;
   maxPanels?: number;
+  queueJobId?: string;
 }
 
 export interface RunStoryResult {
@@ -68,6 +70,10 @@ export async function runStoryPipeline(
     await getSeries(seriesId);
   }
 
+  if (options.queueJobId) {
+    await linkQueueJobToSeries(options.queueJobId, seriesId);
+  }
+
   const runOptions = {
     topic,
     category,
@@ -86,7 +92,7 @@ export async function runStoryPipeline(
       await runPipeline({
         ...runOptions,
         maxPanels,
-        singleEpisode: true,
+        generateEpisodeNumbers: [1],
         generateCover: false,
       });
       await generateCoverForSeries(seriesId);

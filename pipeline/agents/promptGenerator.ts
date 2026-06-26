@@ -1,5 +1,5 @@
 import { callAnthropicJson } from "../lib/anthropic.js";
-import { parseJsonFromModel } from "../lib/json.js";
+import { delay, parseJsonFromModel } from "../lib/json.js";
 import { CAPTION_BOX_RULES, SCENE_COMPOSITION_SAFE_ZONE } from "../../src/lib/prompts/caption-box-rules.js";
 import {
   listEpisodes,
@@ -20,7 +20,7 @@ const CAMERA_ROTATION = [
 ] as const;
 
 const CAPTION_BOX_POSITION =
-  "large box, 80% width centered, 68-82% height band, 32px inner padding, 80px+ bottom margin — never full width, never on subject";
+  "large box, 80% width centered, 58-72% height band, 32px inner padding, 140px+ bottom margin — never full width, never on subject, never below 74%";
 
 const PROMPT_SYSTEM = `You are a senior comic art director for Toonlora, a premium documentary-style digital comic platform. Your job is to take a panel script and write a complete, detailed image generation prompt that produces a ready-to-publish cinematic comic panel.
 
@@ -92,6 +92,13 @@ interface EpisodePromptsResult {
   prompts: PromptResult[];
 }
 
+const PROMPT_PARSE_RETRIES = 3;
+const PROMPT_RETRY_DELAY_MS = 1500;
+
+function panelNeedsPrompt(panel: PanelRow): boolean {
+  return !panel.image_prompt?.trim();
+}
+
 function groupPanelsByChapter(panels: PanelRow[]): Map<number, PanelRow[]> {
   const chapters = new Map<number, PanelRow[]>();
   for (const panel of panels) {
@@ -125,14 +132,15 @@ function panelToScriptPayload(p: PanelRow) {
   };
 }
 
-function buildChapterSequenceDirectives(
-  chapterPanels: PanelRow[]
-): Array<{
+function buildChapterSequenceDirectivesForPanel(
+  panel: PanelRow,
+  indexInChapter: number
+): {
   panel_number: number;
   camera_angle: string;
   caption_position: string;
   emotional_beat: string;
-}> {
+} {
   const beats = [
     "hook — grab attention",
     "rising tension",
@@ -142,12 +150,12 @@ function buildChapterSequenceDirectives(
     "aftermath or setup",
   ];
 
-  return chapterPanels.map((panel, index) => ({
+  return {
     panel_number: panel.panel_number,
-    camera_angle: CAMERA_ROTATION[index % CAMERA_ROTATION.length],
+    camera_angle: CAMERA_ROTATION[indexInChapter % CAMERA_ROTATION.length],
     caption_position: CAPTION_BOX_POSITION,
-    emotional_beat: beats[Math.min(index, beats.length - 1)],
-  }));
+    emotional_beat: beats[Math.min(indexInChapter, beats.length - 1)],
+  };
 }
 
 function episodeCharacterAnchor(panels: PanelRow[]): string | null {
@@ -155,6 +163,195 @@ function episodeCharacterAnchor(panels: PanelRow[]): string | null {
     if (panel.character_details?.trim()) return panel.character_details.trim();
   }
   return null;
+}
+
+async function parsePromptsFromModel(
+  raw: string,
+  expectedPanelNumbers: number[]
+): Promise<PromptResult[]> {
+  try {
+    const result = parseJsonFromModel<EpisodePromptsResult>(raw);
+    const prompts = result.prompts ?? [];
+    if (prompts.length > 0) {
+      return validatePromptResults(prompts, expectedPanelNumbers);
+    }
+  } catch {
+    /* fall through to regex extraction */
+  }
+
+  const extracted = extractPromptsFromRaw(raw, expectedPanelNumbers);
+  if (extracted.length > 0) {
+    return extracted;
+  }
+
+  throw new Error(
+    `Could not parse image prompts for panels: ${expectedPanelNumbers.join(", ")}`
+  );
+}
+
+function validatePromptResults(
+  prompts: PromptResult[],
+  expectedPanelNumbers: number[]
+): PromptResult[] {
+  for (const panelNumber of expectedPanelNumbers) {
+    const match = prompts.find((item) => item.panel_number === panelNumber);
+    if (!match?.image_prompt?.trim()) {
+      throw new Error(`Missing prompt for panel ${panelNumber}`);
+    }
+  }
+  return prompts.filter((item) =>
+    expectedPanelNumbers.includes(item.panel_number)
+  );
+}
+
+function extractPromptsFromRaw(
+  raw: string,
+  expectedPanelNumbers: number[]
+): PromptResult[] {
+  const results: PromptResult[] = [];
+
+  for (const panelNumber of expectedPanelNumbers) {
+    const prompt = extractImagePromptForPanel(raw, panelNumber);
+    if (prompt) {
+      results.push({ panel_number: panelNumber, image_prompt: prompt });
+    }
+  }
+
+  return results;
+}
+
+function extractImagePromptForPanel(
+  raw: string,
+  panelNumber: number
+): string | null {
+  const marker = new RegExp(
+    `"panel_number"\\s*:\\s*${panelNumber}[\\s\\S]*?"image_prompt"\\s*:\\s*"`,
+    "i"
+  );
+  const match = raw.match(marker);
+  if (!match || match.index == null) return null;
+
+  const start = match.index + match[0].length;
+  let value = "";
+
+  for (let i = start; i < raw.length; i++) {
+    const char = raw[i];
+
+    if (char === "\\" && i + 1 < raw.length) {
+      const next = raw[i + 1];
+      if (next === "n") value += "\n";
+      else if (next === "r") value += "\r";
+      else if (next === "t") value += "\t";
+      else if (next === '"') value += '"';
+      else if (next === "\\") value += "\\";
+      else value += next;
+      i += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      const rest = raw.slice(i + 1).trimStart();
+      if (
+        rest.startsWith(",") ||
+        rest.startsWith("}") ||
+        rest.startsWith("]") ||
+        rest.length === 0
+      ) {
+        return value.trim() || null;
+      }
+      value += '"';
+      continue;
+    }
+
+    value += char;
+  }
+
+  return value.trim() || null;
+}
+
+async function callAnthropicForPrompts(
+  user: string,
+  maxTokens: number
+): Promise<string> {
+  return callAnthropicJson({
+    system: PROMPT_SYSTEM,
+    user,
+    maxTokens,
+  });
+}
+
+async function generatePanelPrompt(params: {
+  seriesTitle: string;
+  category: string | null;
+  episodeNumber: number;
+  chapterNumber: number;
+  chapterTitle: string | null | undefined;
+  panel: PanelRow;
+  chapterPanels: PanelRow[];
+  allEpisodePanels: PanelRow[];
+  researchFacts: string;
+}): Promise<PromptResult> {
+  const indexInChapter = params.chapterPanels.findIndex(
+    (row) => row.panel_number === params.panel.panel_number
+  );
+  const directive = buildChapterSequenceDirectivesForPanel(
+    params.panel,
+    Math.max(0, indexInChapter)
+  );
+  const scriptPanel = panelToScriptPayload(params.panel);
+  const characterAnchor = episodeCharacterAnchor(params.allEpisodePanels);
+
+  const user = `Series: "${params.seriesTitle}"
+Category: ${params.category ?? "business"}
+Episode ${params.episodeNumber}, Chapter ${params.chapterNumber}${params.chapterTitle ? `: "${params.chapterTitle}"` : ""}
+
+Generate 1 complete image prompt (300–500 words) following the master template exactly.
+
+Episode character anchor (keep IDENTICAL in CHARACTER DESCRIPTION across all panels in this episode):
+${characterAnchor ?? "Derive from panel character_details and research."}
+
+Per-panel assignment (MUST follow):
+${JSON.stringify(directive, null, 2)}
+
+Panel script from database:
+${JSON.stringify(scriptPanel, null, 2)}
+
+Research facts:
+${params.researchFacts}
+
+Write OPENING, STYLE (verbatim), FORMAT (verbatim), CHARACTER DESCRIPTION, SCENE (include composition safe zone — subject in top 62% only), TEXT (verbatim CAPTION BOX RULES + caption + dialogue), and IMPORTANT RULES (verbatim closing block).
+Send-ready for gpt-image-1. Portrait 1024x1536. Caption box: large, 80% width, 32px padding, never full-width.
+
+Return ONLY valid JSON. The image_prompt string MUST use \\" for any double quotes inside the text and \\n for line breaks — no raw unescaped quotes or newlines inside JSON strings.
+
+{
+  "episode_number": ${params.episodeNumber},
+  "prompts": [{ "panel_number": ${params.panel.panel_number}, "image_prompt": "..." }]
+}`;
+
+  let lastError: Error | undefined;
+
+  for (let attempt = 1; attempt <= PROMPT_PARSE_RETRIES; attempt++) {
+    try {
+      const raw = await callAnthropicForPrompts(user, 6000);
+      const prompts = await parsePromptsFromModel(raw, [params.panel.panel_number]);
+      const match = prompts.find((item) => item.panel_number === params.panel.panel_number);
+      if (!match?.image_prompt?.trim()) {
+        throw new Error(`Empty image_prompt for panel ${params.panel.panel_number}`);
+      }
+      return match;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < PROMPT_PARSE_RETRIES) {
+        console.warn(
+          `[promptGenerator]    Panel ${params.panel.panel_number} JSON parse failed (attempt ${attempt}/${PROMPT_PARSE_RETRIES}), retrying…`
+        );
+        await delay(PROMPT_RETRY_DELAY_MS * attempt);
+      }
+    }
+  }
+
+  throw lastError ?? new Error(`Failed to generate prompt for panel ${params.panel.panel_number}`);
 }
 
 async function generateChapterPrompts(params: {
@@ -167,37 +364,27 @@ async function generateChapterPrompts(params: {
   allEpisodePanels: PanelRow[];
   researchFacts: string;
 }): Promise<PromptResult[]> {
-  const directives = buildChapterSequenceDirectives(params.panels);
-  const scriptPanels = params.panels.map(panelToScriptPayload);
-  const characterAnchor = episodeCharacterAnchor(params.allEpisodePanels);
+  const pendingPanels = params.panels.filter(panelNeedsPrompt);
+  if (pendingPanels.length === 0) {
+    return [];
+  }
 
-  const raw = await callAnthropicJson({
-    system: PROMPT_SYSTEM,
-    user: `Series: "${params.seriesTitle}"
-Category: ${params.category ?? "business"}
-Episode ${params.episodeNumber}, Chapter ${params.chapterNumber}${params.chapterTitle ? `: "${params.chapterTitle}"` : ""}
+  const results: PromptResult[] = [];
 
-Generate ${params.panels.length} complete image prompts (300–500 words each) following the master template exactly.
+  for (let index = 0; index < pendingPanels.length; index++) {
+    const panel = pendingPanels[index];
+    console.log(
+      `[promptGenerator]    Panel ${panel.panel_number} (${index + 1}/${pendingPanels.length})…`
+    );
+    const prompt = await generatePanelPrompt({
+      ...params,
+      panel,
+      chapterPanels: params.panels,
+    });
+    results.push(prompt);
+  }
 
-Episode character anchor (keep IDENTICAL in CHARACTER DESCRIPTION across all panels in this episode):
-${characterAnchor ?? "Derive from panel character_details and research."}
-
-Per-panel assignments for this chapter sequence (MUST follow):
-${JSON.stringify(directives, null, 2)}
-
-Panel scripts from database:
-${JSON.stringify(scriptPanels, null, 2)}
-
-Research facts:
-${params.researchFacts}
-
-For each panel write OPENING, STYLE (verbatim), FORMAT (verbatim), CHARACTER DESCRIPTION, SCENE (include composition safe zone — subject in top 62% only), TEXT (verbatim CAPTION BOX RULES + caption + dialogue), and IMPORTANT RULES (verbatim closing block).
-Send-ready for gpt-image-1. Portrait 1024x1536. Caption box: large, 80% width, 32px padding, never full-width.`,
-    maxTokens: Math.max(12000, params.panels.length * 2500),
-  });
-
-  const result = parseJsonFromModel<EpisodePromptsResult>(raw);
-  return result.prompts ?? [];
+  return results;
 }
 
 export async function runPromptGenerator(
@@ -232,8 +419,17 @@ export async function runPromptGenerator(
     for (const [chapterNumber, chapterPanels] of [...chapters.entries()].sort(
       (a, b) => a[0] - b[0]
     )) {
+      const pendingInChapter = chapterPanels.filter(panelNeedsPrompt);
+      if (pendingInChapter.length === 0) {
+        console.log(
+          `[promptGenerator]  Ch ${chapterNumber}: ${chapterPanels.length} panels — already have prompts, skipping`
+        );
+        saved += chapterPanels.length;
+        continue;
+      }
+
       console.log(
-        `[promptGenerator]  Ch ${chapterNumber}: ${chapterPanels.length} panels…`
+        `[promptGenerator]  Ch ${chapterNumber}: ${pendingInChapter.length}/${chapterPanels.length} panels need prompts…`
       );
 
       const prompts = await generateChapterPrompts({
@@ -256,6 +452,14 @@ export async function runPromptGenerator(
         });
         saved += 1;
       }
+    }
+
+    const panelsAfter = await listPanelsForEpisode(episode.id);
+    const missingPrompts = panelsAfter.filter(panelNeedsPrompt).length;
+    if (missingPrompts > 0) {
+      throw new Error(
+        `Episode ${episode.episode_number} still missing ${missingPrompts} image prompts`
+      );
     }
 
     console.log(

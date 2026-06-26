@@ -1,4 +1,5 @@
 import {
+  EPISODES_PER_SERIES,
   PANELS_PER_CHAPTER_MAX,
   PANELS_PER_CHAPTER_MIN,
   PANELS_PER_EPISODE_MAX,
@@ -8,13 +9,70 @@ import { callAnthropicJson } from "../lib/anthropic.js";
 import { parseJsonFromModel } from "../lib/json.js";
 import {
   getPipelineMaxPanels,
+  isSeriesLaunchMode,
   isSingleEpisodeMode,
 } from "../lib/pipeline-context.js";
-import { saveStorylineBible } from "../lib/supabase.js";
+import { formatCategoryBriefForPrompt } from "../../src/lib/content-pipeline/category-briefs.js";
+import { getSeries, saveStorylineBible } from "../lib/supabase.js";
 import type { StorylineBible } from "../lib/types.js";
 import { loadResearch } from "./researcher.js";
 
 function buildBibleSystem(maxPanels?: number, singleEpisode?: boolean): string {
+  if (maxPanels && !singleEpisode) {
+    const minBeats = Math.max(2, Math.ceil(maxPanels / PANELS_PER_CHAPTER_MAX));
+    const maxBeats = Math.min(8, Math.floor(maxPanels / PANELS_PER_CHAPTER_MIN));
+
+    return `You are the master story architect for Toonlora — cinematic business graphic novels.
+
+This is a SERIES LAUNCH job: plan the FULL multi-episode series, but only episode 1 will be produced now.
+
+Toonlora format:
+- One panel = one full screen (1 image with baked-in text)
+- Episode 1 must have EXACTLY ${maxPanels} panels total
+- Episodes 2+ = ${PANELS_PER_EPISODE_MIN}–${PANELS_PER_EPISODE_MAX} panels each
+- Chapters = story beats, each becomes ${PANELS_PER_CHAPTER_MIN}–${PANELS_PER_CHAPTER_MAX} panels
+
+STEP 1 — FULL STORY TIMELINE (storyline_bible field)
+Write the complete narrative from beginning to end (1500–3000 words). Rich, specific, documentary tone.
+
+STEP 2 — EPISODE BREAKDOWN (aim for ${EPISODES_PER_SERIES} episodes, minimum 3)
+Divide the timeline into episodes chronologically. CRITICAL rules for episode 1:
+- episode_number: 1
+- panel_count_estimated: ${maxPanels} (exact)
+- story_beats: ${minBeats}–${maxBeats} beats
+- Covers ONLY the opening act (~20–35% of the full timeline) — origin, first conflict, first major stakes
+- narrative_arc MUST end UNRESOLVED — set up a cliffhanger, NOT a conclusion
+- Do NOT reach the finale, bankruptcy, triumph, death, anniversary, or "years later" wrap-up in episode 1
+- ugc_hook: tease the crisis that episode 2 will address
+
+Episodes 2+:
+- Continue chronologically until the full story is covered
+- panel_count_estimated: ${PANELS_PER_EPISODE_MIN}–${PANELS_PER_EPISODE_MAX} each
+- story_beats: 5–8 per episode
+- Final episode may resolve the arc; all earlier episodes end on tension
+
+STEP 3 — SERIES SUMMARY
+- total_episodes: number of episodes in the breakdown (minimum 3)
+- total_panels_estimated: sum of all episode panel_count_estimated values
+
+Return ONLY valid JSON:
+{
+  "series_title": string,
+  "total_episodes": number,
+  "total_panels_estimated": number,
+  "storyline_bible": string,
+  "episodes": [{
+    "episode_number": number,
+    "title": string,
+    "time_period": string,
+    "narrative_arc": string,
+    "story_beats": string[],
+    "panel_count_estimated": number,
+    "ugc_hook": string
+  }]
+}`;
+  }
+
   if (singleEpisode && maxPanels) {
     const minBeats = Math.max(2, Math.ceil(maxPanels / PANELS_PER_CHAPTER_MAX));
     const maxBeats = Math.min(8, Math.floor(maxPanels / PANELS_PER_CHAPTER_MIN));
@@ -122,6 +180,7 @@ Rules:
 function validateStorylineBible(bible: StorylineBible): void {
   const maxPanels = getPipelineMaxPanels();
   const singleEpisode = isSingleEpisodeMode();
+  const seriesLaunch = isSeriesLaunchMode();
   const panelMin = singleEpisode && maxPanels ? 5 : PANELS_PER_EPISODE_MIN;
   const panelMax = singleEpisode && maxPanels ? maxPanels : PANELS_PER_EPISODE_MAX;
   const beatMin = singleEpisode && maxPanels && maxPanels < 25 ? 2 : 5;
@@ -137,6 +196,11 @@ function validateStorylineBible(bible: StorylineBible): void {
       `Single-episode mode expected 1 episode, got ${bible.episodes.length}`
     );
   }
+  if (seriesLaunch && bible.episodes.length < 2) {
+    throw new Error(
+      `Series launch mode expected at least 2 planned episodes, got ${bible.episodes.length}`
+    );
+  }
   if (bible.total_episodes !== bible.episodes.length) {
     throw new Error(
       `total_episodes (${bible.total_episodes}) ≠ episodes array length (${bible.episodes.length})`
@@ -145,10 +209,21 @@ function validateStorylineBible(bible: StorylineBible): void {
 
   let panelSum = 0;
   for (const ep of bible.episodes) {
-    if (ep.panel_count_estimated < panelMin || ep.panel_count_estimated > panelMax) {
+    const epPanelMin =
+      seriesLaunch && ep.episode_number === 1 && maxPanels ? maxPanels : panelMin;
+    const epPanelMax =
+      seriesLaunch && ep.episode_number === 1 && maxPanels ? maxPanels : panelMax;
+
+    if (
+      ep.panel_count_estimated < epPanelMin ||
+      ep.panel_count_estimated > epPanelMax
+    ) {
       throw new Error(
-        `Episode ${ep.episode_number}: panel_count_estimated ${ep.panel_count_estimated} out of range (${panelMin}–${panelMax})`
+        `Episode ${ep.episode_number}: panel_count_estimated ${ep.panel_count_estimated} out of range (${epPanelMin}–${epPanelMax})`
       );
+    }
+    if (seriesLaunch && maxPanels && ep.episode_number === 1) {
+      ep.panel_count_estimated = maxPanels;
     }
     if (singleEpisode && maxPanels && ep.panel_count_estimated !== maxPanels) {
       ep.panel_count_estimated = maxPanels;
@@ -179,14 +254,21 @@ function validateStorylineBible(bible: StorylineBible): void {
 
 export async function runStorylineBible(seriesId: string): Promise<StorylineBible> {
   const research = await loadResearch(seriesId);
+  const series = await getSeries(seriesId);
   const maxPanels = getPipelineMaxPanels();
   const singleEpisode = isSingleEpisodeMode();
+  const seriesLaunch = isSeriesLaunchMode();
+  const categoryBrief = formatCategoryBriefForPrompt(series.category);
 
-  console.log(`[storylineBible] Writing complete storyline bible for "${research.topic}"…`);
+  console.log(
+    `[storylineBible] Writing storyline bible for "${research.topic}"` +
+      (seriesLaunch ? ` (series launch — ep 1 only, ${maxPanels} panels)` : "") +
+      "…"
+  );
 
   const raw = await callAnthropicJson({
     system: buildBibleSystem(maxPanels, singleEpisode),
-    user: `Series topic: "${research.topic}"
+    user: `Series topic: "${research.topic}"${categoryBrief}
 
 Full research (use ALL of this for the timeline narrative):
 ${JSON.stringify(
@@ -204,7 +286,11 @@ ${JSON.stringify(
   2
 )}
 
-Create the complete storyline bible — full chronological narrative + episode breakdown.`,
+Create the complete storyline bible — full chronological narrative + episode breakdown.${
+      seriesLaunch
+        ? ` Episode 1 must stop early on a cliffhanger (${maxPanels} panels). Plan episodes 2+ for the rest of the story.`
+        : ""
+    }`,
     maxTokens: 20000,
   });
 

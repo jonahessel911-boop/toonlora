@@ -9,6 +9,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   founder_stories: "Founder Stories",
   business: "Business",
   empires: "Empires",
+  heists_and_frauds: "Heists & Frauds",
   heists: "Heists & Frauds",
 };
 

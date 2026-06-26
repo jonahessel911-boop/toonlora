@@ -9,6 +9,10 @@ interface PanelBlockProps {
   panelIndex: number;
 }
 
+/** Extra scroll room so mobile browser chrome does not cover baked-in caption boxes. */
+const PANEL_BOTTOM_SAFE_CLASS =
+  "pb-[max(4.5rem,calc(env(safe-area-inset-bottom)+3rem))]";
+
 const PanelBlock = forwardRef<HTMLElement, PanelBlockProps>(function PanelBlock(
   { panel, panelIndex },
   ref
@@ -20,7 +24,7 @@ const PanelBlock = forwardRef<HTMLElement, PanelBlockProps>(function PanelBlock(
     <article
       ref={ref}
       id={`panel-${panelIndex}`}
-      className="relative w-full overflow-hidden"
+      className={`relative w-full overflow-hidden ${PANEL_BOTTOM_SAFE_CLASS}`}
     >
       {panel.imageUrl ? (
         <img

@@ -10,10 +10,15 @@ interface ToonloraLogoProps {
 }
 
 const LOGO_SRC = "/images/toonlora-logo.png";
+const ICON_SRC = "/images/toonlora-icon.png";
 
-/** Intrinsic dimensions after trim (892×160). */
-const LOGO_WIDTH = 892;
-const LOGO_HEIGHT = 160;
+/** Full wordmark (1024×256). */
+const LOGO_WIDTH = 1024;
+const LOGO_HEIGHT = 256;
+
+/** Cropped T mark from wordmark (282×256). */
+const ICON_WIDTH = 282;
+const ICON_HEIGHT = 256;
 
 const VARIANT_HEIGHT: Record<"nav" | "compact" | "full" | "icon", number> = {
   nav: 34,
@@ -23,23 +28,29 @@ const VARIANT_HEIGHT: Record<"nav" | "compact" | "full" | "icon", number> = {
 };
 
 function LogoImage({
+  src,
+  width,
   height,
+  displayHeight,
   className = "",
   priority = false,
 }: {
+  src: string;
+  width: number;
   height: number;
+  displayHeight: number;
   className?: string;
   priority?: boolean;
 }) {
   return (
     <Image
-      src={LOGO_SRC}
+      src={src}
       alt={APP_NAME}
-      width={LOGO_WIDTH}
-      height={LOGO_HEIGHT}
+      width={width}
+      height={height}
       priority={priority}
       className={`w-auto object-contain object-left ${className}`}
-      style={{ height }}
+      style={{ height: displayHeight }}
     />
   );
 }
@@ -52,7 +63,15 @@ export function ToonloraIcon({
   size?: number;
   className?: string;
 }) {
-  return <LogoImage height={size} className={className} />;
+  return (
+    <LogoImage
+      src={ICON_SRC}
+      width={ICON_WIDTH}
+      height={ICON_HEIGHT}
+      displayHeight={size}
+      className={className}
+    />
+  );
 }
 
 export default function ToonloraLogo({
@@ -65,9 +84,14 @@ export default function ToonloraLogo({
     VARIANT_HEIGHT[variant === "icon" ? "icon" : variant] ??
     VARIANT_HEIGHT.full;
 
+  const useIcon = variant === "icon";
+
   return (
     <LogoImage
-      height={height}
+      src={useIcon ? ICON_SRC : LOGO_SRC}
+      width={useIcon ? ICON_WIDTH : LOGO_WIDTH}
+      height={useIcon ? ICON_HEIGHT : LOGO_HEIGHT}
+      displayHeight={height}
       className={className}
       priority={variant === "nav"}
     />

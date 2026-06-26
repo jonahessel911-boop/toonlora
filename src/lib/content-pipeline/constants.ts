@@ -3,8 +3,14 @@ export const LEAN_PANEL_COUNT = 1;
 export const PIPELINE_CATEGORIES = [
   { value: "rise_and_fall", label: "Rise & Fall" },
   { value: "founder_stories", label: "Founder Stories" },
+  { value: "heists_and_frauds", label: "Heists & Frauds" },
+  { value: "empires", label: "Empires" },
   { value: "business", label: "Business" },
 ] as const;
+
+export const PIPELINE_CATEGORY_SLUGS = PIPELINE_CATEGORIES.map(
+  (category) => category.value
+);
 
 /** Lean preview pipeline: quick search → 1 panel → image */
 export const PIPELINE_STEP_ORDER = [
@@ -23,6 +29,8 @@ export interface PanelProgress {
   withPrompt: number;
   withImage: number;
   generating: number;
+  safetyViolation: number;
+  safetyViolationPanel: number | null;
 }
 
 export interface PipelineRunStatus {

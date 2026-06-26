@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isServerDatabaseConfigured } from "@/lib/config";
-import { cancelPipelineQueueJob } from "@/lib/services/pipeline-queue-service";
+import { deletePipelineQueueJob } from "@/lib/services/pipeline-queue-service";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -16,13 +16,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   try {
     const { id } = await context.params;
-    await cancelPipelineQueueJob(id);
+    await deletePipelineQueueJob(id);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json(
       {
         error:
-          err instanceof Error ? err.message : "Failed to cancel queue job",
+          err instanceof Error ? err.message : "Failed to delete queue job",
       },
       { status: 500 }
     );

@@ -135,3 +135,25 @@ export async function cancelPipelineQueueJob(jobId: string): Promise<void> {
 
   if (error) throw new Error(error.message);
 }
+
+export async function deletePipelineQueueJob(jobId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("Database not configured");
+
+  const { data: job, error: fetchError } = await supabase
+    .from("pipeline_queue")
+    .select("status")
+    .eq("id", jobId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error(fetchError.message);
+  if (!job) return;
+
+  if (job.status === "running") {
+    throw new Error("Een lopende story kan niet worden verwijderd");
+  }
+
+  const { error } = await supabase.from("pipeline_queue").delete().eq("id", jobId);
+
+  if (error) throw new Error(error.message);
+}

@@ -32,6 +32,7 @@ async function processOneJob(): Promise<boolean> {
       seriesId: job.series_id ?? undefined,
       resume: Boolean(job.series_id),
       maxPanels: job.max_panels,
+      queueJobId: job.id,
     });
 
     await markJobCompleted(job.id, result.seriesId);

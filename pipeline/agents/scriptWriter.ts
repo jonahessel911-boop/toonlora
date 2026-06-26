@@ -72,7 +72,9 @@ ${CAPTION_WRITING_RULES}
 - era_details: year, world context, period clothing, tech visible
 - stat_card: one shocking number full screen, minimal caption
 - transition: wide establishing shot, new location or time jump
-- Final panel of EVERY chapter: cliffhanger or revelation
+- Final panel of EVERY chapter (except the series finale): cliffhanger or revelation that raises stakes
+- Final panel of a NON-FINAL episode: MUST be an UNRESOLVED cliffhanger — never a conclusion, finale, or "years later" wrap-up
+- Final panel of the LAST episode in the series: may resolve the arc with revelation or emotional payoff
 - If this is episode panel 1 / chapter 1 panel 1: panel_type MUST be title_card (series title + episode title + hook sentence in caption)`;
 
 interface ChapterScriptResult {
@@ -202,15 +204,20 @@ async function writeChapterScript(params: {
   previousChapterSummary: string | null;
   narrativeArc?: string;
   ugcHook?: string;
+  totalEpisodes: number;
+  nextEpisodeTitle?: string;
+  isLastChapter: boolean;
 }): Promise<PanelScript[]> {
-  const { episode, chapter, startingPanelNumber } = params;
+  const { episode, chapter, startingPanelNumber, isLastChapter } = params;
   const isEpisodeOnePanelOne =
     episode.episode_number === 1 && chapter.chapter_number === 1 && startingPanelNumber === 1;
+  const needsEpisodeCliffhanger =
+    isLastChapter && episode.episode_number < params.totalEpisodes;
 
   const raw = await callAnthropicJson({
     system: SCRIPT_SYSTEM,
     user: `Series: "${params.seriesTitle}"
-Episode ${episode.episode_number}: "${episode.title}"
+Episode ${episode.episode_number} of ${params.totalEpisodes}: "${episode.title}"
 Time period: ${episode.time_period}
 Episode logline: ${episode.logline}
 ${params.narrativeArc ? `Narrative arc: ${params.narrativeArc}` : ""}
@@ -222,6 +229,15 @@ Panels to write: EXACTLY ${chapter.panel_count}
 Global panel numbers: ${startingPanelNumber}–${startingPanelNumber + chapter.panel_count - 1}
 ${isEpisodeOnePanelOne ? "REQUIRED: panel_number 1 is TITLE CARD (series title + episode title + hook)." : ""}
 ${params.previousChapterSummary ? `Previous chapter ended with: ${params.previousChapterSummary}` : ""}
+${
+  needsEpisodeCliffhanger
+    ? `CRITICAL — EPISODE CLIFFHANGER (mandatory):
+This is the FINAL chapter of episode ${episode.episode_number}. Episode ${episode.episode_number + 1}${params.nextEpisodeTitle ? ` ("${params.nextEpisodeTitle}")` : ""} comes next.
+The LAST panel MUST end on an UNRESOLVED cliffhanger — a crisis, betrayal, discovery, or decision mid-flight.
+Do NOT conclude the story, show the finale, jump to "years later", anniversary celebrations, retirement, death, or moral wrap-up.
+Leave readers desperate to tap "next episode".`
+    : ""
+}
 
 Research:\n${params.researchJson}
 
@@ -274,14 +290,22 @@ async function writeEpisodeScript(
   seriesId: string,
   episodeRow: EpisodeRow,
   researchJson: string,
-  seriesTitle: string
+  seriesTitle: string,
+  totalEpisodes: number,
+  allEpisodeRows: EpisodeRow[]
 ): Promise<PanelScript[]> {
   const episode = getStoryBibleEpisode(episodeRow);
   const allPanels: PanelScript[] = [];
   let panelOffset = 1;
   let previousSummary: string | null = null;
+  const nextEpisode = allEpisodeRows.find(
+    (row) => row.episode_number === episode.episode_number + 1
+  );
 
   for (const chapter of episode.chapters) {
+    const isLastChapter =
+      chapter.chapter_number === episode.chapters[episode.chapters.length - 1].chapter_number;
+
     console.log(
       `[scriptWriter] Ep ${episode.episode_number} ch ${chapter.chapter_number}: "${chapter.title}" (${chapter.panel_count} panels)…`
     );
@@ -295,6 +319,9 @@ async function writeEpisodeScript(
       previousChapterSummary: previousSummary,
       narrativeArc: episode.narrative_arc,
       ugcHook: episode.ugc_hook,
+      totalEpisodes,
+      nextEpisodeTitle: nextEpisode?.title,
+      isLastChapter,
     });
 
     for (const panel of chapterPanels) {
@@ -355,7 +382,9 @@ export async function runScriptWriter(
       seriesId,
       episode,
       researchStr,
-      seriesTitle
+      seriesTitle,
+      episodes.length,
+      episodes
     );
 
     console.log(

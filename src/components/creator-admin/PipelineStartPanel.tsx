@@ -175,16 +175,6 @@ export default function PipelineStartPanel({
         >
           {starting ? "Starten…" : "▶ Genereer 1 panel"}
         </button>
-        {selectedSeriesId ? (
-          <button
-            type="button"
-            disabled={starting || status?.running}
-            onClick={() => void startPipeline(true)}
-            className="w-full rounded-lg border border-[#07111F]/15 bg-white px-3 py-2 text-sm font-semibold text-[#07111F] hover:border-[#2F80ED] disabled:opacity-50"
-          >
-            Hervat
-          </button>
-        ) : null}
       </div>
 
       {error ? (
@@ -240,7 +230,11 @@ export default function PipelineStartPanel({
                 <span>Images</span>
                 <span>
                   {imageDone}/{imageTotal}
-                  {progress?.generating ? " · genereren…" : ""}
+                  {progress?.safetyViolation
+                    ? " · Violation detected…"
+                    : progress?.generating
+                      ? " · genereren…"
+                      : ""}
                 </span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-[#07111F]/10">

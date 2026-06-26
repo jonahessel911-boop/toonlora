@@ -19,8 +19,14 @@ import {
 } from "./lib/pipeline-queue.js";
 import { runStoryPipeline } from "./lib/pipeline-runner.js";
 import { getStoryStatus, listPipelineStories } from "./lib/pipeline-status.js";
+import { PIPELINE_CATEGORY_SLUGS } from "../src/lib/content-pipeline/constants.js";
 
 loadServerEnv();
+
+const PIPELINE_CATEGORY_ENUM = PIPELINE_CATEGORY_SLUGS as [
+  (typeof PIPELINE_CATEGORY_SLUGS)[number],
+  ...(typeof PIPELINE_CATEGORY_SLUGS)[number][],
+];
 
 const server = new Server(
   {
@@ -48,7 +54,7 @@ const TOOLS = [
         },
         category: {
           type: "string",
-          enum: ["rise_and_fall", "founder_stories", "business"],
+          enum: [...PIPELINE_CATEGORY_SLUGS],
           description: "Story category (default: business)",
         },
         mode: {
@@ -75,7 +81,7 @@ const TOOLS = [
         topic: { type: "string" },
         category: {
           type: "string",
-          enum: ["rise_and_fall", "founder_stories", "business"],
+          enum: [...PIPELINE_CATEGORY_SLUGS],
         },
         mode: { type: "string", enum: ["lean", "full"] },
       },
@@ -146,9 +152,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const input = z
           .object({
             topic: z.string().min(1),
-            category: z
-              .enum(["rise_and_fall", "founder_stories", "business"])
-              .optional(),
+            category: z.enum(PIPELINE_CATEGORY_ENUM).optional(),
             mode: z.enum(["lean", "full"]).optional(),
             priority: z.number().optional(),
           })
@@ -166,9 +170,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const input = z
           .object({
             topic: z.string().min(1),
-            category: z
-              .enum(["rise_and_fall", "founder_stories", "business"])
-              .optional(),
+            category: z.enum(PIPELINE_CATEGORY_ENUM).optional(),
             mode: z.enum(["lean", "full"]).optional(),
           })
           .parse(args);

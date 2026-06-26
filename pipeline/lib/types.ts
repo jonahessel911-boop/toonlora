@@ -239,4 +239,5 @@ export interface PipelineRunOptions {
   maxPanels?: number;
   singleEpisode?: boolean;
   generateCover?: boolean;
+  generateEpisodeNumbers?: number[];
 }

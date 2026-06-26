@@ -447,6 +447,9 @@ export default function CreatorAdminApp() {
                   onArtifactsUpdated={() => {
                     void refreshSeriesDataSilent(selectedSeriesId);
                   }}
+                  onPipelineResumed={() => {
+                    void refreshSeriesDataSilent(selectedSeriesId);
+                  }}
                 />
 
                 {seriesDetail.episodes.length === 0 ? (

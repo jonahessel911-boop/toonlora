@@ -109,12 +109,18 @@ export default function StoryQueuePanel({ onSelectSeries }: StoryQueuePanelProps
     }
   };
 
-  const cancelJob = async (jobId: string) => {
+  const deleteJob = async (jobId: string) => {
     try {
-      await fetch(`/api/creator-admin/queue/${jobId}`, { method: "DELETE" });
+      const res = await fetch(`/api/creator-admin/queue/${jobId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Kon niet verwijderen");
+      }
       await loadQueue();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kon niet verwijderen");
     }
   };
 
@@ -252,13 +258,25 @@ export default function StoryQueuePanel({ onSelectSeries }: StoryQueuePanelProps
               ) : null}
 
               <div className="mt-2 flex flex-wrap gap-2">
-                {job.status === "pending" ? (
+                {job.status !== "running" ? (
                   <button
                     type="button"
-                    onClick={() => void cancelJob(job.id)}
+                    onClick={() => void deleteJob(job.id)}
                     className="text-[10px] font-semibold text-[#667085] hover:text-red-700"
                   >
-                    Annuleren
+                    Verwijderen
+                  </button>
+                ) : null}
+                {job.series_id &&
+                (job.status === "running" || job.status === "failed") ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectSeries?.(job.series_id!)}
+                    className="rounded-lg bg-[#2F80ED] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#2563c7]"
+                  >
+                    {job.status === "failed"
+                      ? "Open pipeline & hervat →"
+                      : "Bekijk live pipeline →"}
                   </button>
                 ) : null}
                 {job.series_id && job.status === "completed" ? (
@@ -276,18 +294,13 @@ export default function StoryQueuePanel({ onSelectSeries }: StoryQueuePanelProps
                     onClick={() => void retryJob(job)}
                     className="text-[10px] font-semibold text-emerald-700 hover:underline"
                   >
-                    Opnieuw proberen
+                    Opnieuw in wachtrij
                   </button>
                 ) : null}
-                {job.series_id &&
-                (job.status === "running" || job.status === "failed") ? (
-                  <button
-                    type="button"
-                    onClick={() => onSelectSeries?.(job.series_id!)}
-                    className="text-[10px] font-semibold text-[#667085] hover:text-[#07111F]"
-                  >
-                    Bekijk series →
-                  </button>
+                {job.status === "failed" && !job.series_id ? (
+                  <p className="text-[10px] text-[#667085]">
+                    Zoek &quot;{job.topic}&quot; in de series-lijst hieronder.
+                  </p>
                 ) : null}
               </div>
             </li>

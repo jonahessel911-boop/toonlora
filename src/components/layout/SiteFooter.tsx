@@ -1,4 +1,5 @@
 import AffiliateLink from "@/components/affiliate/AffiliateLink";
+import ToonloraLogo from "@/components/ui/ToonloraLogo";
 import { BRAND_TAGLINE } from "@/lib/brand";
 import { HOME_BROWSE_NAV } from "@/lib/homeBrowseNav";
 
@@ -20,9 +21,9 @@ export default function SiteFooter() {
       <div className="mx-auto max-w-[1120px] px-4 py-10 sm:px-6 md:py-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-1">
-            <p className="font-heading text-lg font-extrabold text-[#0E1726]">
-              Toonlora
-            </p>
+            <AffiliateLink href="/" className="inline-flex">
+              <ToonloraLogo variant="compact" iconSize={32} />
+            </AffiliateLink>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-[#64748B]">
               {BRAND_TAGLINE}
             </p>

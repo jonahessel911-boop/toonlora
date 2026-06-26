@@ -4,7 +4,8 @@ import {
 } from "../lib/anthropic.js";
 import type { WebSearchLog } from "../lib/anthropic.js";
 import { parseJsonFromModel } from "../lib/json.js";
-import { saveResearchJson } from "../lib/supabase.js";
+import { formatCategoryBriefForPrompt } from "../../src/lib/content-pipeline/category-briefs.js";
+import { getSeries, saveResearchJson } from "../lib/supabase.js";
 import {
   IMAGES_PER_PANEL,
   PANELS_PER_CHAPTER,
@@ -115,6 +116,8 @@ export async function runLeanResearch(params: {
 }): Promise<ResearchJson> {
   console.log(`[leanResearch] Claude web search + research for "${params.topic}"…`);
 
+  const series = await getSeries(params.seriesId);
+  const categoryBrief = formatCategoryBriefForPrompt(series.category);
   const webSearchLog: WebSearchLog = { queries: [], raw: "", search_count: 0 };
 
   await saveResearchJson(params.seriesId, {
@@ -131,7 +134,7 @@ export async function runLeanResearch(params: {
 
   const raw = await callAnthropicJson({
     system: LEAN_RESEARCH_SYSTEM,
-    user: `Topic: "${params.topic}"
+    user: `Topic: "${params.topic}"${categoryBrief}
 
 Research this business story thoroughly using web search (founding, money, scandal, collapse/triumph, cultural impact).
 Then return the JSON research package for a Toonlora graphic novel series.

@@ -4,6 +4,8 @@ import {
   clearStalePipelineRuns,
   createPipelineSeries,
   getSeriesBasics,
+  restartPipelineSeries,
+  resumePipelineSeries,
   spawnContentPipeline,
 } from "@/lib/services/content-pipeline-service";
 
@@ -21,7 +23,23 @@ export async function POST(request: Request) {
       category?: string;
       seriesId?: string;
       resume?: boolean;
+      restart?: boolean;
     };
+
+    if (body.restart && body.seriesId) {
+      const series = await getSeriesBasics(body.seriesId);
+      if (!series) {
+        return NextResponse.json({ error: "Series not found" }, { status: 404 });
+      }
+
+      await restartPipelineSeries(series.id);
+
+      return NextResponse.json({
+        seriesId: series.id,
+        started: true,
+        restarted: true,
+      });
+    }
 
     if (body.resume && body.seriesId) {
       const series = await getSeriesBasics(body.seriesId);
@@ -30,11 +48,7 @@ export async function POST(request: Request) {
       }
 
       await clearStalePipelineRuns(series.id);
-      spawnContentPipeline({
-        seriesId: series.id,
-        topic: series.title,
-        category: series.category ?? "business",
-      });
+      await resumePipelineSeries(series.id);
 
       return NextResponse.json({
         seriesId: series.id,
@@ -52,7 +66,7 @@ export async function POST(request: Request) {
     const { seriesId } = await createPipelineSeries(topic, category);
 
     await clearStalePipelineRuns(seriesId);
-    spawnContentPipeline({ seriesId, topic, category });
+    spawnContentPipeline({ seriesId, topic, category, lean: true, resume: false });
 
     return NextResponse.json({ seriesId, started: true, resumed: false });
   } catch (err) {

@@ -565,7 +565,7 @@ export default function WebtoonReader({
                 stripRef.current = el;
                 lastPanelRef.current = el;
               }}
-              className="relative w-full overflow-hidden"
+              className="relative w-full overflow-hidden pb-[max(4.5rem,calc(env(safe-area-inset-bottom)+3rem))]"
             >
               <img
                 src={stripUrl}

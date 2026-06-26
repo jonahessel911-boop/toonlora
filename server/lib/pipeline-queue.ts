@@ -1,4 +1,5 @@
 import { getSupabase } from "../../pipeline/lib/supabase.js";
+import { hasActivePipelineRun } from "../../pipeline/lib/queue-sync.js";
 
 export type PipelineQueueMode = "lean" | "full";
 export type PipelineQueueStatus =
@@ -78,6 +79,10 @@ export async function enqueueStory(params: {
 export async function claimNextQueuedJob(): Promise<PipelineQueueJob | null> {
   const supabase = getSupabase();
 
+  if (await hasActivePipelineRun()) {
+    return null;
+  }
+
   const { data: running } = await supabase
     .from("pipeline_queue")
     .select("id")
@@ -111,6 +116,53 @@ export async function claimNextQueuedJob(): Promise<PipelineQueueJob | null> {
 
   if (error || !claimed) return null;
   return rowToJob(claimed as Record<string, unknown>);
+}
+
+export async function resetQueueJobToPending(jobId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from("pipeline_queue")
+    .update({
+      status: "pending",
+      error: null,
+      started_at: null,
+      completed_at: null,
+    })
+    .eq("id", jobId);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function markQueueJobRunning(
+  jobId: string,
+  seriesId: string
+): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from("pipeline_queue")
+    .update({
+      status: "running",
+      series_id: seriesId,
+      started_at: new Date().toISOString(),
+      error: null,
+      completed_at: null,
+    })
+    .eq("id", jobId);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function linkQueueJobToSeries(
+  jobId: string,
+  seriesId: string
+): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from("pipeline_queue")
+    .update({ series_id: seriesId })
+    .eq("id", jobId);
+
+  if (error) throw new Error(error.message);
 }
 
 export async function markJobCompleted(

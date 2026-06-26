@@ -50,7 +50,13 @@ function parseJsonCandidates(candidates: string[]): unknown {
   let lastError: Error | undefined;
 
   for (const text of candidates) {
-    for (const attempt of [text, escapeControlCharsInJsonStrings(text)]) {
+    for (const attempt of [
+      text,
+      escapeControlCharsInJsonStrings(text),
+      repairTruncatedJson(text),
+      repairTruncatedJson(escapeControlCharsInJsonStrings(text)),
+    ]) {
+      if (!attempt) continue;
       try {
         return JSON.parse(attempt);
       } catch (err) {
@@ -60,6 +66,50 @@ function parseJsonCandidates(candidates: string[]): unknown {
   }
 
   throw lastError ?? new Error("Model response did not contain valid JSON");
+}
+
+/** Close unterminated strings/objects when the model hits max_tokens. */
+function repairTruncatedJson(json: string): string | null {
+  const trimmed = json.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return null;
+
+  let result = escapeControlCharsInJsonStrings(trimmed);
+  let inString = false;
+  let escaped = false;
+  const stack: string[] = [];
+
+  for (let i = 0; i < result.length; i++) {
+    const char = result[i];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') inString = false;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{") stack.push("}");
+    else if (char === "[") stack.push("]");
+    else if (char === "}" || char === "]") stack.pop();
+  }
+
+  if (inString) result += '"';
+  while (stack.length > 0) {
+    result += stack.pop();
+  }
+
+  return result === trimmed ? null : result;
 }
 
 function collectJsonCandidates(raw: string): string[] {
