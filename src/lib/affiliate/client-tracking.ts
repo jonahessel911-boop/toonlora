@@ -30,24 +30,19 @@ export function persistAffiliateSlug(slug: string): void {
   localStorage.setItem(STORAGE_KEYS.affiliateSlug, JSON.stringify(payload));
 }
 
-function setSessionAffiliateSlug(slug: string): void {
-  if (!isBrowser() || !isValidAffiliateSlug(slug)) return;
-  sessionStorage.setItem(STORAGE_KEYS.affiliateSessionSlug, slug);
-}
-
-function getSessionAffiliateSlug(): string | null {
-  if (!isBrowser()) return null;
-  const slug = sessionStorage.getItem(STORAGE_KEYS.affiliateSessionSlug);
-  if (!slug || !isValidAffiliateSlug(slug)) return null;
-  return slug;
-}
-
-function clearSessionAffiliateSlug(): void {
+/** Remove ?aff= from the address bar after capture — attribution stays in localStorage. */
+export function stripAffiliateFromBrowserUrl(): void {
   if (!isBrowser()) return;
-  sessionStorage.removeItem(STORAGE_KEYS.affiliateSessionSlug);
+
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(AFFILIATE_QUERY_PARAM)) return;
+
+  url.searchParams.delete(AFFILIATE_QUERY_PARAM);
+  const next = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState(window.history.state, "", next);
 }
 
-/** Long-lived attribution for signup/checkout — not for URL decoration. */
+/** Long-lived attribution for signup/checkout — never used to decorate URLs. */
 export function getStoredAffiliateSlug(): string | null {
   if (!isBrowser()) return null;
   try {
@@ -69,69 +64,29 @@ export function getStoredAffiliateSlug(): string | null {
 export function clearStoredAffiliateSlug(): void {
   if (!isBrowser()) return;
   localStorage.removeItem(STORAGE_KEYS.affiliateSlug);
-  clearSessionAffiliateSlug();
 }
 
-/** Slug for links/redirects — only when this visit came through ?aff=. */
+/** @deprecated URLs are not decorated with ?aff= — use getStoredAffiliateSlug for signup. */
 export function getAffiliateSlugForLinks(): string | null {
-  if (!isBrowser()) return null;
-  const fromUrl = captureAffiliateFromUrl(new URLSearchParams(window.location.search));
-  if (fromUrl) return fromUrl;
-  return getSessionAffiliateSlug();
+  return null;
 }
 
-/** Append ?aff=slug to internal paths (preserves existing query + hash). */
+/** @deprecated URLs are not decorated with ?aff=. */
 export function appendAffiliateToHref(
   href: string,
-  slug: string | null | undefined
+  _slug?: string | null
 ): string {
-  if (!slug || !isValidAffiliateSlug(slug)) return href;
-  if (
-    href.startsWith("mailto:") ||
-    href.startsWith("tel:") ||
-    href.startsWith("javascript:")
-  ) {
-    return href;
-  }
-
-  if (href.startsWith("http://") || href.startsWith("https://")) {
-    try {
-      const origin =
-        typeof window !== "undefined"
-          ? window.location.origin
-          : "https://toonlora.com";
-      const url = new URL(href);
-      if (url.origin !== origin) return href;
-    } catch {
-      return href;
-    }
-  }
-
-  try {
-    const base =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : "https://toonlora.com";
-    const url = new URL(href, base);
-    if (url.searchParams.has(AFFILIATE_QUERY_PARAM)) return href;
-    url.searchParams.set(AFFILIATE_QUERY_PARAM, slug);
-    return `${url.pathname}${url.search}${url.hash}`;
-  } catch {
-    return href;
-  }
+  return href;
 }
 
-/** Capture ?aff= for attribution; clear session when absent. Never reads localStorage for URLs. */
+/** Capture inbound ?aff= for signup attribution, then strip it from the URL. */
 export function syncAffiliateFromSearchParams(
   searchParams: URLSearchParams
 ): string | null {
   const fromUrl = captureAffiliateFromUrl(searchParams);
-  if (fromUrl) {
-    persistAffiliateSlug(fromUrl);
-    setSessionAffiliateSlug(fromUrl);
-    return fromUrl;
-  }
+  if (!fromUrl) return null;
 
-  clearSessionAffiliateSlug();
-  return null;
+  persistAffiliateSlug(fromUrl);
+  stripAffiliateFromBrowserUrl();
+  return fromUrl;
 }

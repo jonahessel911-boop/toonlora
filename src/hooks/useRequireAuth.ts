@@ -2,10 +2,6 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import {
-  appendAffiliateToHref,
-  getAffiliateSlugForLinks,
-} from "@/lib/affiliate/client-tracking";
 import { buildAuthHref } from "@/lib/reader/nextEpisodeGate";
 import { useUserStore } from "@/store/useUserStore";
 
@@ -26,12 +22,7 @@ export function useRequireAuth() {
           ? `${window.location.pathname}${window.location.search}`
           : "/";
       const target = returnTo ?? fallback;
-      const affiliate = getAffiliateSlugForLinks();
-      const href = appendAffiliateToHref(
-        buildAuthHref(authPath, target, affiliate),
-        affiliate
-      );
-      router.push(href);
+      router.push(buildAuthHref(authPath, target));
       return false;
     },
     [loggedIn, router]

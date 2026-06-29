@@ -8,10 +8,6 @@ import {
   buildPaywallPath,
   buildReaderSignupPath,
 } from "@/lib/reader/nextEpisodeGate";
-import {
-  appendAffiliateToHref,
-  getAffiliateSlugForLinks,
-} from "@/lib/affiliate/client-tracking";
 
 const CREAM = "#F6F1E7";
 const CARD = "#FFFDF7";
@@ -42,26 +38,13 @@ export default function EpisodePreviewGate({
   seriesTitle,
   episodeNumber,
 }: EpisodePreviewGateProps) {
-  const affiliate = getAffiliateSlugForLinks();
   const returnTo = `/story/${seriesId}/read?ep=${episodeNumber}`;
-  const signupHref = appendAffiliateToHref(
-    buildReaderSignupPath(seriesId, seriesTitle, episodeNumber - 1),
-    affiliate
-  );
-  const registerHref = appendAffiliateToHref(
-    buildAuthHref("/signup/register", returnTo, affiliate),
-    affiliate
-  );
-  const signinHref = appendAffiliateToHref(
-    buildAuthHref("/signin", returnTo, affiliate),
-    affiliate
-  );
-  const subscribeHref = appendAffiliateToHref(
-    buildPaywallPath(seriesId, episodeNumber, seriesTitle, {
-      reason: mode === "upgrade_weekly" ? "weekly_limit" : undefined,
-    }),
-    affiliate
-  );
+  const signupHref = buildReaderSignupPath(seriesId, seriesTitle, episodeNumber - 1);
+  const registerHref = buildAuthHref("/signup/register", returnTo);
+  const signinHref = buildAuthHref("/signin", returnTo);
+  const subscribeHref = buildPaywallPath(seriesId, episodeNumber, seriesTitle, {
+    reason: mode === "upgrade_weekly" ? "weekly_limit" : undefined,
+  });
 
   if (mode === "signup") {
     return (

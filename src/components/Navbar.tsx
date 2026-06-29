@@ -7,8 +7,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import ProfileMenu from "@/components/nav/ProfileMenu";
 import ToonloraLogo from "@/components/ui/ToonloraLogo";
-import { getAffiliateSlugForLinks } from "@/lib/affiliate/client-tracking";
-import { AFFILIATE_QUERY_PARAM } from "@/lib/affiliate/links";
 import { useTranslations } from "next-intl";
 import { useBrowseNav } from "@/hooks/useBrowseNav";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
@@ -37,13 +35,7 @@ function useActiveHash() {
     const hashPart = href.includes("#") ? href.slice(href.indexOf("#")) : "";
     if (!hashPart) return;
 
-    const aff =
-      new URLSearchParams(window.location.search).get(AFFILIATE_QUERY_PARAM) ??
-      getAffiliateSlugForLinks();
-    const search = aff
-      ? `?${AFFILIATE_QUERY_PARAM}=${encodeURIComponent(aff)}`
-      : "";
-    const url = `${window.location.pathname}${search}${hashPart}`;
+    const url = `${window.location.pathname}${hashPart}`;
     window.history.pushState(null, "", url);
     setHash(hashPart);
 

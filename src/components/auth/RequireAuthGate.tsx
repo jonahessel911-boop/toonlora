@@ -2,10 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  appendAffiliateToHref,
-  getAffiliateSlugForLinks,
-} from "@/lib/affiliate/client-tracking";
 import { buildAuthHref } from "@/lib/reader/nextEpisodeGate";
 import { useUserStore } from "@/store/useUserStore";
 
@@ -39,12 +35,7 @@ export default function RequireAuthGate({
 
     if (email) return;
 
-    const affiliate = getAffiliateSlugForLinks();
-    const href = appendAffiliateToHref(
-      buildAuthHref("/signin", returnTo, affiliate),
-      affiliate
-    );
-    router.replace(href);
+    router.replace(buildAuthHref("/signin", returnTo));
   }, [ready, email, returnTo, router]);
 
   if (!ready || !email) {

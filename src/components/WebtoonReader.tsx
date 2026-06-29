@@ -13,10 +13,6 @@ import { trackReadingProgress } from "@/components/analytics/AnalyticsProvider";
 import { trackEpisodeComplete, trackNextEpisodeClick, trackPaywallView } from "@/lib/analytics/gtag";
 import { formatChapterTitle } from "@/lib/brand";
 import {
-  appendAffiliateToHref,
-  getAffiliateSlugForLinks,
-} from "@/lib/affiliate/client-tracking";
-import {
   buildPaywallPath,
   buildReaderSignupPath,
 } from "@/lib/reader/nextEpisodeGate";
@@ -158,12 +154,11 @@ export default function WebtoonReader({
   );
 
   const navigateWithAffiliate = useCallback((path: string, replace = false) => {
-    const url = appendAffiliateToHref(path, getAffiliateSlugForLinks());
     if (replace) {
-      window.location.replace(url);
+      window.location.replace(path);
       return;
     }
-    window.location.href = url;
+    window.location.href = path;
   }, []);
 
   const proceedToNextEpisode = useCallback(() => {

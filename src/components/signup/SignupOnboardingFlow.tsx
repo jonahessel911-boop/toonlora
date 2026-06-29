@@ -19,7 +19,6 @@ import { buildAuthHref } from "@/lib/reader/nextEpisodeGate";
 import {
   getStoredAffiliateSlug,
   clearStoredAffiliateSlug,
-  appendAffiliateToHref,
 } from "@/lib/affiliate/client-tracking";
 import { useAffiliateSlug } from "@/lib/affiliate/useAffiliateSlug";
 import { apiFetch } from "@/lib/session";
@@ -66,10 +65,9 @@ export default function SignupOnboardingFlow({
   const [submitting, setSubmitting] = useState(false);
 
   const affiliateSlug = useAffiliateSlug();
-  const baseSigninHref =
+  const signinHref =
     signinHrefProp ??
-    (returnTo ? buildAuthHref("/signin", returnTo, affiliateSlug) : "/signin");
-  const signinHref = appendAffiliateToHref(baseSigninHref, affiliateSlug);
+    (returnTo ? buildAuthHref("/signin", returnTo) : "/signin");
 
   useEffect(() => {
     trackSignupFormView({
