@@ -124,8 +124,6 @@
     "loadingPayment": "Chargement du paiement sécurisé…",
     "loadingApplePay": "Chargement d'Apple Pay…",
     "loadingGooglePay": "Chargement de Google Pay…",
-    "googlePayFallback": "Google Pay fonctionne dans Chrome si vous êtes connecté à Google avec une carte enregistrée. Ou choisissez la carte bancaire ci-dessus.",
-    "applePayFallback": "Apple Pay fonctionne dans Safari sur iPhone, iPad ou Mac avec une carte dans Wallet. Ou choisissez la carte bancaire ci-dessus.",
     "legalPrefix": "En continuant, vous acceptez nos",
     "legalAnd": "et notre",
     "termsOfUse": "Conditions d'utilisation",
@@ -136,7 +134,7 @@
     "moneyBackTitle": "Garantie satisfait ou remboursé 30 jours - sans questions",
     "moneyBackBody": "Nous croyons que nos histoires feront la différence pour vous. Si après plusieurs chapitres vous ne voyez pas la valeur de Toonlora, nous vous remboursons le jour même.",
     "headline": "Débloquez les histoires business derrière les plus grands fondateurs, fraudes, empires et effondrements du monde.",
-    "subhead": "Histoires réelles vérifiées. Recherche approfondie. Nouveaux épisodes chaque semaine.",
+    "subhead": "Histoires vérifiées en exclusivité. Recherche approfondie. Nouveaux épisodes chaque semaine. Recherché et écrit par 16 étudiants de Harvard (cum laude).",
     "planHighlights": {
       "achiever": ["Chapitres illimités sur chaque histoire", "Nouveaux épisodes chaque semaine", "Sans pub sur tous les appareils", "Sauvegardez la progression dans votre bibliothèque"],
       "entrepreneur": ["Tout dans Achiever", "Lisez les nouveaux épisodes 1 semaine plus tôt", "Sauvegardez des histoires dans votre bibliothèque", "Partagez 1 histoire par mois avec un ami", "Priorité pour les nouvelles séries phares"]

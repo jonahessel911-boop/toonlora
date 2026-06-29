@@ -124,8 +124,6 @@
     "loadingPayment": "Veilige betaling laden…",
     "loadingApplePay": "Apple Pay laden…",
     "loadingGooglePay": "Google Pay laden…",
-    "googlePayFallback": "Google Pay werkt in Chrome als je bent ingelogd bij Google met een opgeslagen kaart. Of kies hierboven creditcard.",
-    "applePayFallback": "Apple Pay werkt in Safari op iPhone, iPad of Mac met een kaart in Wallet. Of kies hierboven creditcard.",
     "legalPrefix": "Door verder te gaan ga je akkoord met onze",
     "legalAnd": "en",
     "termsOfUse": "Gebruiksvoorwaarden",
@@ -136,7 +134,7 @@
     "moneyBackTitle": "30 dagen geld-terug-garantie - geen vragen",
     "moneyBackBody": "We geloven dat onze verhalen het verschil voor je maken. Zie je na verschillende hoofdstukken geen waarde in Toonlora, dan betalen we je geld dezelfde dag terug.",
     "headline": "Ontgrendel de businessverhalen achter 's werelds grootste oprichters, fraude, imperiums en ineenstortingen.",
-    "subhead": "Echte geverifieerde verhalen. Diep onderzoek. Nieuwe afleveringen elke week.",
+    "subhead": "Exclusief geverifieerde verhalen. Diep onderzoek. Nieuwe afleveringen elke week. Onderzocht en geschreven door 16 Harvard-studenten (cum laude).",
     "planHighlights": {
       "achiever": ["Onbeperkt hoofdstukken bij elk verhaal", "Nieuwe afleveringen elke week", "Reclamevrij op alle apparaten", "Bewaar voortgang in je bibliotheek"],
       "entrepreneur": ["Alles in Achiever", "Lees nieuwe afleveringen 1 week eerder", "Bewaar verhalen in je bibliotheek", "Deel 1 verhaal per maand met een vriend", "Prioriteit voor nieuwe flagship-series"]

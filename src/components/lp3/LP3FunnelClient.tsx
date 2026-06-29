@@ -900,7 +900,7 @@ export default function LP3FunnelClient({
         <h1 className="text-center font-heading text-[1.2rem] font-extrabold leading-snug text-[#0A1628] sm:text-[1.35rem]">
           {tPaywall("headline")}
         </h1>
-        <p className="mx-auto mt-2 max-w-md text-center text-sm font-medium leading-relaxed text-[#475569]">
+        <p className="mx-auto mt-2 max-w-md text-center text-sm font-normal leading-relaxed text-[#475569]">
           {tPaywall("subhead")}
         </p>
 

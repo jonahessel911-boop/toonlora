@@ -187,7 +187,7 @@ export const LP3_CHECKOUT_VALUE_PROP = {
   headline:
     "Unlock the business stories behind the world's biggest founders, frauds, empires and collapses.",
   subhead:
-    "Real verified stories. Deep research. New episodes every week.",
+    "Exclusively verified stories. Deep research. New episodes every week. Researched and written by 16 cum laude Harvard students.",
 };
 
 /** Shown inside the selected plan card on checkout (3–5 bullets). */

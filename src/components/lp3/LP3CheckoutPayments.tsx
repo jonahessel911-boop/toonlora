@@ -10,7 +10,7 @@ import type {
 } from "@stripe/stripe-js";
 import { trackPaywallCheckoutClick } from "@/lib/analytics/gtag";
 import { getStripeBrowser, isStripeBrowserConfigured } from "@/lib/payments/stripe-browser";
-import { formatEur, planApplePayRecurringBilling, planSubscriptionLabel, type SubscriptionPlan } from "@/lib/payments/subscription-plans";
+import { formatEur, planApplePayRecurringBilling, type SubscriptionPlan } from "@/lib/payments/subscription-plans";
 import { apiFetch } from "@/lib/session";
 
 type PaymentMethodId = "apple_pay" | "google_pay" | "card";
@@ -128,8 +128,6 @@ export default function LP3CheckoutPayments({
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [intentLoading, setIntentLoading] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [applePayAvailable, setApplePayAvailable] = useState(false);
-  const [googlePayAvailable, setGooglePayAvailable] = useState(false);
   const [paymentReady, setPaymentReady] = useState(false);
   const [walletReady, setWalletReady] = useState(false);
   const [stripeInstance, setStripeInstance] = useState<Stripe | null>(null);
@@ -376,11 +374,6 @@ export default function LP3CheckoutPayments({
       if (cancelled || !walletNode) return;
 
       setWalletReady(false);
-      if (walletMethod === "apple_pay") {
-        setGooglePayAvailable(false);
-      } else {
-        setApplePayAvailable(false);
-      }
 
       const expressBase = {
         buttonHeight: 48,
@@ -420,39 +413,9 @@ export default function LP3CheckoutPayments({
         },
       });
 
-      const syncWalletAvailability = (
-        methods:
-          | {
-              applePay?: boolean | { available: boolean };
-              googlePay?: boolean | { available: boolean };
-            }
-          | undefined
-      ) => {
-        const isAvailable = (
-          value: boolean | { available: boolean } | undefined
-        ) => {
-          if (typeof value === "boolean") return value;
-          return Boolean(value?.available);
-        };
-
-        if (isApplePay) {
-          setApplePayAvailable(isAvailable(methods?.applePay));
-        } else {
-          setGooglePayAvailable(isAvailable(methods?.googlePay));
-        }
-      };
-
-      expressCheckout.on("ready", ({ availablePaymentMethods }) => {
-        syncWalletAvailability(availablePaymentMethods);
+      expressCheckout.on("ready", () => {
         setWalletReady(true);
       });
-
-      expressCheckout.on(
-        "availablepaymentmethodschange",
-        ({ paymentMethods }) => {
-          syncWalletAvailability(paymentMethods);
-        }
-      );
 
       expressCheckout.on("confirm", () => void handleWalletConfirm());
       expressCheckout.mount(walletNode);
@@ -567,9 +530,6 @@ export default function LP3CheckoutPayments({
             {formatEur(plan.amountCents)}
           </span>
         </div>
-        <p className="mt-2 text-center text-xs leading-relaxed text-[#64748B]">
-          {t("recurringNote", { price: planSubscriptionLabel(plan) })}
-        </p>
 
         {intentLoading || !checkoutReady ? (
           <p className="py-8 text-center text-sm text-[#64748B]">
@@ -608,17 +568,6 @@ export default function LP3CheckoutPayments({
           </div>
         ) : null}
 
-        {method === "google_pay" && checkoutReady && !googlePayAvailable ? (
-          <p className="mt-3 text-center text-xs leading-relaxed text-[#64748B]">
-            {t("googlePayFallback")}
-          </p>
-        ) : null}
-
-        {method === "apple_pay" && checkoutReady && !applePayAvailable ? (
-          <p className="mt-3 text-center text-xs leading-relaxed text-[#64748B]">
-            {t("applePayFallback")}
-          </p>
-        ) : null}
       </div>
 
       {!isStripeBrowserConfigured() ? (

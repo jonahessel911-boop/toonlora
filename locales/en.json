@@ -152,8 +152,6 @@
     "loadingPayment": "Loading secure payment…",
     "loadingApplePay": "Loading Apple Pay…",
     "loadingGooglePay": "Loading Google Pay…",
-    "googlePayFallback": "Google Pay works in Chrome when you're signed into Google with a saved card. Or switch to credit card above.",
-    "applePayFallback": "Apple Pay works in Safari on iPhone, iPad, or Mac with a card in Wallet. Or switch to credit card above.",
     "legalPrefix": "By proceeding, you agree to our",
     "legalAnd": "and",
     "termsOfUse": "Terms of Use",
@@ -164,7 +162,7 @@
     "moneyBackTitle": "30-day money back guarantee - no questions asked",
     "moneyBackBody": "We believe that our stories will make a difference for you. However, if you don't see the value of Toonlora after completing different chapters and stories, we'll be ready to refund your money the same day.",
     "headline": "Unlock the business stories behind the world's biggest founders, frauds, empires and collapses.",
-    "subhead": "Real verified stories. Deep research. New episodes every week.",
+    "subhead": "Exclusively verified stories. Deep research. New episodes every week. Researched and written by 16 cum laude Harvard students.",
     "planHighlights": {
       "achiever": [
         "Unlimited chapters on every story",
