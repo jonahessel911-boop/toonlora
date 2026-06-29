@@ -906,3 +906,25 @@ export async function resetAllAnalytics(): Promise<AnalyticsResetResult> {
 
   return result;
 }
+
+/** Clear LP funnel events only (`lp_funnel_*` in analytics_events). */
+export async function resetLpFunnelAnalytics(): Promise<{ deleted: number }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("Database not configured");
+
+  const eventTypes = ["lp_funnel_start", "lp_funnel_step", "lp_funnel_convert"];
+
+  const { count } = await supabase
+    .from("analytics_events")
+    .select("id", { count: "exact", head: true })
+    .in("event_type", eventTypes);
+
+  const { error } = await supabase
+    .from("analytics_events")
+    .delete()
+    .in("event_type", eventTypes);
+
+  if (error) throw new Error(error.message);
+
+  return { deleted: count ?? 0 };
+}

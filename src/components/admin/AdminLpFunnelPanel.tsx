@@ -192,6 +192,7 @@ export default function AdminLpFunnelPanel() {
   const [selectedLpId, setSelectedLpId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -220,6 +221,29 @@ export default function AdminLpFunnelPanel() {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  const handleReset = useCallback(async () => {
+    const confirmed = window.confirm(
+      "Reset LP funnel analytics?\n\nThis clears all /lp/{n} funnel events (page views, step drop-off, conversions).\n\nPlatform analytics and user data are kept. This cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setResetting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/lp-funnel/reset", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Reset failed.");
+        return;
+      }
+      await load();
+    } catch {
+      setError("Could not reset LP funnel analytics.");
+    } finally {
+      setResetting(false);
+    }
   }, [load]);
 
   const report = useMemo(
@@ -258,14 +282,24 @@ export default function AdminLpFunnelPanel() {
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          disabled={loading}
-          className="rounded-lg border border-[#EDEBE9] bg-white px-4 py-2 text-sm font-semibold text-[#0078D4] shadow-sm hover:bg-[#EFF6FC] disabled:opacity-50"
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void load()}
+            disabled={loading || resetting}
+            className="rounded-lg border border-[#EDEBE9] bg-white px-4 py-2 text-sm font-semibold text-[#0078D4] shadow-sm hover:bg-[#EFF6FC] disabled:opacity-50"
+          >
+            {loading ? "Refreshing…" : "Refresh"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleReset()}
+            disabled={loading || resetting}
+            className="rounded-lg border border-[#F1BBBC] bg-white px-4 py-2 text-sm font-semibold text-[#A4262C] shadow-sm hover:bg-[#FDE7E9] disabled:opacity-50"
+          >
+            {resetting ? "Resetting…" : "Reset analytics"}
+          </button>
+        </div>
       </div>
 
       {error ? (
