@@ -6,6 +6,7 @@ import AdminAffiliatesPanel from "@/components/admin/AdminAffiliatesPanel";
 import AdminComicsPanel from "@/components/admin/AdminComicsPanel";
 import AdminEngagementCharts from "@/components/admin/AdminEngagementCharts";
 import AdminLpFunnelPanel from "@/components/admin/AdminLpFunnelPanel";
+import AdminUsersTable from "@/components/admin/AdminUsersTable";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<
@@ -14,6 +15,8 @@ export default function AdminDashboard() {
   const [metrics, setMetrics] = useState<AdminReportingMetrics | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [usersRefreshKey, setUsersRefreshKey] = useState(0);
+  const [resetting, setResetting] = useState(false);
 
   const loadMetrics = useCallback(async () => {
     setLoading(true);
@@ -26,12 +29,36 @@ export default function AdminDashboard() {
         return;
       }
       setMetrics(data.metrics);
+      setUsersRefreshKey((k) => k + 1);
     } catch {
       setError("Could not load reporting data.");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleResetAnalytics = useCallback(async () => {
+    const confirmed = window.confirm(
+      "Reset ALL analytics?\n\nThis clears:\n• Page views & funnel events\n• Reading progress & session time\n• Login events\n• Series view counts\n• All subscription status on sessions\n\nUser accounts are kept. This cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setResetting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/analytics/reset", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Reset failed.");
+        return;
+      }
+      await loadMetrics();
+    } catch {
+      setError("Could not reset analytics.");
+    } finally {
+      setResetting(false);
+    }
+  }, [loadMetrics]);
 
   useEffect(() => {
     void loadMetrics();
@@ -228,14 +255,24 @@ export default function AdminDashboard() {
                 ) : null}
               </div>
               {activeTab === "reporting" ? (
-                <button
-                  type="button"
-                  onClick={() => void loadMetrics()}
-                  disabled={loading}
-                  className="rounded-lg border border-[#EDEBE9] bg-white px-4 py-2 text-sm font-semibold text-[#0078D4] shadow-sm hover:bg-[#EFF6FC] disabled:opacity-50"
-                >
-                  {loading ? "Refreshing…" : "Refresh data"}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void loadMetrics()}
+                    disabled={loading}
+                    className="rounded-lg border border-[#EDEBE9] bg-white px-4 py-2 text-sm font-semibold text-[#0078D4] shadow-sm hover:bg-[#EFF6FC] disabled:opacity-50"
+                  >
+                    {loading ? "Refreshing…" : "Refresh data"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleResetAnalytics()}
+                    disabled={resetting || loading}
+                    className="rounded-lg border border-[#F1BBBC] bg-white px-4 py-2 text-sm font-semibold text-[#A4262C] shadow-sm hover:bg-[#FDE7E9] disabled:opacity-50"
+                  >
+                    {resetting ? "Resetting…" : "Reset analytics"}
+                  </button>
+                </div>
               ) : null}
             </div>
           </div>
@@ -264,7 +301,12 @@ export default function AdminDashboard() {
               </div>
             ) : null}
 
-            {metrics ? <AdminEngagementCharts metrics={metrics} /> : null}
+            {metrics ? (
+              <div className="space-y-5">
+                <AdminEngagementCharts metrics={metrics} />
+                <AdminUsersTable refreshKey={usersRefreshKey} />
+              </div>
+            ) : null}
               </>
             )}
           </div>

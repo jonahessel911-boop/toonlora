@@ -407,7 +407,9 @@ export async function getAdminReportingMetrics(): Promise<AdminReportingMetrics>
     supabase.from("analytics_events").select("event_type"),
     supabase
       .from("user_sessions")
-      .select("subscription_status, subscription_plan_id, subscription_period_end")
+      .select(
+        "session_id, subscription_status, subscription_plan_id, subscription_period_end"
+      )
       .eq("subscription_status", "active"),
     supabase
       .from("platform_sessions")
@@ -433,6 +435,7 @@ export async function getAdminReportingMetrics(): Promise<AdminReportingMetrics>
   const subscriptions = subscriptionsRes.error
     ? []
     : ((subscriptionsRes.data ?? []) as {
+        session_id: string;
         subscription_status: string | null;
         subscription_plan_id: string | null;
         subscription_period_end: string | null;
@@ -442,6 +445,7 @@ export async function getAdminReportingMetrics(): Promise<AdminReportingMetrics>
     ProfileRow,
     "id" | "session_id" | "created_at"
   >[];
+  const profileSessionIds = new Set(profiles.map((p) => p.session_id));
   const progress = (progressRes.data ?? []) as Pick<
     ReadingProgressRow,
     "session_id" | "max_panel_reached" | "total_panels" | "completed_at"
@@ -532,6 +536,7 @@ export async function getAdminReportingMetrics(): Promise<AdminReportingMetrics>
   const now = Date.now();
   const activeSubs = subscriptions.filter((sub) => {
     if (sub.subscription_status !== "active") return false;
+    if (!profileSessionIds.has(sub.session_id)) return false;
     if (!sub.subscription_period_end) return true;
     return new Date(sub.subscription_period_end).getTime() > now;
   });
@@ -809,4 +814,95 @@ export async function getLpFunnelReports(
     days,
     generatedAt: new Date().toISOString(),
   };
+}
+
+export interface AnalyticsResetResult {
+  analyticsEvents: number;
+  readingProgress: number;
+  platformSessions: number;
+  loginEvents: number;
+  seriesViewsReset: number;
+  subscriptionsCleared: number;
+}
+
+/** Wipe engagement analytics and clear orphaned session subscriptions. */
+export async function resetAllAnalytics(): Promise<AnalyticsResetResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("Database not configured");
+
+  const result: AnalyticsResetResult = {
+    analyticsEvents: 0,
+    readingProgress: 0,
+    platformSessions: 0,
+    loginEvents: 0,
+    seriesViewsReset: 0,
+    subscriptionsCleared: 0,
+  };
+
+  const { count: eventsBefore } = await supabase
+    .from("analytics_events")
+    .select("id", { count: "exact", head: true });
+  await supabase.from("analytics_events").delete().neq("event_type", "");
+  result.analyticsEvents = eventsBefore ?? 0;
+
+  const { count: progressBefore } = await supabase
+    .from("reading_progress")
+    .select("id", { count: "exact", head: true });
+  await supabase
+    .from("reading_progress")
+    .delete()
+    .neq("id", "00000000-0000-0000-0000-000000000000");
+  result.readingProgress = progressBefore ?? 0;
+
+  const { count: platformBefore } = await supabase
+    .from("platform_sessions")
+    .select("id", { count: "exact", head: true });
+  await supabase
+    .from("platform_sessions")
+    .delete()
+    .neq("id", "00000000-0000-0000-0000-000000000000");
+  result.platformSessions = platformBefore ?? 0;
+
+  const { count: loginBefore } = await supabase
+    .from("login_events")
+    .select("id", { count: "exact", head: true });
+  await supabase
+    .from("login_events")
+    .delete()
+    .neq("id", "00000000-0000-0000-0000-000000000000");
+  result.loginEvents = loginBefore ?? 0;
+
+  const { data: seriesRows } = await supabase
+    .from("series")
+    .select("id, views_count")
+    .gt("views_count", 0);
+
+  if (seriesRows?.length) {
+    const { error: viewsError } = await supabase
+      .from("series")
+      .update({ views_count: 0 })
+      .gt("views_count", 0);
+    if (viewsError) throw new Error(viewsError.message);
+    result.seriesViewsReset = seriesRows.length;
+  }
+
+  const { data: subsBefore } = await supabase
+    .from("user_sessions")
+    .select("session_id")
+    .not("subscription_status", "is", null);
+
+  const { error: subsError } = await supabase
+    .from("user_sessions")
+    .update({
+      subscription_status: null,
+      subscription_plan_id: null,
+      subscription_stripe_id: null,
+      subscription_period_end: null,
+    })
+    .not("subscription_status", "is", null);
+
+  if (subsError) throw new Error(subsError.message);
+  result.subscriptionsCleared = subsBefore?.length ?? 0;
+
+  return result;
 }

@@ -12,39 +12,31 @@ const COLORS = {
 function KpiCard({
   label,
   value,
-  explanation,
-  rate,
+  sub,
   accent = COLORS.blue,
 }: {
   label: string;
   value: string;
-  explanation: string;
-  rate?: string;
+  sub?: string;
   accent?: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#EDEBE9] bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#605E5C]">
+    <div className="rounded-lg border border-[#EDEBE9] bg-white px-3 py-2.5 shadow-sm">
+      <div className="flex items-center justify-between gap-1">
+        <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[#605E5C]">
           {label}
         </p>
         <span
-          className="h-2 w-2 shrink-0 rounded-full"
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
           style={{ backgroundColor: accent }}
           aria-hidden
         />
       </div>
-      <p className="mt-3 text-3xl font-semibold tabular-nums tracking-tight text-[#323130]">
+      <p className="mt-1 text-lg font-semibold tabular-nums leading-none text-[#323130]">
         {value}
       </p>
-      <p className="mt-2 text-sm leading-snug text-[#605E5C]">{explanation}</p>
-      {rate ? (
-        <p
-          className="mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-          style={{ backgroundColor: `${accent}18`, color: accent }}
-        >
-          {rate}
-        </p>
+      {sub ? (
+        <p className="mt-1 truncate text-[10px] text-[#605E5C]">{sub}</p>
       ) : null}
     </div>
   );
@@ -56,47 +48,41 @@ export default function AdminEngagementCharts({
   metrics: AdminReportingMetrics;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
       <KpiCard
-        label="Total views"
+        label="Views"
         value={metrics.totalSeriesViews.toLocaleString()}
-        explanation="Series page views across all stories"
-        rate={`${metrics.totalEpisodeOpens.toLocaleString()} episode opens`}
+        sub={`${metrics.totalEpisodeOpens} opens`}
       />
       <KpiCard
-        label="Completion rate"
+        label="Completion"
         value={`${metrics.episodeCompletionRate}%`}
-        explanation="View → full episode read"
-        rate={`${metrics.episodeCompletedCount.toLocaleString()} of ${metrics.totalEpisodeOpens.toLocaleString()} opens`}
+        sub={`${metrics.episodeCompletedCount}/${metrics.totalEpisodeOpens}`}
         accent={COLORS.green}
       />
       <KpiCard
-        label="Next episode clicks"
+        label="Next ep."
         value={metrics.nextEpisodeClickCount.toLocaleString()}
-        explanation="Clicks on continue / next episode"
-        rate={`${metrics.nextEpisodeClickRate}% of completions`}
+        sub={`${metrics.nextEpisodeClickRate}% of done`}
         accent={COLORS.orange}
       />
       <KpiCard
-        label="Checkouts started"
+        label="Checkouts"
         value={metrics.checkoutsStarted.toLocaleString()}
-        explanation="Stripe subscription checkouts initiated"
-        rate={`${metrics.checkoutConversionRate}% of paywall views`}
+        sub={`${metrics.checkoutConversionRate}% of paywall`}
         accent={COLORS.purple}
       />
       <KpiCard
-        label="Total users"
+        label="Users"
         value={metrics.totalUsers.toLocaleString()}
-        explanation="Registered accounts"
-        accent={COLORS.blue}
+        sub="Registered"
       />
       <KpiCard
         label="WAU"
         value={metrics.wau.toLocaleString()}
-        explanation="Signed-up users active in the last 7 days"
-        rate={
+        sub={
           metrics.totalUsers > 0
-            ? `${Math.round((metrics.wau / metrics.totalUsers) * 1000) / 10}% of registered`
+            ? `${Math.round((metrics.wau / metrics.totalUsers) * 1000) / 10}% active`
             : undefined
         }
         accent={COLORS.blue}
@@ -104,24 +90,23 @@ export default function AdminEngagementCharts({
       <KpiCard
         label="MAU"
         value={metrics.mau.toLocaleString()}
-        explanation="Signed-up users active in the last 30 days"
-        rate={
+        sub={
           metrics.totalUsers > 0
-            ? `${Math.round((metrics.mau / metrics.totalUsers) * 1000) / 10}% of registered`
+            ? `${Math.round((metrics.mau / metrics.totalUsers) * 1000) / 10}% active`
             : undefined
         }
         accent={COLORS.purple}
       />
       <KpiCard
-        label="Active subscriptions"
+        label="Subs"
         value={metrics.activeSubscriptions.toLocaleString()}
-        explanation="Currently active Toonlora Plus subscribers"
-        accent={COLORS.blue}
+        sub="Active Plus"
+        accent={COLORS.green}
       />
       <KpiCard
         label="MRR"
         value={metrics.mrrFormatted}
-        explanation="Estimated monthly recurring revenue"
+        sub="Monthly revenue"
         accent={COLORS.green}
       />
     </div>
