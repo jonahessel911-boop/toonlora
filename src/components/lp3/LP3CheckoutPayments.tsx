@@ -22,6 +22,21 @@ function buildWelcomeUrl(subscriptionId?: string | null) {
   return `${RETURN_URL_BASE}?subscriptionId=${encodeURIComponent(subscriptionId)}`;
 }
 
+function isExpressWalletAvailable(
+  methods:
+    | {
+        applePay?: boolean | { available: boolean };
+        googlePay?: boolean | { available: boolean };
+      }
+    | undefined,
+  wallet: "apple_pay" | "google_pay"
+) {
+  const value =
+    wallet === "apple_pay" ? methods?.applePay : methods?.googlePay;
+  if (typeof value === "boolean") return value;
+  return Boolean(value?.available);
+}
+
 function safeDestroyStripeElement(
   element: StripePaymentElement | StripeExpressCheckoutElement | null | undefined
 ) {
@@ -130,6 +145,7 @@ export default function LP3CheckoutPayments({
   const [paying, setPaying] = useState(false);
   const [paymentReady, setPaymentReady] = useState(false);
   const [walletReady, setWalletReady] = useState(false);
+  const [walletUnavailable, setWalletUnavailable] = useState(false);
   const [stripeInstance, setStripeInstance] = useState<Stripe | null>(null);
   const [stripeElements, setStripeElements] = useState<StripeElements | null>(null);
 
@@ -173,6 +189,7 @@ export default function LP3CheckoutPayments({
     setStripeElements(null);
     setPaymentReady(false);
     setWalletReady(false);
+    setWalletUnavailable(false);
     setPaying(false);
     onErrorRef.current("");
 
@@ -360,6 +377,7 @@ export default function LP3CheckoutPayments({
       safeDestroyStripeElement(expressCheckoutRef.current);
       expressCheckoutRef.current = null;
       setWalletReady(false);
+      setWalletUnavailable(false);
       return;
     }
 
@@ -374,10 +392,16 @@ export default function LP3CheckoutPayments({
       if (cancelled || !walletNode) return;
 
       setWalletReady(false);
+      setWalletUnavailable(false);
+
+      const isApplePay = walletMethod === "apple_pay";
 
       const expressBase = {
         buttonHeight: 48,
         emailRequired: true,
+        buttonType: isApplePay
+          ? { applePay: "subscribe" as const }
+          : { googlePay: "subscribe" as const },
         layout: {
           maxColumns: 1,
           maxRows: 1,
@@ -387,7 +411,6 @@ export default function LP3CheckoutPayments({
         amazonPay: "never",
       } as const;
 
-      const isApplePay = walletMethod === "apple_pay";
       expressCheckout = elements.create("expressCheckout", {
         ...expressBase,
         buttonTheme: isApplePay
@@ -413,9 +436,29 @@ export default function LP3CheckoutPayments({
         },
       });
 
-      expressCheckout.on("ready", () => {
-        setWalletReady(true);
+      const syncWalletAvailability = (
+        methods:
+          | {
+              applePay?: boolean | { available: boolean };
+              googlePay?: boolean | { available: boolean };
+            }
+          | undefined
+      ) => {
+        const available = isExpressWalletAvailable(methods, walletMethod);
+        setWalletUnavailable(!available);
+        setWalletReady(available);
+      };
+
+      expressCheckout.on("ready", ({ availablePaymentMethods }) => {
+        syncWalletAvailability(availablePaymentMethods);
       });
+
+      expressCheckout.on(
+        "availablepaymentmethodschange",
+        ({ paymentMethods }) => {
+          syncWalletAvailability(paymentMethods);
+        }
+      );
 
       expressCheckout.on("confirm", () => void handleWalletConfirm());
       expressCheckout.mount(walletNode);
@@ -433,6 +476,7 @@ export default function LP3CheckoutPayments({
       safeDestroyStripeElement(expressCheckout);
       expressCheckoutRef.current = null;
       setWalletReady(false);
+      setWalletUnavailable(false);
     };
   }, [method, clientSecret, stripeElements, handleWalletConfirm, plan]);
 
@@ -523,7 +567,7 @@ export default function LP3CheckoutPayments({
         ) : null}
       </div>
 
-      <div className="relative overflow-hidden rounded-xl border border-[#E7DDCC] bg-white p-4 shadow-sm">
+      <div className="relative rounded-xl border border-[#E7DDCC] bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between border-b border-[#E7DDCC] pb-3">
           <span className="text-sm font-bold text-[#0A1628]">{t("totalToday")}</span>
           <span className="font-heading text-lg font-extrabold text-[#2F80ED]">
@@ -531,7 +575,7 @@ export default function LP3CheckoutPayments({
           </span>
         </div>
 
-        {intentLoading || !checkoutReady ? (
+        {intentLoading || (isWalletMethod && !walletReady && !walletUnavailable) ? (
           <p className="py-8 text-center text-sm text-[#64748B]">
             {method === "card"
               ? t("loadingPayment")
@@ -539,6 +583,23 @@ export default function LP3CheckoutPayments({
                 ? t("loadingGooglePay")
                 : t("loadingApplePay")}
           </p>
+        ) : null}
+
+        {walletUnavailable ? (
+          <div className="py-6 text-center">
+            <p className="text-sm leading-relaxed text-[#64748B]">
+              {method === "google_pay"
+                ? t("googlePayUnavailable")
+                : t("applePayUnavailable")}
+            </p>
+            <button
+              type="button"
+              onClick={() => setMethod("card")}
+              className="mt-3 text-sm font-semibold text-[#2F80ED] underline-offset-2 hover:underline"
+            >
+              {t("useCreditCardInstead")}
+            </button>
+          </div>
         ) : null}
 
         {/* Off-screen mounts let Stripe measure buttons; active panel is shown below. */}
@@ -550,10 +611,14 @@ export default function LP3CheckoutPayments({
         </div>
 
         <div
-          className={isWalletMethod ? "mt-4 min-h-[52px] w-full" : "hidden"}
-          aria-hidden={!isWalletMethod}
+          className={
+            isWalletMethod && !walletUnavailable
+              ? "mt-4 min-h-[56px] w-full"
+              : "hidden"
+          }
+          aria-hidden={!isWalletMethod || walletUnavailable}
         >
-          <div ref={walletMountRef} className="min-h-[52px] w-full" />
+          <div ref={walletMountRef} className="min-h-[56px] w-full" />
         </div>
 
         {method === "card" ? (

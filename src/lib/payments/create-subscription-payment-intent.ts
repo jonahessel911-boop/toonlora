@@ -20,7 +20,6 @@ export async function createSubscriptionPaymentIntent(
     billing_mode: { type: "flexible" },
     payment_settings: {
       save_default_payment_method: "on_subscription",
-      payment_method_types: ["card"],
     },
     expand: ["latest_invoice.confirmation_secret"],
     metadata: {
