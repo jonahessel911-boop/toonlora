@@ -98,14 +98,37 @@
     "forever": "für immer",
     "percentOff": "{percent}% Rabatt",
     "plans": {
-      "free": { "name": "Gratis", "description": "Kapitel 1 ist gratis. Konto für 1 Kapitel pro Woche erstellen." },
-      "achiever": { "name": "Achiever", "description": "Alles im normalen Veröffentlichungsplan lesen" },
-      "entrepreneur": { "name": "Entrepreneur", "description": "Jede Geschichte 1 Woche vor Veröffentlichung lesen" }
+      "free": {
+        "name": "Gratis",
+        "description": "Kapitel 1 ist gratis. Konto für 1 Kapitel pro Woche erstellen."
+      },
+      "achiever": {
+        "name": "Achiever",
+        "description": "Alles im normalen Veröffentlichungsplan lesen"
+      },
+      "entrepreneur": {
+        "name": "Entrepreneur",
+        "description": "Jede Geschichte 1 Woche vor Veröffentlichung lesen"
+      }
     },
     "benefits": {
-      "free": ["1 Kapitel pro Woche — komplett gratis", "Nur öffentlicher Veröffentlichungsplan", "Alle Business-Kategorien durchsuchen"],
-      "achiever": ["Unbegrenzte Kapitel im öffentlichen Plan", "Jede aktive Geschichte in der normalen Linie", "Werbefrei auf Handy, Tablet & Desktop", "Bibliothek und Fortschritt speichern"],
-      "entrepreneur": ["Alles in Achiever", "Neue Kapitel 7 Tage früher", "Erster Zugang zu Flagship-Gründergeschichten", "Book Drop & History früh"]
+      "free": [
+        "1 Kapitel pro Woche — komplett gratis",
+        "Nur öffentlicher Veröffentlichungsplan",
+        "Alle Business-Kategorien durchsuchen"
+      ],
+      "achiever": [
+        "Unbegrenzte Kapitel im öffentlichen Plan",
+        "Jede aktive Geschichte in der normalen Linie",
+        "Werbefrei auf Handy, Tablet & Desktop",
+        "Bibliothek und Fortschritt speichern"
+      ],
+      "entrepreneur": [
+        "Alles in Achiever",
+        "Neue Kapitel 7 Tage früher",
+        "Erster Zugang zu Flagship-Gründergeschichten",
+        "Book Drop & History früh"
+      ]
     }
   },
   "paywall": {
@@ -139,8 +162,19 @@
     "headline": "Schalte die Business-Geschichten hinter den größten Gründern, Betrügereien, Imperien und Zusammenbrüchen der Welt frei.",
     "subhead": "Exklusiv verifizierte Geschichten. Tiefgehende Recherche. Neue Folgen jede Woche. Recherchiert und geschrieben von 16 Harvard-Studenten (cum laude).",
     "planHighlights": {
-      "achiever": ["Unbegrenzte Kapitel bei jeder Geschichte", "Neue Folgen jede Woche", "Werbefrei auf allen Geräten", "Fortschritt in der Bibliothek speichern"],
-      "entrepreneur": ["Alles in Achiever", "Neue Folgen 1 Woche früher lesen", "Geschichten in der Bibliothek speichern", "1 Geschichte pro Monat mit einem Freund teilen", "Priorität für neue Flagship-Serien"]
+      "achiever": [
+        "Unbegrenzte Kapitel bei jeder Geschichte",
+        "Neue Folgen jede Woche",
+        "Werbefrei auf allen Geräten",
+        "Fortschritt in der Bibliothek speichern"
+      ],
+      "entrepreneur": [
+        "Alles in Achiever",
+        "Neue Folgen 1 Woche früher lesen",
+        "Geschichten in der Bibliothek speichern",
+        "1 Geschichte pro Monat mit einem Freund teilen",
+        "Priorität für neue Flagship-Serien"
+      ]
     },
     "membershipIncludes": [
       "300+ tiefgehende Business-Folgen",
@@ -164,5 +198,216 @@
       "30 Tage Geld-zurück-Garantie",
       "Früher Zugang mit Entrepreneur-Plan"
     ]
+  },
+  "lp3": {
+    "steps": {
+      "intro": "",
+      "categories": "Interessen",
+      "stories": "Interessen",
+      "time": "Interessen",
+      "feel": "Personalisiert",
+      "habit": "Personalisiert",
+      "depth": "Personalisiert",
+      "quiz": "Personalisiert",
+      "quiz2": "Personalisiert",
+      "reveal": "Personalisiert",
+      "stat": "Personalisiert",
+      "profile": "Dein Profil",
+      "journey": "Dein Plan",
+      "loading": "Personalisiert",
+      "checkout": "Mitgliedschaft"
+    },
+    "intro": {
+      "title": "Lass uns deine Watchlist anpassen",
+      "subtitle": "Beantworte ein paar Fragen und entdecke die tiefgehendsten Business-Geschichten der Welt."
+    },
+    "categories": {
+      "title": "Welche Seite von Business fasziniert dich am meisten?"
+    },
+    "stories": {
+      "title": "Welche Business-Geschichten interessieren dich am meisten?",
+      "tapOne": "Tippe mindestens eine an, um fortzufahren",
+      "selected": "{count} ausgewählt",
+      "fallbackSubtitle": "Business-Geschichte"
+    },
+    "time": {
+      "title": "Wie lang soll sich jedes Kapitel anfühlen?"
+    },
+    "feel": {
+      "title": "Was willst du nach jeder Geschichte fühlen?"
+    },
+    "habit": {
+      "title": "Wann liest du meistens Geschichten?"
+    },
+    "depth": {
+      "title": "Was willst du am meisten aus einer Business-Geschichte mitnehmen?"
+    },
+    "options": {
+      "feel": {
+        "fired-up": "Motiviert",
+        "shocked": "Schockiert",
+        "smarter": "Schlauer",
+        "hungrier": "Hungriger",
+        "strategic": "Strategischer",
+        "clear": "Klar im Kopf"
+      },
+      "time": {
+        "5": "5 Minuten — ein scharfes Kapitel",
+        "10": "10 Minuten — volle Folge",
+        "15": "15+ Minuten — tief eintauchen"
+      },
+      "habit": {
+        "morning": "Morgens unterwegs",
+        "lunch": "Mittagspause",
+        "evening": "Abends entspannen",
+        "weekend": "Wochenend-Binge"
+      },
+      "depth": {
+        "strategy": "Strategie & Entscheidungen",
+        "drama": "Drama & Machtspiele",
+        "numbers": "Geld & Märkte",
+        "lessons": "Anwendbare Erkenntnisse"
+      }
+    },
+    "quiz1": {
+      "question": "Apple stand 90 Tage vor dem Bankrott, als Steve Jobs zurückkam. Wie lange bis zur Profitabilität?",
+      "options": {
+        "30": "30 Tage",
+        "365": "Ein Jahr",
+        "730": "Zwei Jahre",
+        "1095": "Drei Jahre"
+      },
+      "explanation": "Jobs strich Produkte, sicherte eine Microsoft-Investition und fokussierte Apple — innerhalb eines Jahres wieder profitabel."
+    },
+    "quiz2": {
+      "question": "WeWork erreichte vor dem IPO eine Bewertung von 47 Mrd. $. Was war es Monate später ungefähr wert?",
+      "options": {
+        "1": "1 Milliarde $",
+        "8": "8 Milliarden $",
+        "10": "10 Milliarden $",
+        "47": "47 Milliarden $"
+      },
+      "explanation": "Nach dem S-1-Leak sahen Investoren die Verluste. Der IPO scheiterte und die Bewertung brach ein — eine klassische Aufstieg-und-Fall-Geschichte."
+    },
+    "reveal": {
+      "publicRecord": "Öffentliche Darstellung",
+      "realStory": "Die wahre Geschichte"
+    },
+    "reveals": {
+      "steve-jobs": {
+        "headline": "Was Apple über Jobs' Rückkehr verschwieg",
+        "record": "Steve Jobs — Mitgründer. 1985 entlassen. 1997 als Interims-CEO zurück.",
+        "real": "Der Vorstand bot ihm den Job in einem Parkplatzgespräch an. Sein erster Schritt war kein Produkt — er stoppte fast jedes Apple-Projekt.",
+        "tags": ["COMEBACK", "APPLE", "FOKUS"]
+      },
+      "elon-musk": {
+        "headline": "Was Tesla über Heiligabend 2008 verschwieg",
+        "record": "Elon Musk — CEO von Tesla und SpaceX. Ende 2008 fast pleite.",
+        "real": "Beide Firmen waren Tage vor dem Aus. Er setzte seine letzten privaten Dollar auf einen weiteren Falcon-1-Start — und einen Daimler-Deal, der Tesla rettete.",
+        "tags": ["NEAR-DEATH", "TESLA", "SPACEX"]
+      },
+      "ferrari": {
+        "headline": "Was Enzo über den Ford-Deal verschwieg",
+        "record": "Enzo Ferrari — Gründer. Verkaufte Ferrari 1963 fast an Ford.",
+        "real": "Er stieg wegen einer Klausel zur Rennkontrolle aus. Fords Wut finanzierte das GT40-Programm — und Ferraris Mythos wurde schärfer.",
+        "tags": ["EGO", "RACING", "LEGACY"]
+      },
+      "default": {
+        "headline": "Was die Boardroom-Protokolle nie sagten",
+        "record": "Die offizielle Geschichte — poliert für Investoren und Presse.",
+        "real": "Die echten Entscheidungen fielen in Nachtanrufen, geleakten Decks und Wetten, die niemand schriftlich wollte.",
+        "tags": ["STRATEGIE", "MACHT", "WAHRHEIT"]
+      }
+    },
+    "stat": {
+      "text": "der Leser sagen, sie verstehen eine Business-Geschichte nach einem Toonlora-Kapitel besser."
+    },
+    "profile": {
+      "title": "Dein Profil",
+      "interestMap": "Deine Interessenkarte",
+      "stats": {
+        "sagas": "Business-Geschichten",
+        "perChapter": "pro Kapitel",
+        "match": "Match",
+        "categories": "Kategorien freigeschaltet"
+      }
+    },
+    "archetypes": {
+      "founder_stories": {
+        "title": "Die Blickweise des Builders",
+        "description": "Du fühlst dich zu Obsession, Ego und den Entscheidungen hingezogen, die Gründer zu Legenden — oder Warnungen — machen.",
+        "traits": ["Strategie", "Obsession", "Risiko", "Vision", "Vermächtnis", "Druck"]
+      },
+      "rise_and_fall": {
+        "title": "Der Fall-Beobachter",
+        "description": "Du willst den Aufstieg und den Crash — Hybris, Verleugnung und den Moment, in dem alles bricht.",
+        "traits": ["Hybris", "Macht", "Verleugnung", "Zusammenbruch", "Lektionen", "Drama"]
+      },
+      "empires": {
+        "title": "Der Imperiumsarchitekt",
+        "description": "Du willst wissen, wie Marken skalieren, Kategorien dominieren und Jahrzehnte ihre Vorteile verteidigen.",
+        "traits": ["Skalierung", "Marke", "Vorteile", "Kultur", "Dominanz", "Betrieb"]
+      },
+      "heists_and_frauds": {
+        "title": "Der Deal-Detektiv",
+        "description": "Dich ziehen Betrug, Leverage und Menschen an, die die Regeln bogen, bis das System brach.",
+        "traits": ["Betrug", "Leverage", "Geheimnisse", "Macht", "Gier", "Gerechtigkeit"]
+      },
+      "default": {
+        "title": "Der Strategie-Leser",
+        "description": "Du willst die wahre Geschichte hinter Milliarden-Entscheidungen — nicht die Pressemitteilung.",
+        "traits": ["Strategie", "Finanzen", "Führung", "Risiko", "Märkte", "Wahrheit"]
+      }
+    },
+    "journey": {
+      "badge": "Für dich personalisiert",
+      "title": "In 30 Tagen kennst du die Geschichten, die Schlagzeilen überspringen",
+      "subtitle": "Basierend auf deinen Auswahlen ist dies dein Weg.",
+      "weeks": [
+        { "label": "Jetzt", "title": "Deine Watchlist steht" },
+        { "label": "Woche 1–2", "title": "Gründer-Sagas & Analysen" },
+        { "label": "Woche 3–4", "title": "Aufstieg, Fall & Betrugs-Deep-Dives" },
+        { "label": "Monat 1", "title": "Volle Bibliothek freigeschaltet", "crown": true }
+      ]
+    },
+    "loading": {
+      "headline": "Deine Business-Watchlist wird personalisiert",
+      "title": "Dein persönlicher Plan wird erstellt",
+      "tasks": {
+        "0": "Deine Antworten werden analysiert",
+        "1": "Kategorien & Stimmung werden abgeglichen",
+        "2": "Geschichten für dich werden gesucht",
+        "3": "Deine Watchlist wird sortiert",
+        "4": "Kapitel-Tempo wird kalibriert",
+        "5": "Dein persönlicher Plan wird erstellt"
+      }
+    },
+    "checkout": {
+      "readStoriesLike": "Lies Geschichten wie:",
+      "trustedByReaders": "Vertraut von Lesern"
+    },
+    "reviews": {
+      "0": {
+        "timeAgo": "vor 2 Tagen",
+        "title": "Ich liebe diese App!",
+        "body": "Ich dachte, ich wüsste alles über Steve Jobs. Der Kampf um die Rückkehr zu Apple war viel brutaler als in jeder Doku — und die Panels treffen härter."
+      },
+      "1": {
+        "timeAgo": "vor 1 Woche",
+        "title": "Der perfekte Ausklang nach einem chaotischen Tag",
+        "body": "Die Gründergeschichten ziehen dich sofort in eine andere Welt. Scharf, filmisch und überraschend bewegend. Jedes Kapitel macht Lust auf noch eins — ohne dreistündigen Podcast."
+      },
+      "2": {
+        "timeAgo": "vor 3 Tagen",
+        "title": "Ich wollte nur kurz lesen",
+        "body": "Ich erwartete eine schnelle Flucht, war aber sofort süchtig nach der FTX-Saga. Wie Succession, aber mit echten Bilanzen und viel höheren Einsätzen."
+      }
+    }
+  },
+  "lp4": {
+    "intro": {
+      "headline": "Die Business-Geschichten, die nie in die Lehrbücher kommen",
+      "subtitle": "Beantworte ein paar Fragen und entdecke die tiefgehendsten Business-Geschichten der Welt."
+    }
   }
 }

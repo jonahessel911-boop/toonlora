@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/api/session";
 import { getSubscriptionPeriodEnd } from "@/lib/payments/stripe-subscription";
-import { setSubscriptionInDb } from "@/lib/services/subscription-repository";
+import {
+  isGrantedSubscriptionStatus,
+  syncPaidSubscriptionAccess,
+} from "@/lib/payments/stripe-subscription-sync";
+import { maybeSendTikTokSubscribeEvent } from "@/lib/analytics/tiktok-subscription-server";
 import { getStripe, isStripeConfigured } from "@/lib/services/stripe";
 
+/** Poll Stripe after client payment — read-only; webhooks grant access. */
 export async function POST(request: Request) {
   if (!isStripeConfigured()) {
     return NextResponse.json({ error: "Stripe not configured" }, { status: 503 });
@@ -25,7 +30,7 @@ export async function POST(request: Request) {
       expand: ["items", "customer"],
     });
 
-    for (let attempt = 0; attempt < 5 && subscription.status === "incomplete"; attempt++) {
+    for (let attempt = 0; attempt < 8 && !isGrantedSubscriptionStatus(subscription.status); attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       subscription = await stripe.subscriptions.retrieve(subscriptionId, {
         expand: ["items", "customer"],
@@ -41,19 +46,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
     }
 
-    const periodEnd = getSubscriptionPeriodEnd(subscription);
+    if (!isGrantedSubscriptionStatus(subscription.status)) {
+      return NextResponse.json(
+        {
+          error: "Payment is still processing. Please wait a moment.",
+          status: subscription.status,
+        },
+        { status: 409 }
+      );
+    }
 
-    await setSubscriptionInDb(sessionId, {
-      status: subscription.status,
-      planId,
-      stripeSubscriptionId: subscription.id,
-      periodEnd,
-    });
+    await syncPaidSubscriptionAccess(stripe, subscription);
+    await maybeSendTikTokSubscribeEvent(stripe, subscription);
 
     return NextResponse.json({
       status: subscription.status,
       planId,
-      periodEnd,
+      periodEnd: getSubscriptionPeriodEnd(subscription),
       subscriptionId: subscription.id,
     });
   } catch (err) {

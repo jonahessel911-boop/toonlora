@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   appendAffiliateToHref,
-  getStoredAffiliateSlug,
+  getAffiliateSlugForLinks,
 } from "@/lib/affiliate/client-tracking";
 import { buildAuthHref } from "@/lib/reader/nextEpisodeGate";
 import { useUserStore } from "@/store/useUserStore";
@@ -26,7 +26,7 @@ export function useRequireAuth() {
           ? `${window.location.pathname}${window.location.search}`
           : "/";
       const target = returnTo ?? fallback;
-      const affiliate = getStoredAffiliateSlug();
+      const affiliate = getAffiliateSlugForLinks();
       const href = appendAffiliateToHref(
         buildAuthHref(authPath, target, affiliate),
         affiliate

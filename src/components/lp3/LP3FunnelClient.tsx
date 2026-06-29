@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import LP3Shell, { LP3FooterDock } from "@/components/lp3/LP3Shell";
@@ -12,24 +13,12 @@ import LP3MembershipIncludes from "@/components/lp3/LP3MembershipIncludes";
 import LP3MoneyBackGuarantee from "@/components/lp3/LP3MoneyBackGuarantee";
 import LP3ReviewCarousel from "@/components/lp3/LP3ReviewCarousel";
 import {
-  LP3_CATEGORY_OPTIONS,
-  LP3_DEPTH_OPTIONS,
-  LP3_FEEL_OPTIONS,
-  LP3_HABIT_OPTIONS,
-  LP3_JOURNEY_WEEKS,
   LP3_LOADING_DURATION_MS,
   LP3_LOADING_TASKS,
-  LP3_PROFILE_ARCHETYPES,
   LP3_PROGRESS_STEPS,
-  LP3_QUIZ,
-  LP3_QUIZ_2,
-  LP3_REVIEWS,
-  LP3_STAT,
-  LP3_STEP_LABELS,
-  LP3_STORY_REVEALS,
-  LP3_TIME_OPTIONS,
   type LP3StepId,
 } from "@/lib/lp3/content";
+import { useLp3FunnelCopy } from "@/lib/lp3/useLp3FunnelCopy";
 import {
   ENTREPRENEUR_PLAN,
   MONTHLY_SUBSCRIPTION_PLANS,
@@ -50,6 +39,8 @@ import type { CatalogSeries } from "@/types/catalog";
 
 interface LP3FunnelClientProps {
   initialCatalog?: CatalogSeries[];
+  /** LP/4 uses a single hero image on the intro step instead of the cover mosaic. */
+  variant?: "lp3" | "lp4";
 }
 
 interface StoryOption {
@@ -155,8 +146,27 @@ function CoverMosaic({ stories }: { stories: StoryOption[] }) {
   );
 }
 
+function LP4IntroHero() {
+  return (
+    <div className="mx-auto w-full max-w-md px-4 pt-2">
+      <div className="overflow-hidden rounded-2xl shadow-xl ring-1 ring-[#0A1628]/10">
+        <Image
+          src="/images/lp4/business-stories-hero.png"
+          alt="Business Stories"
+          width={1024}
+          height={1536}
+          priority
+          className="h-auto w-full object-cover"
+          sizes="(max-width: 512px) 100vw, 448px"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function LP3FunnelClient({
   initialCatalog = [],
+  variant = "lp3",
 }: LP3FunnelClientProps) {
   const { email, fullName } = useUserStore();
   const { series: clientCatalog } = useCatalog({
@@ -185,6 +195,8 @@ export default function LP3FunnelClient({
     () => LP3_LOADING_TASKS.map(() => 0)
   );
   const tPaywall = useTranslations("paywall");
+  const tLp4 = useTranslations("lp4");
+  const copy = useLp3FunnelCopy();
 
   const progressIndex = LP3_PROGRESS_STEPS.indexOf(step);
   const progressPct =
@@ -194,11 +206,10 @@ export default function LP3FunnelClient({
 
   const primaryCategory = selectedCategories[0] ?? "founder_stories";
   const profile =
-    LP3_PROFILE_ARCHETYPES[primaryCategory] ??
-    LP3_PROFILE_ARCHETYPES.default;
+    copy.profileArchetypes[primaryCategory] ?? copy.profileArchetypes.default;
   const revealKey = selectedStories[0] ?? "steve-jobs";
   const reveal =
-    LP3_STORY_REVEALS[revealKey] ?? LP3_STORY_REVEALS.default;
+    copy.storyReveals[revealKey] ?? copy.storyReveals.default;
 
   const goNext = useCallback(() => {
     const idx = LP3_PROGRESS_STEPS.indexOf(step);
@@ -277,19 +288,37 @@ export default function LP3FunnelClient({
   };
 
   if (step === "intro") {
+    const introTitle =
+      variant === "lp4" ? tLp4("intro.headline") : copy.intro.title;
+    const introSubtitle =
+      variant === "lp4" ? tLp4("intro.subtitle") : copy.intro.subtitle;
+
     return (
       <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#F6F1E7]">
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-none pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
-          <CoverMosaic stories={stories} />
-          <div className="mx-auto max-w-lg px-4 pt-2">
-            <h1 className="text-center font-heading text-[1.5rem] font-extrabold leading-tight text-[#0A1628] sm:text-[1.65rem]">
-              Let&apos;s tailor your watchlist
-            </h1>
-            <p className="mx-auto mt-2 max-w-sm text-center text-sm leading-snug text-[#475569]">
-              Answer a few questions to uncover the most in-depth business
-              stories in the world.
-            </p>
-          </div>
+          {variant === "lp4" ? (
+            <div className="mx-auto max-w-lg px-4 pt-4">
+              <h1 className="text-center font-heading text-[1.45rem] font-extrabold leading-tight text-[#0A1628] sm:text-[1.6rem]">
+                {introTitle}
+              </h1>
+              <LP4IntroHero />
+              <p className="mx-auto mt-3 max-w-sm text-center text-sm leading-snug text-[#475569]">
+                {introSubtitle}
+              </p>
+            </div>
+          ) : (
+            <>
+              <CoverMosaic stories={stories} />
+              <div className="mx-auto max-w-lg px-4 pt-2">
+                <h1 className="text-center font-heading text-[1.5rem] font-extrabold leading-tight text-[#0A1628] sm:text-[1.65rem]">
+                  {introTitle}
+                </h1>
+                <p className="mx-auto mt-2 max-w-sm text-center text-sm leading-snug text-[#475569]">
+                  {introSubtitle}
+                </p>
+              </div>
+            </>
+          )}
         </div>
         <LP3FooterDock>
           <LP3ContinueButton onClick={goNext} />
@@ -302,16 +331,16 @@ export default function LP3FunnelClient({
   if (step === "categories") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.categories}
+        stepLabel={copy.stepLabels.categories}
         progress={progressPct}
         showBack
         onBack={goBack}
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
-          Which side of business fascinates you most?
+          {copy.categories.title}
         </h2>
         <div className="mx-auto mt-4 max-w-md space-y-2">
-          {LP3_CATEGORY_OPTIONS.map((cat) => (
+          {copy.categoryOptions.map((cat) => (
             <button
               key={cat.id}
               type="button"
@@ -334,7 +363,7 @@ export default function LP3FunnelClient({
     const storyCount = selectedStories.length;
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.stories}
+        stepLabel={copy.stepLabels.stories}
         progress={progressPct}
         showBack
         onBack={goBack}
@@ -345,12 +374,12 @@ export default function LP3FunnelClient({
         }
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
-          Which business stories are you most curious about?
+          {copy.stories.title}
         </h2>
         <p className="mt-1.5 text-center text-xs text-[#64748B]">
           {storyCount === 0
-            ? "Tap at least one to continue"
-            : `${storyCount} selected`}
+            ? copy.stories.tapOne
+            : copy.stories.selected(storyCount)}
         </p>
         <div className="mx-auto mt-4 grid max-w-md grid-cols-3 gap-2">
           {stories.slice(0, 9).map((story) => {
@@ -396,16 +425,16 @@ export default function LP3FunnelClient({
   if (step === "time") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.time}
+        stepLabel={copy.stepLabels.time}
         progress={progressPct}
         showBack
         onBack={goBack}
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
-          How long should each chapter feel?
+          {copy.time.title}
         </h2>
         <div className="mx-auto mt-4 max-w-md space-y-2">
-          {LP3_TIME_OPTIONS.map((opt) => (
+          {copy.timeOptions.map((opt) => (
             <button
               key={opt.id}
               type="button"
@@ -427,16 +456,16 @@ export default function LP3FunnelClient({
   if (step === "feel") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.feel}
+        stepLabel={copy.stepLabels.feel}
         progress={progressPct}
         showBack
         onBack={goBack}
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
-          What do you want to feel after every story?
+          {copy.feel.title}
         </h2>
         <div className="mx-auto mt-4 max-w-md space-y-2">
-          {LP3_FEEL_OPTIONS.map((opt) => (
+          {copy.feelOptions.map((opt) => (
             <button
               key={opt.id}
               type="button"
@@ -458,16 +487,16 @@ export default function LP3FunnelClient({
   if (step === "habit") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.habit}
+        stepLabel={copy.stepLabels.habit}
         progress={progressPct}
         showBack
         onBack={goBack}
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
-          When do you usually catch up on stories?
+          {copy.habit.title}
         </h2>
         <div className="mx-auto mt-4 max-w-md space-y-2">
-          {LP3_HABIT_OPTIONS.map((opt) => (
+          {copy.habitOptions.map((opt) => (
             <button
               key={opt.id}
               type="button"
@@ -489,16 +518,16 @@ export default function LP3FunnelClient({
   if (step === "depth") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.depth}
+        stepLabel={copy.stepLabels.depth}
         progress={progressPct}
         showBack
         onBack={goBack}
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
-          What do you want most from a business story?
+          {copy.depth.title}
         </h2>
         <div className="mx-auto mt-4 max-w-md space-y-2">
-          {LP3_DEPTH_OPTIONS.map((opt) => (
+          {copy.depthOptions.map((opt) => (
             <button
               key={opt.id}
               type="button"
@@ -520,16 +549,16 @@ export default function LP3FunnelClient({
   if (step === "quiz") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.quiz}
+        stepLabel={copy.stepLabels.quiz}
         progress={progressPct}
         showBack
         onBack={goBack}
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628] sm:text-2xl">
-          {LP3_QUIZ.question}
+          {copy.quiz.question}
         </h2>
         <div className="mx-auto mt-4 max-w-md space-y-2">
-          {LP3_QUIZ.options.map((opt) => {
+          {copy.quiz.options.map((opt) => {
             const picked = quizChoice === opt.id;
             const showResult = quizSubmitted;
             const isCorrect = Boolean(opt.correct);
@@ -565,7 +594,7 @@ export default function LP3FunnelClient({
         </div>
         {quizSubmitted ? (
           <p className="mx-auto mt-4 max-w-md rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            {LP3_QUIZ.explanation}
+            {copy.quiz.explanation}
           </p>
         ) : null}
       </LP3Shell>
@@ -575,16 +604,16 @@ export default function LP3FunnelClient({
   if (step === "quiz2") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.quiz2}
+        stepLabel={copy.stepLabels.quiz2}
         progress={progressPct}
         showBack
         onBack={goBack}
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628] sm:text-2xl">
-          {LP3_QUIZ_2.question}
+          {copy.quiz2.question}
         </h2>
         <div className="mx-auto mt-4 max-w-md space-y-2">
-          {LP3_QUIZ_2.options.map((opt) => {
+          {copy.quiz2.options.map((opt) => {
             const picked = quiz2Choice === opt.id;
             const showResult = quiz2Submitted;
             const isCorrect = Boolean(opt.correct);
@@ -621,7 +650,7 @@ export default function LP3FunnelClient({
         </div>
         {quiz2Submitted ? (
           <p className="mx-auto mt-4 max-w-md rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            {LP3_QUIZ_2.explanation}
+            {copy.quiz2.explanation}
           </p>
         ) : null}
       </LP3Shell>
@@ -631,7 +660,7 @@ export default function LP3FunnelClient({
   if (step === "reveal") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.reveal}
+        stepLabel={copy.stepLabels.reveal}
         progress={progressPct}
         showBack
         onBack={goBack}
@@ -648,7 +677,7 @@ export default function LP3FunnelClient({
         <div className="mx-auto mt-4 max-w-md space-y-3">
           <div className="overflow-hidden rounded-2xl border border-[#E7DDCC] bg-white">
             <div className="bg-gradient-to-r from-[#64748B] to-[#475569] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white">
-              📋 Public record
+              📋 {copy.reveal.publicRecord}
             </div>
             <p className="px-4 py-4 text-sm leading-relaxed text-[#475569]">
               {reveal.record}
@@ -656,7 +685,7 @@ export default function LP3FunnelClient({
           </div>
           <div className="overflow-hidden rounded-2xl border border-[#2F80ED]/30 bg-white">
             <div className="bg-gradient-to-r from-[#2F80ED] to-[#0A1628] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white">
-              ⚡ Real story
+              ⚡ {copy.reveal.realStory}
             </div>
             <p className="px-4 py-4 text-sm leading-relaxed text-[#0A1628]">
               {reveal.real}
@@ -680,7 +709,7 @@ export default function LP3FunnelClient({
   if (step === "stat") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.stat}
+        stepLabel={copy.stepLabels.stat}
         progress={progressPct}
         showBack
         onBack={goBack}
@@ -693,10 +722,10 @@ export default function LP3FunnelClient({
       >
         <div className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center text-center">
           <p className="font-heading text-6xl font-black text-[#2F80ED]">
-            {LP3_STAT.percent}%
+            {copy.stat.percent}%
           </p>
           <p className="mt-4 text-lg font-semibold leading-relaxed text-[#0A1628]">
-            {LP3_STAT.text}
+            {copy.stat.text}
           </p>
         </div>
       </LP3Shell>
@@ -706,7 +735,7 @@ export default function LP3FunnelClient({
   if (step === "profile") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.profile}
+        stepLabel={copy.stepLabels.profile}
         progress={progressPct}
         showBack
         onBack={goBack}
@@ -719,7 +748,7 @@ export default function LP3FunnelClient({
         }
       >
         <h2 className="mt-2 text-center font-heading text-xl font-extrabold text-[#0A1628]">
-          Your profile
+          {copy.profile.title}
         </h2>
         <div className="mx-auto mt-3 max-w-md rounded-2xl border-2 border-[#2F80ED]/20 bg-white p-4">
           <h3 className="font-heading text-xl font-extrabold text-[#0A1628]">
@@ -730,12 +759,7 @@ export default function LP3FunnelClient({
           </p>
         </div>
         <div className="mx-auto mt-3 grid max-w-md grid-cols-2 gap-2">
-          {[
-            { n: "340+", l: "business sagas" },
-            { n: "5 min", l: "per chapter" },
-            { n: "94%", l: "match" },
-            { n: "6", l: "categories unlocked" },
-          ].map((stat) => (
+          {copy.profile.stats.map((stat) => (
             <div
               key={stat.l}
               className="rounded-xl border border-[#E7DDCC] bg-white px-4 py-3 text-center"
@@ -746,7 +770,7 @@ export default function LP3FunnelClient({
           ))}
         </div>
         <p className="mx-auto mt-3 max-w-md text-center text-sm font-bold text-[#0A1628]">
-          Your interest map
+          {copy.profile.interestMap}
         </p>
         <div className="mx-auto mt-2 flex max-w-xs flex-wrap justify-center gap-1.5">
           {profile.traits.map((trait) => (
@@ -765,7 +789,7 @@ export default function LP3FunnelClient({
   if (step === "journey") {
     return (
       <LP3Shell
-        stepLabel={LP3_STEP_LABELS.journey}
+        stepLabel={copy.stepLabels.journey}
         progress={progressPct}
         showBack
         onBack={goBack}
@@ -778,13 +802,13 @@ export default function LP3FunnelClient({
         }
       >
         <span className="mx-auto block w-fit rounded-full bg-[#2F80ED] px-4 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-          Personalized for you
+          {copy.journey.badge}
         </span>
         <h2 className="mt-2 text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
-          In 30 days, you&apos;ll know the stories the headlines skip
+          {copy.journey.title}
         </h2>
         <p className="mt-1 text-center text-xs text-[#64748B]">
-          Based on what you picked, this is your path.
+          {copy.journey.subtitle}
         </p>
         <div className="mx-auto mt-4 max-w-md rounded-2xl border border-[#E7DDCC] bg-white p-3">
           <svg viewBox="0 0 320 160" className="h-28 w-full">
@@ -820,13 +844,13 @@ export default function LP3FunnelClient({
             ))}
           </svg>
           <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[10px] font-semibold text-[#64748B]">
-            {LP3_JOURNEY_WEEKS.map((w) => (
+            {copy.journey.weeks.map((w) => (
               <span key={w.label}>{w.label}</span>
             ))}
           </div>
         </div>
         <div className="mx-auto mt-3 max-w-md space-y-1.5">
-          {LP3_JOURNEY_WEEKS.map((week) => (
+          {copy.journey.weeks.map((week) => (
             <div
               key={week.label}
               className="flex items-center gap-2.5 rounded-xl border border-[#E7DDCC] bg-white px-3 py-2"
@@ -851,10 +875,10 @@ export default function LP3FunnelClient({
     return (
       <LP3Shell showLogo progress={progressPct} contentBottomPadding="none">
         <h2 className="mt-2 text-center font-heading text-xl font-extrabold text-[#0A1628]">
-          Personalizing your business watchlist
+          {copy.loading.headline}
         </h2>
         <div className="mx-auto mt-5 max-w-md space-y-3">
-          {LP3_LOADING_TASKS.map((task, i) => {
+          {copy.loading.tasks.map((task, i) => {
             const pct = loadingProgress[i] ?? 0;
             const done = pct >= 100;
             return (
@@ -904,7 +928,10 @@ export default function LP3FunnelClient({
           {tPaywall("subhead")}
         </p>
 
-        <LP3CoverSlideshow stories={stories} />
+        <LP3CoverSlideshow
+          stories={stories}
+          label={copy.checkout.readStoriesLike}
+        />
 
         <div>
         <h2 className="mt-3 text-center font-heading text-base font-extrabold text-[#0A1628]">
@@ -1017,6 +1044,7 @@ export default function LP3FunnelClient({
 
         <LP3CheckoutPayments
           plan={selectedPlan}
+          funnelVariant={variant}
           email={email || undefined}
           fullName={fullName || undefined}
           checkoutError={checkoutError}
@@ -1032,10 +1060,10 @@ export default function LP3FunnelClient({
 
         <div className="mt-5 pb-2">
           <p className="text-center text-xs font-bold uppercase tracking-[0.12em] text-[#64748B]">
-            {tPaywall("trustedByReaders")}
+            {copy.checkout.trustedByReaders}
           </p>
           <div className="mt-3">
-            <LP3ReviewCarousel reviews={LP3_REVIEWS} alwaysCarousel />
+            <LP3ReviewCarousel reviews={copy.reviews} alwaysCarousel />
           </div>
         </div>
       </div>

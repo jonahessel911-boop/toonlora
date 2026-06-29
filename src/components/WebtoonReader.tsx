@@ -14,7 +14,7 @@ import { trackEpisodeComplete, trackNextEpisodeClick, trackPaywallView } from "@
 import { formatChapterTitle } from "@/lib/brand";
 import {
   appendAffiliateToHref,
-  getStoredAffiliateSlug,
+  getAffiliateSlugForLinks,
 } from "@/lib/affiliate/client-tracking";
 import {
   buildPaywallPath,
@@ -158,7 +158,7 @@ export default function WebtoonReader({
   );
 
   const navigateWithAffiliate = useCallback((path: string, replace = false) => {
-    const url = appendAffiliateToHref(path, getStoredAffiliateSlug());
+    const url = appendAffiliateToHref(path, getAffiliateSlugForLinks());
     if (replace) {
       window.location.replace(url);
       return;

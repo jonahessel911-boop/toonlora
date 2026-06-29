@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import ProfileMenu from "@/components/nav/ProfileMenu";
 import ToonloraLogo from "@/components/ui/ToonloraLogo";
-import { getStoredAffiliateSlug } from "@/lib/affiliate/client-tracking";
+import { getAffiliateSlugForLinks } from "@/lib/affiliate/client-tracking";
 import { AFFILIATE_QUERY_PARAM } from "@/lib/affiliate/links";
 import { useTranslations } from "next-intl";
 import { useBrowseNav } from "@/hooks/useBrowseNav";
@@ -39,7 +39,7 @@ function useActiveHash() {
 
     const aff =
       new URLSearchParams(window.location.search).get(AFFILIATE_QUERY_PARAM) ??
-      getStoredAffiliateSlug();
+      getAffiliateSlugForLinks();
     const search = aff
       ? `?${AFFILIATE_QUERY_PARAM}=${encodeURIComponent(aff)}`
       : "";

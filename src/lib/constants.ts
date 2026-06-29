@@ -99,4 +99,5 @@ export const STORAGE_KEYS = {
   followingStories: "toonlora-following-stories",
   notificationPrefs: "toonlora-notification-prefs",
   affiliateSlug: "toonlora-affiliate-slug",
+  affiliateSessionSlug: "toonlora-affiliate-session",
 } as const;

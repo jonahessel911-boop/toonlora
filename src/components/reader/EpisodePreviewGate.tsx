@@ -10,7 +10,7 @@ import {
 } from "@/lib/reader/nextEpisodeGate";
 import {
   appendAffiliateToHref,
-  getStoredAffiliateSlug,
+  getAffiliateSlugForLinks,
 } from "@/lib/affiliate/client-tracking";
 
 const CREAM = "#F6F1E7";
@@ -42,7 +42,7 @@ export default function EpisodePreviewGate({
   seriesTitle,
   episodeNumber,
 }: EpisodePreviewGateProps) {
-  const affiliate = getStoredAffiliateSlug();
+  const affiliate = getAffiliateSlugForLinks();
   const returnTo = `/story/${seriesId}/read?ep=${episodeNumber}`;
   const signupHref = appendAffiliateToHref(
     buildReaderSignupPath(seriesId, seriesTitle, episodeNumber - 1),

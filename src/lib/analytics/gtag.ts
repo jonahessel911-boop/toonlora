@@ -1,4 +1,11 @@
 import { recordAnalyticsEvent } from "@/lib/analytics/recordEvent";
+import {
+  ttqTrackInitiateCheckout,
+  ttqTrackLogin,
+  ttqTrackPaywallView,
+  ttqTrackSignup,
+  ttqTrackSubscribe,
+} from "@/lib/analytics/ttq";
 
 type GtagParams = Record<string, string | number | boolean | undefined>;
 
@@ -106,16 +113,19 @@ export function trackSignUp(params: {
     form_type: params.formType,
     series_id: params.seriesId,
   });
+  ttqTrackSignup({ seriesId: params.seriesId });
 }
 
 export function trackLogin() {
   gtagEvent("login", { method: "email" });
+  ttqTrackLogin();
 }
 
 export function trackPaywallView(params: {
   storyId?: string;
   storyTitle?: string;
-  variant: "page" | "modal" | "inline_preview";
+  planId?: string;
+  variant: "page" | "modal" | "inline_preview" | "lp3" | "lp4";
   episodeNumber?: number;
 }) {
   gtagEvent("paywall_view", {
@@ -130,15 +140,59 @@ export function trackPaywallView(params: {
     episodeNumber: params.episodeNumber,
     properties: { variant: params.variant },
   });
+  ttqTrackPaywallView({
+    storyId: params.storyId,
+    planId: params.planId,
+    variant: params.variant,
+  });
 }
 
 export function trackPaywallCheckoutClick(params: {
   planId: string;
+  planName?: string;
+  valueCents?: number;
   storyId?: string;
 }) {
   gtagEvent("begin_checkout", {
     currency: "EUR",
     plan_id: params.planId,
     story_id: params.storyId,
+  });
+  ttqTrackInitiateCheckout({
+    planId: params.planId,
+    planName: params.planName,
+    value: params.valueCents != null ? params.valueCents / 100 : undefined,
+    storyId: params.storyId,
+  });
+}
+
+export function trackSubscribe(params: {
+  planId?: string;
+  planName?: string;
+  valueCents?: number;
+  subscriptionId?: string;
+}) {
+  if (typeof window !== "undefined") {
+    try {
+      const dedupeKey = params.subscriptionId
+        ? `ttq_subscribe_${params.subscriptionId}`
+        : "ttq_subscribe_tracked";
+      if (sessionStorage.getItem(dedupeKey) === "1") return;
+      sessionStorage.setItem(dedupeKey, "1");
+    } catch {
+      /* private browsing */
+    }
+  }
+
+  gtagEvent("purchase", {
+    currency: "EUR",
+    transaction_id: params.subscriptionId ?? params.planId,
+    value: params.valueCents != null ? params.valueCents / 100 : undefined,
+  });
+  ttqTrackSubscribe({
+    planId: params.planId,
+    planName: params.planName,
+    value: params.valueCents != null ? params.valueCents / 100 : undefined,
+    subscriptionId: params.subscriptionId,
   });
 }

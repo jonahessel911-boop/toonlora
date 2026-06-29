@@ -9,7 +9,7 @@ import SubscriptionPaywall from "@/components/reader/SubscriptionPaywall";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 import { fetchPublishedStory, isStoryBrowsable } from "@/lib/fetchPublishedStory";
 import { countReadableEpisodes } from "@/lib/readableEpisodes";
-import { appendAffiliateToHref, getStoredAffiliateSlug } from "@/lib/affiliate/client-tracking";
+import { appendAffiliateToHref, getAffiliateSlugForLinks } from "@/lib/affiliate/client-tracking";
 import { buildPaywallPath, buildReaderSignupPath } from "@/lib/reader/nextEpisodeGate";
 import {
   buildFreeEpisodeLimitSignupPath,
@@ -244,7 +244,7 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
   };
 
   const navigateWithAffiliate = (path: string) => {
-    window.location.href = appendAffiliateToHref(path, getStoredAffiliateSlug());
+    window.location.href = appendAffiliateToHref(path, getAffiliateSlugForLinks());
   };
 
   const openEpisode = async (episodeNumber: number) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SignupLogo, {
   SignupInput,
   SignupPageBackground,
@@ -11,6 +11,8 @@ import {
   SignupSuccessState,
 } from "@/components/signup/SignupOnboardingUi";
 import { deriveDisplayNameFromEmail } from "@/lib/newsletter";
+import { trackSubscribe } from "@/lib/analytics/gtag";
+import { getSubscriptionPlan } from "@/lib/payments/subscription-plans";
 import { apiFetch } from "@/lib/session";
 import { useUserStore } from "@/store/useUserStore";
 
@@ -36,6 +38,7 @@ export default function SubscriberWelcomeFlow({
   const [submitting, setSubmitting] = useState(false);
   const [verifying, setVerifying] = useState(true);
   const [subscriptionReady, setSubscriptionReady] = useState(false);
+  const subscribeTrackedRef = useRef(false);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const passwordValid = password.length >= 8;
@@ -49,7 +52,9 @@ export default function SubscriberWelcomeFlow({
         if (subscriptionId) {
           const res = await apiFetch("/api/stripe/subscription-activate", {
             method: "POST",
-            body: JSON.stringify({ subscriptionId }),
+            body: JSON.stringify({
+              subscriptionId,
+            }),
           });
           const data = await res.json();
           if (!res.ok) {
@@ -88,6 +93,22 @@ export default function SubscriberWelcomeFlow({
       cancelled = true;
     };
   }, [subscriptionId]);
+
+  useEffect(() => {
+    if (!subscriptionReady || subscribeTrackedRef.current) return;
+    subscribeTrackedRef.current = true;
+    const planId =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("planId") ?? undefined
+        : undefined;
+    const plan = planId ? getSubscriptionPlan(planId) : undefined;
+    trackSubscribe({
+      planId: plan?.id,
+      planName: plan?.name,
+      valueCents: plan?.amountCents,
+      subscriptionId: subscriptionId ?? undefined,
+    });
+  }, [subscriptionReady, subscriptionId]);
 
   const saveProfile = (address: string, fullName: string, countryCode = "") => {
     setProfile({

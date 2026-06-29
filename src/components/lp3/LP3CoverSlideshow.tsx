@@ -38,8 +38,10 @@ function CoverTile({
 
 export default function LP3CoverSlideshow({
   stories,
+  label,
 }: {
   stories: LP3CoverSlide[];
+  label: string;
 }) {
   const slides = useMemo(() => {
     const withCovers = stories.filter((s) => s.coverArtUrl);
@@ -58,7 +60,7 @@ export default function LP3CoverSlideshow({
   return (
     <div className="mt-4">
       <p className="text-center text-sm font-semibold text-[#0A1628]">
-        Read stories like:
+        {label}
       </p>
       <div className="relative mt-3 overflow-hidden py-0.5">
         <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[#F6F1E7] to-transparent" />

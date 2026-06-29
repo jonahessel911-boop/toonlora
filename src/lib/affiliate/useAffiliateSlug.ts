@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   appendAffiliateToHref,
+  getAffiliateSlugForLinks,
   syncAffiliateFromSearchParams,
 } from "@/lib/affiliate/client-tracking";
 
@@ -13,7 +14,8 @@ export function useAffiliateSlug(): string | null {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setSlug(syncAffiliateFromSearchParams(params));
+    syncAffiliateFromSearchParams(params);
+    setSlug(getAffiliateSlugForLinks());
   }, [pathname]);
 
   return slug;

@@ -30,6 +30,24 @@ export function persistAffiliateSlug(slug: string): void {
   localStorage.setItem(STORAGE_KEYS.affiliateSlug, JSON.stringify(payload));
 }
 
+function setSessionAffiliateSlug(slug: string): void {
+  if (!isBrowser() || !isValidAffiliateSlug(slug)) return;
+  sessionStorage.setItem(STORAGE_KEYS.affiliateSessionSlug, slug);
+}
+
+function getSessionAffiliateSlug(): string | null {
+  if (!isBrowser()) return null;
+  const slug = sessionStorage.getItem(STORAGE_KEYS.affiliateSessionSlug);
+  if (!slug || !isValidAffiliateSlug(slug)) return null;
+  return slug;
+}
+
+function clearSessionAffiliateSlug(): void {
+  if (!isBrowser()) return;
+  sessionStorage.removeItem(STORAGE_KEYS.affiliateSessionSlug);
+}
+
+/** Long-lived attribution for signup/checkout — not for URL decoration. */
 export function getStoredAffiliateSlug(): string | null {
   if (!isBrowser()) return null;
   try {
@@ -51,6 +69,15 @@ export function getStoredAffiliateSlug(): string | null {
 export function clearStoredAffiliateSlug(): void {
   if (!isBrowser()) return;
   localStorage.removeItem(STORAGE_KEYS.affiliateSlug);
+  clearSessionAffiliateSlug();
+}
+
+/** Slug for links/redirects — only when this visit came through ?aff=. */
+export function getAffiliateSlugForLinks(): string | null {
+  if (!isBrowser()) return null;
+  const fromUrl = captureAffiliateFromUrl(new URLSearchParams(window.location.search));
+  if (fromUrl) return fromUrl;
+  return getSessionAffiliateSlug();
 }
 
 /** Append ?aff=slug to internal paths (preserves existing query + hash). */
@@ -94,13 +121,17 @@ export function appendAffiliateToHref(
   }
 }
 
+/** Capture ?aff= for attribution; clear session when absent. Never reads localStorage for URLs. */
 export function syncAffiliateFromSearchParams(
   searchParams: URLSearchParams
 ): string | null {
   const fromUrl = captureAffiliateFromUrl(searchParams);
   if (fromUrl) {
     persistAffiliateSlug(fromUrl);
+    setSessionAffiliateSlug(fromUrl);
     return fromUrl;
   }
-  return getStoredAffiliateSlug();
+
+  clearSessionAffiliateSlug();
+  return null;
 }

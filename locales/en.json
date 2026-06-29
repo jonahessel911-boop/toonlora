@@ -203,5 +203,216 @@
       "30-day money-back guarantee",
       "Early access with Entrepreneur plan"
     ]
+  },
+  "lp3": {
+    "steps": {
+      "intro": "",
+      "categories": "Interests",
+      "stories": "Interests",
+      "time": "Interests",
+      "feel": "Personalized",
+      "habit": "Personalized",
+      "depth": "Personalized",
+      "quiz": "Personalized",
+      "quiz2": "Personalized",
+      "reveal": "Personalized",
+      "stat": "Personalized",
+      "profile": "Your profile",
+      "journey": "Your plan",
+      "loading": "Personalized",
+      "checkout": "Membership"
+    },
+    "intro": {
+      "title": "Let's tailor your watchlist",
+      "subtitle": "Answer a few questions to uncover the most in-depth business stories in the world."
+    },
+    "categories": {
+      "title": "Which side of business fascinates you most?"
+    },
+    "stories": {
+      "title": "Which business stories are you most curious about?",
+      "tapOne": "Tap at least one to continue",
+      "selected": "{count} selected",
+      "fallbackSubtitle": "Business story"
+    },
+    "time": {
+      "title": "How long should each chapter feel?"
+    },
+    "feel": {
+      "title": "What do you want to feel after every story?"
+    },
+    "habit": {
+      "title": "When do you usually catch up on stories?"
+    },
+    "depth": {
+      "title": "What do you want most from a business story?"
+    },
+    "options": {
+      "feel": {
+        "fired-up": "Fired up",
+        "shocked": "Shocked",
+        "smarter": "Smarter",
+        "hungrier": "Hungrier",
+        "strategic": "More strategic",
+        "clear": "Clear-headed"
+      },
+      "time": {
+        "5": "5 minutes — one sharp chapter",
+        "10": "10 minutes — full episode",
+        "15": "15+ minutes — go deep"
+      },
+      "habit": {
+        "morning": "Morning commute",
+        "lunch": "Lunch break",
+        "evening": "Evening wind-down",
+        "weekend": "Weekend binge"
+      },
+      "depth": {
+        "strategy": "Strategy & decisions",
+        "drama": "Drama & power plays",
+        "numbers": "Money & markets",
+        "lessons": "Lessons I can apply"
+      }
+    },
+    "quiz1": {
+      "question": "Apple was 90 days from bankruptcy when Steve Jobs returned. How long until profitability?",
+      "options": {
+        "30": "30 days",
+        "365": "One year",
+        "730": "Two years",
+        "1095": "Three years"
+      },
+      "explanation": "Jobs cut products, secured a Microsoft investment, and refocused Apple — back in the black within a year."
+    },
+    "quiz2": {
+      "question": "WeWork hit a $47B valuation before its IPO. Roughly what was it worth months later?",
+      "options": {
+        "47": "$47 billion",
+        "10": "$10 billion",
+        "8": "$8 billion",
+        "1": "$1 billion"
+      },
+      "explanation": "After the S-1 leaked, investors saw the losses. The IPO collapsed and the valuation cratered — a classic rise-and-fall story."
+    },
+    "reveal": {
+      "publicRecord": "Public record",
+      "realStory": "Real story"
+    },
+    "reveals": {
+      "steve-jobs": {
+        "headline": "What Apple hid about Jobs' return",
+        "record": "Steve Jobs — co-founder. Ousted in 1985. Returned as interim CEO in 1997.",
+        "real": "The board offered him the job in a parking lot conversation. His first move wasn't a product — it was killing almost every project Apple had.",
+        "tags": ["COMEBACK", "APPLE", "FOCUS"]
+      },
+      "elon-musk": {
+        "headline": "What Tesla hid about Christmas Eve 2008",
+        "record": "Elon Musk — CEO of Tesla and SpaceX. Nearly out of cash in late 2008.",
+        "real": "Both companies were days from death. He bet his last personal dollars on one more Falcon 1 launch — and a Daimler deal that saved Tesla.",
+        "tags": ["NEAR-DEATH", "TESLA", "SPACEX"]
+      },
+      "ferrari": {
+        "headline": "What Enzo hid about the Ford deal",
+        "record": "Enzo Ferrari — founder. Nearly sold Ferrari to Ford in 1963.",
+        "real": "He walked away over a clause about racing control. Ford's rage funded the GT40 program — and Ferrari's myth grew sharper.",
+        "tags": ["EGO", "RACING", "LEGACY"]
+      },
+      "default": {
+        "headline": "What the boardroom minutes never said",
+        "record": "The official story — polished for investors and the press.",
+        "real": "The real decisions happened in late-night calls, leaked decks, and bets nobody wanted on the record.",
+        "tags": ["STRATEGY", "POWER", "TRUTH"]
+      }
+    },
+    "stat": {
+      "text": "of readers say they understand a business story better after one Toonlora chapter."
+    },
+    "profile": {
+      "title": "Your profile",
+      "interestMap": "Your interest map",
+      "stats": {
+        "sagas": "business sagas",
+        "perChapter": "per chapter",
+        "match": "match",
+        "categories": "categories unlocked"
+      }
+    },
+    "archetypes": {
+      "founder_stories": {
+        "title": "The Builder's Lens",
+        "description": "You're drawn to obsession, ego, and the decisions that turn founders into legends — or cautionary tales.",
+        "traits": ["Strategy", "Obsession", "Risk", "Vision", "Legacy", "Pressure"]
+      },
+      "rise_and_fall": {
+        "title": "The Fall Watch",
+        "description": "You want the climb and the crash — hubris, denial, and the moment everything breaks.",
+        "traits": ["Hubris", "Power", "Denial", "Collapse", "Lessons", "Drama"]
+      },
+      "empires": {
+        "title": "The Empire Architect",
+        "description": "You care how brands scale, dominate categories, and defend moats for decades.",
+        "traits": ["Scale", "Brand", "Moats", "Culture", "Dominance", "Ops"]
+      },
+      "heists_and_frauds": {
+        "title": "The Deal Detective",
+        "description": "You're pulled to fraud, leverage, and the people who bent the rules until the system snapped.",
+        "traits": ["Fraud", "Leverage", "Secrets", "Power", "Greed", "Justice"]
+      },
+      "default": {
+        "title": "The Strategy Reader",
+        "description": "You want the real story behind billion-dollar moves — not the press release version.",
+        "traits": ["Strategy", "Finance", "Leadership", "Risk", "Markets", "Truth"]
+      }
+    },
+    "journey": {
+      "badge": "Personalized for you",
+      "title": "In 30 days, you'll know the stories the headlines skip",
+      "subtitle": "Based on what you picked, this is your path.",
+      "weeks": [
+        { "label": "Now", "title": "Your watchlist is set" },
+        { "label": "Week 1–2", "title": "Founder sagas & breakdowns" },
+        { "label": "Week 3–4", "title": "Rise, fall & fraud deep dives" },
+        { "label": "Month 1", "title": "Full library unlocked", "crown": true }
+      ]
+    },
+    "loading": {
+      "headline": "Personalizing your business watchlist",
+      "title": "Creating your personalized plan",
+      "tasks": {
+        "0": "Analyzing your answers",
+        "1": "Matching categories & mood",
+        "2": "Finding stories picked for you",
+        "3": "Ranking your watchlist",
+        "4": "Calibrating chapter pace",
+        "5": "Creating your personalized plan"
+      }
+    },
+    "checkout": {
+      "readStoriesLike": "Read stories like:",
+      "trustedByReaders": "Trusted by readers"
+    },
+    "reviews": {
+      "0": {
+        "timeAgo": "2 days ago",
+        "title": "I love this app!",
+        "body": "I love this app! I thought I knew everything about Steve Jobs. Turns out the fight to get back into Apple was far more brutal than any documentary showed — and the panels make it hit harder."
+      },
+      "1": {
+        "timeAgo": "1 week ago",
+        "title": "The perfect way to unwind after a chaotic day",
+        "body": "The founder stories pull you straight into another world. It's sharp, cinematic, and surprisingly moving. Every chapter leaves me wanting just one more — without a three-hour podcast."
+      },
+      "2": {
+        "timeAgo": "3 days ago",
+        "title": "I downloaded this expecting a quick read",
+        "body": "I downloaded this expecting a quick escape, but I got hooked on the FTX saga almost immediately. It feels like Succession, but with real balance sheets and much higher stakes."
+      }
+    }
+  },
+  "lp4": {
+    "intro": {
+      "headline": "The business stories they never put in the textbooks",
+      "subtitle": "Answer a few questions to uncover the most in-depth business stories in the world."
+    }
   }
 }

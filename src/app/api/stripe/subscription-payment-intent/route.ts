@@ -9,6 +9,7 @@ import {
   resolveOrCreateStripeCustomer,
 } from "@/lib/payments/create-subscription-payment-intent";
 import { resolveStripeCustomerId } from "@/lib/payments/stripe-checkout-customer";
+import { assertStripeKeyModeMatch } from "@/lib/payments/stripe-env";
 import { getStripe, isStripeConfigured } from "@/lib/services/stripe";
 
 export async function POST(request: Request) {
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    assertStripeKeyModeMatch();
     const body = await request.json().catch(() => ({}));
     const planId = body.planId as string | undefined;
     const plan = planId ? getSubscriptionPlan(planId) : undefined;
@@ -73,7 +75,11 @@ export async function POST(request: Request) {
 
     const { clientSecret, subscriptionId } = await createSubscriptionPaymentIntent(
       stripe,
-      { sessionId, plan, customerId }
+      {
+        sessionId,
+        plan,
+        customerId,
+      }
     );
 
     return NextResponse.json({ clientSecret, subscriptionId });

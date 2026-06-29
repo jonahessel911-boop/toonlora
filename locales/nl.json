@@ -164,5 +164,216 @@
       "30 dagen geld-terug-garantie",
       "Vroege toegang met Entrepreneur-plan"
     ]
+  },
+  "lp3": {
+    "steps": {
+      "intro": "",
+      "categories": "Interesses",
+      "stories": "Interesses",
+      "time": "Interesses",
+      "feel": "Gepersonaliseerd",
+      "habit": "Gepersonaliseerd",
+      "depth": "Gepersonaliseerd",
+      "quiz": "Gepersonaliseerd",
+      "quiz2": "Gepersonaliseerd",
+      "reveal": "Gepersonaliseerd",
+      "stat": "Gepersonaliseerd",
+      "profile": "Jouw profiel",
+      "journey": "Jouw plan",
+      "loading": "Gepersonaliseerd",
+      "checkout": "Lidmaatschap"
+    },
+    "intro": {
+      "title": "Laten we je watchlist op maat maken",
+      "subtitle": "Beantwoord een paar vragen en ontdek de meest diepgaande businessverhalen ter wereld."
+    },
+    "categories": {
+      "title": "Welke kant van business fascineert je het meest?"
+    },
+    "stories": {
+      "title": "Welke businessverhalen wil je het liefst ontdekken?",
+      "tapOne": "Tik minstens één om door te gaan",
+      "selected": "{count} geselecteerd",
+      "fallbackSubtitle": "Businessverhaal"
+    },
+    "time": {
+      "title": "Hoe lang moet elk hoofdstuk voelen?"
+    },
+    "feel": {
+      "title": "Wat wil je voelen na elk verhaal?"
+    },
+    "habit": {
+      "title": "Wanneer lees je meestal verhalen?"
+    },
+    "depth": {
+      "title": "Wat wil je het meest uit een businessverhaal halen?"
+    },
+    "options": {
+      "feel": {
+        "fired-up": "Gemotiveerd",
+        "shocked": "Geschokt",
+        "smarter": "Slimmer",
+        "hungrier": "Hongeriger",
+        "strategic": "Strategischer",
+        "clear": "Helder hoofd"
+      },
+      "time": {
+        "5": "5 minuten — één scherp hoofdstuk",
+        "10": "10 minuten — volledige aflevering",
+        "15": "15+ minuten — diep duiken"
+      },
+      "habit": {
+        "morning": "Ochtendpendel",
+        "lunch": "Lunchpauze",
+        "evening": "Avond ontspannen",
+        "weekend": "Weekend binge"
+      },
+      "depth": {
+        "strategy": "Strategie & beslissingen",
+        "drama": "Drama & machtsspelletjes",
+        "numbers": "Geld & markten",
+        "lessons": "Lessen die ik kan toepassen"
+      }
+    },
+    "quiz1": {
+      "question": "Apple stond 90 dagen van faillissement af toen Steve Jobs terugkwam. Hoe lang tot winstgevendheid?",
+      "options": {
+        "30": "30 dagen",
+        "365": "Eén jaar",
+        "730": "Twee jaar",
+        "1095": "Drie jaar"
+      },
+      "explanation": "Jobs sneed producten weg, kreeg een Microsoft-investering en herfocuste Apple — binnen een jaar weer winstgevend."
+    },
+    "quiz2": {
+      "question": "WeWork haalde een waardering van $47 miljard vóór de IPO. Wat was het ongeveer waard maanden later?",
+      "options": {
+        "47": "$47 miljard",
+        "10": "$10 miljard",
+        "8": "$8 miljard",
+        "1": "$1 miljard"
+      },
+      "explanation": "Na het uitlekken van de S-1 zagen investeerders de verliezen. De IPO stortte in en de waardering kelderde — een klassiek opkomst-en-ondergang-verhaal."
+    },
+    "reveal": {
+      "publicRecord": "Openbaar verslag",
+      "realStory": "Echt verhaal"
+    },
+    "reveals": {
+      "steve-jobs": {
+        "headline": "Wat Apple verborg over Jobs' terugkeer",
+        "record": "Steve Jobs — medeoprichter. Verdreven in 1985. Terug als interim-CEO in 1997.",
+        "real": "De raad bood hem de baan aan in een parkeergesprek. Zijn eerste zet was geen product — het was bijna elk Apple-project stopzetten.",
+        "tags": ["COMEBACK", "APPLE", "FOCUS"]
+      },
+      "elon-musk": {
+        "headline": "Wat Tesla verborg over kerstavond 2008",
+        "record": "Elon Musk — CEO van Tesla en SpaceX. Eind 2008 bijna door het geld heen.",
+        "real": "Beide bedrijven waren dagen van de dood verwijderd. Hij zette zijn laatste privédollars in op nog één Falcon 1-lancering — en een Daimler-deal die Tesla redde.",
+        "tags": ["NEAR-DEATH", "TESLA", "SPACEX"]
+      },
+      "ferrari": {
+        "headline": "Wat Enzo verborg over de Ford-deal",
+        "record": "Enzo Ferrari — oprichter. Verkocht Ferrari bijna aan Ford in 1963.",
+        "real": "Hij liep weg vanwege een clausule over racecontrole. Fords woede financierde het GT40-programma — en Ferrari's mythe werd scherper.",
+        "tags": ["EGO", "RACING", "LEGACY"]
+      },
+      "default": {
+        "headline": "Wat de boardroom-notulen nooit zeiden",
+        "record": "Het officiële verhaal — gepolijst voor investeerders en de pers.",
+        "real": "De echte beslissingen vielen in late-night calls, gelekte decks en weddenschappen die niemand op papier wilde.",
+        "tags": ["STRATEGIE", "MACHT", "WAARHEID"]
+      }
+    },
+    "stat": {
+      "text": "van de lezers zegt dat ze een businessverhaal beter begrijpen na één Toonlora-hoofdstuk."
+    },
+    "profile": {
+      "title": "Jouw profiel",
+      "interestMap": "Jouw interessekaart",
+      "stats": {
+        "sagas": "businessverhalen",
+        "perChapter": "per hoofdstuk",
+        "match": "match",
+        "categories": "categorieën ontgrendeld"
+      }
+    },
+    "archetypes": {
+      "founder_stories": {
+        "title": "De blik van de bouwer",
+        "description": "Je wordt aangetrokken door obsessie, ego en de beslissingen die oprichters legendes — of waarschuwingen — maken.",
+        "traits": ["Strategie", "Obsessie", "Risico", "Visie", "Nalatenschap", "Druk"]
+      },
+      "rise_and_fall": {
+        "title": "De val-waarnemer",
+        "description": "Je wilt de klim én de crash — arrogantie, ontkenning en het moment dat alles breekt.",
+        "traits": ["Arrogantie", "Macht", "Ontkenning", "Ineenstorting", "Lessen", "Drama"]
+      },
+      "empires": {
+        "title": "De imperiumarchitect",
+        "description": "Je wilt weten hoe merken schalen, categorieën domineren en decennialang hun voorsprong behouden.",
+        "traits": ["Schaal", "Merk", "Voordeel", "Cultuur", "Dominantie", "Operatie"]
+      },
+      "heists_and_frauds": {
+        "title": "De dealdetective",
+        "description": "Je wordt getrokken door fraude, leverage en mensen die de regels buigen tot het systeem knapt.",
+        "traits": ["Fraude", "Leverage", "Geheimen", "Macht", "Hebzucht", "Rechtvaardigheid"]
+      },
+      "default": {
+        "title": "De strategielezer",
+        "description": "Je wilt het echte verhaal achter miljardenbeslissingen — niet de persberichtversie.",
+        "traits": ["Strategie", "Financiën", "Leiderschap", "Risico", "Markten", "Waarheid"]
+      }
+    },
+    "journey": {
+      "badge": "Gepersonaliseerd voor jou",
+      "title": "Over 30 dagen ken je de verhalen die headlines overslaan",
+      "subtitle": "Op basis van jouw keuzes is dit jouw pad.",
+      "weeks": [
+        { "label": "Nu", "title": "Je watchlist staat klaar" },
+        { "label": "Week 1–2", "title": "Oprichtersverhalen & analyses" },
+        { "label": "Week 3–4", "title": "Opkomst, val & fraude deep dives" },
+        { "label": "Maand 1", "title": "Volledige bibliotheek ontgrendeld", "crown": true }
+      ]
+    },
+    "loading": {
+      "headline": "Je business-watchlist personaliseren",
+      "title": "Je persoonlijke plan wordt gemaakt",
+      "tasks": {
+        "0": "Je antwoorden analyseren",
+        "1": "Categorieën & stemming matchen",
+        "2": "Verhalen voor jou zoeken",
+        "3": "Je watchlist rangschikken",
+        "4": "Hoofdstuktempo afstemmen",
+        "5": "Je persoonlijke plan maken"
+      }
+    },
+    "checkout": {
+      "readStoriesLike": "Lees verhalen zoals:",
+      "trustedByReaders": "Vertrouwd door lezers"
+    },
+    "reviews": {
+      "0": {
+        "timeAgo": "2 dagen geleden",
+        "title": "Ik ben dol op deze app!",
+        "body": "Ik dacht dat ik alles over Steve Jobs wist. De strijd om terug te keren bij Apple was veel brutaler dan in welke documentaire dan ook — en de panels maken het extra hard."
+      },
+      "1": {
+        "timeAgo": "1 week geleden",
+        "title": "De perfecte manier om te ontspannen na een chaotische dag",
+        "body": "De oprichtersverhalen trekken je meteen een andere wereld in. Scherp, cinematisch en verrassend ontroerend. Elk hoofdstuk laat me nog één willen — zonder drie uur podcast."
+      },
+      "2": {
+        "timeAgo": "3 dagen geleden",
+        "title": "Ik downloadde dit voor een kort verhaal",
+        "body": "Ik verwachtte een snelle escape, maar raakte meteen verslaafd aan het FTX-verhaal. Het voelt als Succession, maar met echte balansen en veel hogere inzet."
+      }
+    }
+  },
+  "lp4": {
+    "intro": {
+      "headline": "De businessverhalen die ze nooit in de handboeken zetten",
+      "subtitle": "Beantwoord een paar vragen en ontdek de meest diepgaande businessverhalen ter wereld."
+    }
   }
 }

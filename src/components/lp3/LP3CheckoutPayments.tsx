@@ -8,7 +8,7 @@ import type {
   StripeExpressCheckoutElement,
   StripePaymentElement,
 } from "@stripe/stripe-js";
-import { trackPaywallCheckoutClick } from "@/lib/analytics/gtag";
+import { trackPaywallCheckoutClick, trackPaywallView } from "@/lib/analytics/gtag";
 import { getStripeBrowser, isStripeBrowserConfigured } from "@/lib/payments/stripe-browser";
 import { formatEur, planApplePayRecurringBilling, type SubscriptionPlan } from "@/lib/payments/subscription-plans";
 import { apiFetch } from "@/lib/session";
@@ -17,9 +17,15 @@ type PaymentMethodId = "apple_pay" | "google_pay" | "card";
 
 const RETURN_URL_BASE = "/subscribe/welcome";
 
-function buildWelcomeUrl(subscriptionId?: string | null) {
-  if (!subscriptionId) return RETURN_URL_BASE;
-  return `${RETURN_URL_BASE}?subscriptionId=${encodeURIComponent(subscriptionId)}`;
+function buildWelcomeUrl(
+  subscriptionId?: string | null,
+  planId?: string | null
+) {
+  const params = new URLSearchParams();
+  if (subscriptionId) params.set("subscriptionId", subscriptionId);
+  if (planId) params.set("planId", planId);
+  const query = params.toString();
+  return query ? `${RETURN_URL_BASE}?${query}` : RETURN_URL_BASE;
 }
 
 function isExpressWalletAvailable(
@@ -107,6 +113,7 @@ function GooglePayIcon() {
 
 interface LP3CheckoutPaymentsProps {
   plan: SubscriptionPlan;
+  funnelVariant?: "lp3" | "lp4";
   email?: string;
   fullName?: string;
   checkoutError: string;
@@ -121,6 +128,7 @@ interface LP3CheckoutPaymentsProps {
 
 export default function LP3CheckoutPayments({
   plan,
+  funnelVariant = "lp3",
   email,
   fullName,
   checkoutError,
@@ -158,12 +166,27 @@ export default function LP3CheckoutPayments({
   const clientSecretRef = useRef<string | null>(null);
   const subscriptionIdRef = useRef<string | null>(null);
   const planIdRef = useRef(plan.id);
+  const checkoutTrackedRef = useRef(false);
 
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
   planIdRef.current = plan.id;
 
   const selected = METHODS.find((m) => m.id === method) ?? METHODS[2]!;
+
+  useEffect(() => {
+    if (!clientSecret || checkoutTrackedRef.current) return;
+    checkoutTrackedRef.current = true;
+    trackPaywallView({
+      planId: plan.id,
+      variant: funnelVariant,
+    });
+    trackPaywallCheckoutClick({
+      planId: plan.id,
+      planName: plan.name,
+      valueCents: plan.amountCents,
+    });
+  }, [clientSecret, funnelVariant, plan.amountCents, plan.id, plan.name]);
 
   useEffect(() => {
     clientSecretRef.current = clientSecret;
@@ -250,7 +273,7 @@ export default function LP3CheckoutPayments({
       elements,
       clientSecret: secret,
       confirmParams: {
-        return_url: `${window.location.origin}${buildWelcomeUrl(subscriptionIdRef.current)}`,
+        return_url: `${window.location.origin}${buildWelcomeUrl(subscriptionIdRef.current, planIdRef.current)}`,
         payment_method_data: {
           billing_details: {
             email: email || undefined,
@@ -269,7 +292,9 @@ export default function LP3CheckoutPayments({
     if (activeSubscriptionId) {
       const res = await apiFetch("/api/stripe/subscription-activate", {
         method: "POST",
-        body: JSON.stringify({ subscriptionId: activeSubscriptionId }),
+        body: JSON.stringify({
+          subscriptionId: activeSubscriptionId,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -284,7 +309,7 @@ export default function LP3CheckoutPayments({
       }
     }
 
-    window.location.href = buildWelcomeUrl(activeSubscriptionId);
+    window.location.href = buildWelcomeUrl(activeSubscriptionId, planIdRef.current);
   }, [email, fullName]);
 
   useEffect(() => {
@@ -317,7 +342,11 @@ export default function LP3CheckoutPayments({
   }, [clientSecret]);
 
   const handleWalletConfirm = useCallback(async () => {
-    trackPaywallCheckoutClick({ planId: planIdRef.current });
+    trackPaywallCheckoutClick({
+      planId: planIdRef.current,
+      planName: plan.name,
+      valueCents: plan.amountCents,
+    });
     setPaying(true);
     onErrorRef.current("");
 
@@ -359,9 +388,24 @@ export default function LP3CheckoutPayments({
         link: "never",
       },
     });
+    paymentElement.on("ready", () => {
+      setPaymentReady(true);
+    });
+    paymentElement.on("loaderror", (event) => {
+      setPaymentReady(false);
+      const message =
+        "error" in event && event.error && typeof event.error === "object"
+          ? "message" in event.error && typeof event.error.message === "string"
+            ? event.error.message
+            : undefined
+          : undefined;
+      onErrorRef.current(
+        message ||
+          "Payment form failed to load. Check that Stripe live/test keys match."
+      );
+    });
     paymentElement.mount(cardNode);
     paymentElementRef.current = paymentElement;
-    setPaymentReady(true);
 
     return () => {
       safeDestroyStripeElement(paymentElement);
@@ -483,7 +527,11 @@ export default function LP3CheckoutPayments({
   const confirmCardPayment = useCallback(async () => {
     if (!stripeInstance || !stripeElements || !clientSecret) return;
 
-    trackPaywallCheckoutClick({ planId: plan.id });
+    trackPaywallCheckoutClick({
+      planId: plan.id,
+      planName: plan.name,
+      valueCents: plan.amountCents,
+    });
     setPaying(true);
     onErrorRef.current("");
 
