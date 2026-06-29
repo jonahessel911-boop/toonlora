@@ -2,6 +2,7 @@ import type { Category } from "@/types/story";
 import { PLATFORM_GENRES } from "@/lib/platformGenres";
 
 export const APP_NAME = "Toonlora";
+export { PLATFORM_FULL_NAME, PLATFORM_NAME, PLATFORM_TAGLINE } from "@/lib/seo/site";
 
 export const GENRES = [
   "Fantasy Romance",

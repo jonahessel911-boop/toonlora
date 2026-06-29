@@ -217,8 +217,10 @@ Make the image feel like part of a coherent, page-turning comic episode.`;
 export const IMAGE_PROMPT_NO_TEXT_SUFFIX = `FINAL REQUIREMENT — TEXT-FREE OUTPUT:
 The image must be completely free of all text and lettering. No speech bubbles. No caption boxes. No narration. No words on objects. No readable signs. Illustration only.`;
 
+import { enforceCaptionBoxRules } from "@/lib/prompts/caption-box-rules";
+
 export const IMAGE_PROMPT_WITH_TEXT_SUFFIX = `FINAL REQUIREMENT — NARRATION IN IMAGE:
-Include readable English narration boxes with the exact lines above. Cream/off-white boxes, thin black borders, large comic lettering. Do not add any other text.`;
+Include readable English narration boxes with the exact lines above. Cream/off-white boxes, thin black borders, large comic lettering. Place the caption box in the middle-lower area (50–62% height band) with a large empty margin below — never at the bottom edge. Do not add any other text.`;
 
 export const IMAGE_PROMPT_REFERENCE_SUFFIX = `Use the provided reference image(s) only to preserve character identity, clothing logic, and general art continuity. Do not repeat the same pose, framing, room, or composition. Do NOT copy or add any text, speech bubbles, or caption boxes from reference images — output must remain text-free.`;
 
@@ -342,7 +344,7 @@ export function imagePromptTextBlocks(
 Include readable English narration boxes inside the image.
 Use cream/off-white rectangular narration boxes with thin black hand-drawn borders.
 Use large, clean comic lettering.
-Place text in safe empty areas.
+Place the caption box in the 50–62% height band (middle-lower) with at least 38% empty margin below it — never at the bottom edge.
 Do not cover faces, hands, key objects, or important action.
 Use only these exact narration lines:
 ${formatNarrationLinesForPrompt(narrationLines)}
@@ -372,8 +374,10 @@ export function finalizeEpisodeImagePrompt(
 ): string {
   const base = prompt.trim();
   if (addTextInImage) {
-    if (base.toLowerCase().includes("narration in image")) return base;
-    return `${base}\n\n${IMAGE_PROMPT_WITH_TEXT_SUFFIX}`;
+    const withText = base.toLowerCase().includes("narration in image")
+      ? base
+      : `${base}\n\n${IMAGE_PROMPT_WITH_TEXT_SUFFIX}`;
+    return enforceCaptionBoxRules(withText);
   }
   if (base.toLowerCase().includes("text-free output")) return base;
   return `${base}\n\n${IMAGE_PROMPT_NO_TEXT_SUFFIX}`;

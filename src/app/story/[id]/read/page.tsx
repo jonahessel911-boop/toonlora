@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import StoryReaderClient from "@/components/StoryReaderClient";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+};
 
 interface ReadPageProps {
   params: Promise<{ id: string }>;

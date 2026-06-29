@@ -370,6 +370,12 @@ export default function CreatorAdminApp() {
                 setSelectedPanelId(null);
                 setCoverSelected(false);
               }}
+              onActiveSeries={(seriesId) => {
+                if (seriesId) {
+                  void refreshSeriesDataSilent(seriesId);
+                  void fetchSeriesList().then(setSeriesList).catch(() => {});
+                }
+              }}
             />
             <PipelineStartPanel
               selectedSeriesId={selectedSeriesId}
@@ -448,6 +454,9 @@ export default function CreatorAdminApp() {
                     void refreshSeriesDataSilent(selectedSeriesId);
                   }}
                   onPipelineResumed={() => {
+                    void refreshSeriesDataSilent(selectedSeriesId);
+                  }}
+                  onPipelineStopped={() => {
                     void refreshSeriesDataSilent(selectedSeriesId);
                   }}
                 />

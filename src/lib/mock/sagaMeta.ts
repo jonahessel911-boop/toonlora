@@ -52,6 +52,9 @@ export const FOUNDER_NAME_BY_ID: Record<string, string> = {
   blockbuster: "John Antioco",
   wework: "Adam Neumann",
   enron: "Ken Lay & Jeffrey Skilling",
+  "bernie-madoff": "Bernie Madoff",
+  "amancio-ortega": "Amancio Ortega",
+  "phil-knight": "Phil Knight",
 };
 
 export const COMPANY_NAME_BY_ID: Record<string, string> = {
@@ -67,6 +70,15 @@ export const COMPANY_NAME_BY_ID: Record<string, string> = {
   blockbuster: "Blockbuster",
   wework: "WeWork",
   enron: "Enron",
+  voc: "VOC",
+  "de-voc": "VOC",
+  nokia: "Nokia",
+  "toys-r-us": "Toys 'R' Us",
+  "lehman-brothers": "Lehman Brothers",
+  "bernie-madoff": "Madoff Securities",
+  "amancio-ortega": "Zara",
+  "phil-knight": "Nike",
+  "shoe-dog": "Nike",
 };
 
 const INDUSTRY_MAP: Record<string, string> = {

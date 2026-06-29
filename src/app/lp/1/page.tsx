@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import LandingPageClient from "@/components/lp/LandingPageClient";
-import { BRAND_HEADLINE, BRAND_SUBHEADLINE } from "@/lib/brand";
+import { BRAND_SUBHEADLINE } from "@/lib/brand";
+import { PLATFORM_FULL_NAME } from "@/lib/seo/site";
 
 export const metadata: Metadata = {
-  title: `Toonlora — ${BRAND_HEADLINE}`,
+  title: PLATFORM_FULL_NAME,
   description: BRAND_SUBHEADLINE,
 };
 

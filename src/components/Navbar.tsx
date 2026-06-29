@@ -9,11 +9,10 @@ import ProfileMenu from "@/components/nav/ProfileMenu";
 import ToonloraLogo from "@/components/ui/ToonloraLogo";
 import { getStoredAffiliateSlug } from "@/lib/affiliate/client-tracking";
 import { AFFILIATE_QUERY_PARAM } from "@/lib/affiliate/links";
-import { HOME_BROWSE_NAV } from "@/lib/homeBrowseNav";
+import { useTranslations } from "next-intl";
+import { useBrowseNav } from "@/hooks/useBrowseNav";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 import { useUserStore } from "@/store/useUserStore";
-
-const browseNav = HOME_BROWSE_NAV;
 
 function isHashLink(href: string) {
   return href.startsWith("/#");
@@ -98,6 +97,8 @@ function BrowseTab({
 }
 
 export default function Navbar() {
+  const t = useTranslations("nav");
+  const browseNav = useBrowseNav();
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -162,7 +163,7 @@ export default function Navbar() {
 
           <nav
             className="absolute left-1/2 hidden -translate-x-1/2 gap-5 overflow-x-auto scrollbar-hide xl:flex xl:max-w-[min(58vw,720px)]"
-            aria-label="Browse sections"
+            aria-label={t("browseSections")}
           >
             {browseNav.map((link) => (
               <BrowseTab
@@ -187,7 +188,7 @@ export default function Navbar() {
                     : "hidden rounded px-3 py-2 text-sm font-semibold text-[#6B7280] transition hover:text-[#2F80ED] sm:inline-flex"
                 }
               >
-                Log in
+                {t("logIn")}
               </AffiliateLink>
             )}
 
@@ -197,7 +198,7 @@ export default function Navbar() {
               type="button"
               onClick={() => setOpen(true)}
               className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white xl:hidden"
-              aria-label="Menu"
+              aria-label={t("menu")}
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -209,7 +210,7 @@ export default function Navbar() {
         <div className="hidden border-t border-white/10 md:block xl:hidden">
           <nav
             className={`${PAGE_CONTAINER_CLASS} flex gap-6 overflow-x-auto scrollbar-hide sm:gap-8`}
-            aria-label="Browse sections"
+            aria-label={t("browseSections")}
           >
             {browseNav.map((link) => (
               <BrowseTab
@@ -229,6 +230,7 @@ export default function Navbar() {
       <MobileDrawer
         open={open}
         onClose={() => setOpen(false)}
+        browseNav={browseNav}
         isBrowseActive={(href, id) => isBrowseActive(href, id)}
         loggedIn={loggedIn}
         fullName={fullName}
@@ -247,6 +249,7 @@ export default function Navbar() {
 function MobileDrawer({
   open,
   onClose,
+  browseNav,
   isBrowseActive,
   loggedIn,
   fullName,
@@ -256,6 +259,7 @@ function MobileDrawer({
 }: {
   open: boolean;
   onClose: () => void;
+  browseNav: ReturnType<typeof useBrowseNav>;
   isBrowseActive: (href: string, id: string) => boolean;
   loggedIn: boolean;
   fullName: string;
@@ -263,6 +267,7 @@ function MobileDrawer({
   onBrowseNavigate: (href: string) => void;
   onLogout: () => void;
 }) {
+  const t = useTranslations("nav");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -282,7 +287,7 @@ function MobileDrawer({
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] bg-primary/50 backdrop-blur-sm md:hidden"
             onClick={onClose}
-            aria-label="Close menu"
+            aria-label={t("closeMenu")}
           />
           <motion.aside
             initial={{ x: "100%" }}
@@ -297,7 +302,7 @@ function MobileDrawer({
                 type="button"
                 onClick={onClose}
                 className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-soft"
-                aria-label="Close"
+                aria-label={t("close")}
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -308,7 +313,7 @@ function MobileDrawer({
             {loggedIn && (
               <div className="border-b border-border bg-surface-soft px-4 py-4">
                 <p className="font-heading font-extrabold text-primary">
-                  {fullName || "Toonlora reader"}
+                  {fullName || t("readerFallback")}
                 </p>
                 <p className="text-xs text-muted">{email}</p>
               </div>
@@ -347,7 +352,7 @@ function MobileDrawer({
                     onClick={onClose}
                     className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
                   >
-                    My Library
+                    {t("myLibrary")}
                   </AffiliateLink>
                 </nav>
               ) : (
@@ -357,14 +362,14 @@ function MobileDrawer({
                     onClick={onClose}
                     className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
                   >
-                    Log in
+                    {t("logIn")}
                   </AffiliateLink>
                   <AffiliateLink
                     href="/signup/register"
                     onClick={onClose}
                     className="block rounded-xl px-3 py-3 text-base font-semibold text-gs-text hover:bg-surface-soft/60"
                   >
-                    Create free account
+                    {t("createFreeAccount")}
                   </AffiliateLink>
                 </nav>
               )}
@@ -380,7 +385,7 @@ function MobileDrawer({
                   }}
                   className="flex w-full items-center justify-center rounded-full border border-border py-3 text-sm font-bold text-muted"
                 >
-                  Log out
+                  {t("logOut")}
                 </button>
               </div>
             )}

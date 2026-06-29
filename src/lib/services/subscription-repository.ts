@@ -65,10 +65,29 @@ export async function setSubscriptionInDb(
     .eq("session_id", sessionId);
 }
 
+export async function transferSubscriptionBetweenSessions(
+  fromSessionId: string,
+  toSessionId: string
+): Promise<void> {
+  if (fromSessionId === toSessionId) return;
+
+  const sub = await getSubscriptionFromDb(fromSessionId);
+  if (!sub.status || !sub.planId) return;
+
+  await setSubscriptionInDb(toSessionId, {
+    status: sub.status,
+    planId: sub.planId,
+    stripeSubscriptionId: sub.stripeSubscriptionId,
+    periodEnd: sub.periodEnd,
+  });
+}
+
 export function isActiveSubscription(record: SubscriptionRecord): boolean {
   if (
     record.status !== "active" &&
-    record.status !== "paused"
+    record.status !== "paused" &&
+    record.status !== "trialing" &&
+    record.status !== "cancel_at_period_end"
   ) {
     return false;
   }

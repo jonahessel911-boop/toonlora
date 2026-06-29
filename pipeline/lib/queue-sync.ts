@@ -31,6 +31,22 @@ export async function tryCompleteQueueJobForSeries(
   }
 }
 
+/** Stop worker pipeline between steps when the queue job was cancelled. */
+export async function assertCreationNotStopped(seriesId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("pipeline_queue")
+    .select("status")
+    .eq("series_id", seriesId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (data?.status === "cancelled") {
+    throw new Error("Stopped — creation cancelled");
+  }
+}
+
 export async function clearStaleRunningPipelineRuns(
   seriesId: string,
   message = "Stopped — queue reset"

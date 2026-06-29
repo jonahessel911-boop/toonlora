@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isServerDatabaseConfigured } from "@/lib/config";
 import {
   deleteSeriesFromDb,
+  updateSeriesCategory,
   updateSeriesPublishing,
 } from "@/lib/services/catalog-repository";
 import { getStoryFromDb } from "@/lib/services/story-repository";
@@ -46,6 +47,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       await updateSeriesPublishing(id, { status: "published", isPublic: true });
     } else if (action === "unpublish") {
       await updateSeriesPublishing(id, { status: "draft", isPublic: false });
+    } else if (typeof body.category === "string" && body.category.trim()) {
+      await updateSeriesCategory(id, body.category.trim());
     } else if (body.featuredRank !== undefined) {
       await updateSeriesPublishing(id, {
         featuredRank: body.featuredRank === "" ? null : Number(body.featuredRank),

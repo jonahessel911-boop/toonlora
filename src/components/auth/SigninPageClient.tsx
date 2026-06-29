@@ -19,6 +19,7 @@ export default function SigninPageClient() {
   const returnTo = sanitizeReturnTo(searchParams.get("returnTo"));
   const { setProfile, completeOnboarding } = useUserStore();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +35,7 @@ export default function SigninPageClient() {
     try {
       const res = await apiFetch("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
 
@@ -92,6 +93,8 @@ export default function SigninPageClient() {
                 label="Password"
                 placeholder="Your password"
                 autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
               {error ? (
                 <p className="text-sm font-medium text-[#D92D20]">{error}</p>

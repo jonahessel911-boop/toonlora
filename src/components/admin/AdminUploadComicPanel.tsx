@@ -27,7 +27,7 @@ export default function AdminUploadComicPanel({
   onCancel?: () => void;
 }) {
   const [title, setTitle] = useState("");
-  const [genre, setGenre] = useState(DEFAULT_PLATFORM_GENRE);
+  const [genre, setGenre] = useState<string>(DEFAULT_PLATFORM_GENRE);
   const [synopsis, setSynopsis] = useState("");
   const [creatorName, setCreatorName] = useState("Toonlora Official");
   const [featuredRank, setFeaturedRank] = useState("");
@@ -150,7 +150,7 @@ export default function AdminUploadComicPanel({
               placeholder="Series title"
             />
           </AdminField>
-          <AdminField label="Genre">
+          <AdminField label="Category">
             <AdminGenreSelect
               value={genre}
               onChange={(e) => setGenre(e.target.value)}

@@ -12,7 +12,7 @@ import {
   reactToCommentLocal,
   type CommentSort,
   type EpisodeComment,
-} from "@/lib/services/comments-repository";
+} from "@/lib/services/comments-client";
 import type { SeriesDetail, SeriesEpisodeListing } from "@/lib/seriesCatalog";
 import type { Story } from "@/types/story";
 import { useCatalog } from "@/hooks/useCatalog";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PIPELINE_CATEGORIES } from "@/lib/content-pipeline/constants";
 import { formatCatalogCategoryLabel } from "@/lib/catalogCategoryLabel";
 
@@ -27,6 +27,8 @@ interface StoryQueueStats {
 
 interface StoryQueuePanelProps {
   onSelectSeries?: (seriesId: string) => void;
+  /** Called when the worker's active queue job changes or links a series. */
+  onActiveSeries?: (seriesId: string | null, job: StoryQueueJob | null) => void;
 }
 
 const STATUS_LABELS: Record<StoryQueueJob["status"], string> = {
@@ -45,14 +47,19 @@ const STATUS_COLORS: Record<StoryQueueJob["status"], string> = {
   cancelled: "bg-[#667085]/10 text-[#667085]",
 };
 
-export default function StoryQueuePanel({ onSelectSeries }: StoryQueuePanelProps) {
+export default function StoryQueuePanel({
+  onSelectSeries,
+  onActiveSeries,
+}: StoryQueuePanelProps) {
   const [topic, setTopic] = useState("");
   const [category, setCategory] = useState("founder_stories");
   const [maxPanels, setMaxPanels] = useState(36);
   const [jobs, setJobs] = useState<StoryQueueJob[]>([]);
   const [stats, setStats] = useState<StoryQueueStats | null>(null);
   const [adding, setAdding] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [error, setError] = useState("");
+  const lastActiveJobKeyRef = useRef<string>("");
 
   const loadQueue = useCallback(async () => {
     try {
@@ -78,9 +85,33 @@ export default function StoryQueuePanel({ onSelectSeries }: StoryQueuePanelProps
 
     const interval = setInterval(() => {
       void loadQueue();
-    }, 8000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [jobs, loadQueue]);
+
+  const onSelectSeriesRef = useRef(onSelectSeries);
+  const onActiveSeriesRef = useRef(onActiveSeries);
+  onSelectSeriesRef.current = onSelectSeries;
+  onActiveSeriesRef.current = onActiveSeries;
+
+  const activeRunningJob = jobs.find((job) => job.status === "running") ?? null;
+  const activeRunningKey = activeRunningJob
+    ? `${activeRunningJob.id}:${activeRunningJob.series_id ?? ""}`
+    : "";
+
+  useEffect(() => {
+    if (activeRunningKey === lastActiveJobKeyRef.current) return;
+    lastActiveJobKeyRef.current = activeRunningKey;
+
+    onActiveSeriesRef.current?.(
+      activeRunningJob?.series_id ?? null,
+      activeRunningJob
+    );
+
+    if (activeRunningJob?.series_id) {
+      onSelectSeriesRef.current?.(activeRunningJob.series_id);
+    }
+  }, [activeRunningKey, activeRunningJob]);
 
   const addToQueue = async () => {
     if (!topic.trim()) return;
@@ -124,6 +155,35 @@ export default function StoryQueuePanel({ onSelectSeries }: StoryQueuePanelProps
     }
   };
 
+  const stopCreation = async () => {
+    const confirmed = window.confirm(
+      "Stop creation? Any story currently being generated will be halted."
+    );
+    if (!confirmed) return;
+
+    setStopping(true);
+    setError("");
+    try {
+      const res = await fetch("/api/creator-admin/pipeline/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stopAll: true,
+          seriesId: activeRunningJob?.series_id ?? undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Stop creation failed");
+      }
+      await loadQueue();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Stop creation failed");
+    } finally {
+      setStopping(false);
+    }
+  };
+
   const retryJob = async (job: StoryQueueJob) => {
     setAdding(true);
     setError("");
@@ -150,6 +210,9 @@ export default function StoryQueuePanel({ onSelectSeries }: StoryQueuePanelProps
     }
   };
 
+  const runningJobs = jobs.filter((job) => job.status === "running");
+  const otherJobs = jobs.filter((job) => job.status !== "running");
+
   return (
     <div className="mb-4 rounded-xl border border-emerald-600/25 bg-emerald-50/60 p-4">
       <div className="flex items-start justify-between gap-2">
@@ -161,9 +224,21 @@ export default function StoryQueuePanel({ onSelectSeries }: StoryQueuePanelProps
           </p>
         </div>
         {stats ? (
-          <div className="shrink-0 text-right text-[10px] font-semibold text-[#667085]">
-            <p>{stats.pending} wacht</p>
-            <p>{stats.running} bezig</p>
+          <div className="shrink-0 text-right">
+            <div className="text-[10px] font-semibold text-[#667085]">
+              <p>{stats.pending} wacht</p>
+              <p>{stats.running} bezig</p>
+            </div>
+            {stats.running > 0 ? (
+              <button
+                type="button"
+                disabled={stopping}
+                onClick={() => void stopCreation()}
+                className="mt-2 rounded-lg border border-red-300 bg-white px-2.5 py-1 text-[10px] font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+              >
+                {stopping ? "Stopping…" : "Stop creation"}
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -229,88 +304,146 @@ export default function StoryQueuePanel({ onSelectSeries }: StoryQueuePanelProps
         </code>
       </div>
 
-      {jobs.length > 0 ? (
-        <ul className="mt-4 max-h-72 space-y-2 overflow-y-auto">
-          {jobs.map((job) => (
-            <li
+      {runningJobs.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#2F80ED]">
+            Nu bezig
+          </p>
+          {runningJobs.map((job) => (
+            <QueueJobCard
               key={job.id}
-              className="rounded-lg border border-[#07111F]/10 bg-white p-2.5"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-sm font-semibold text-[#07111F]">
-                    {job.topic}
-                  </p>
-                  <p className="mt-0.5 text-[10px] text-[#667085]">
-                    {formatCatalogCategoryLabel(job.category)} · max{" "}
-                    {job.max_panels} panels
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_COLORS[job.status]}`}
-                >
-                  {STATUS_LABELS[job.status]}
-                </span>
-              </div>
+              job={job}
+              highlighted
+              onSelectSeries={onSelectSeries}
+              onDelete={() => void deleteJob(job.id)}
+              onRetry={() => void retryJob(job)}
+            />
+          ))}
+        </div>
+      ) : stats?.running ? (
+        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Worker synchroniseert… Vernieuwen als dit blijft hangen.
+        </p>
+      ) : null}
 
-              {job.error ? (
-                <p className="mt-1.5 text-[10px] text-red-700">{job.error}</p>
-              ) : null}
-
-              <div className="mt-2 flex flex-wrap gap-2">
-                {job.status !== "running" ? (
-                  <button
-                    type="button"
-                    onClick={() => void deleteJob(job.id)}
-                    className="text-[10px] font-semibold text-[#667085] hover:text-red-700"
-                  >
-                    Verwijderen
-                  </button>
-                ) : null}
-                {job.series_id &&
-                (job.status === "running" || job.status === "failed") ? (
-                  <button
-                    type="button"
-                    onClick={() => onSelectSeries?.(job.series_id!)}
-                    className="rounded-lg bg-[#2F80ED] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#2563c7]"
-                  >
-                    {job.status === "failed"
-                      ? "Open pipeline & hervat →"
-                      : "Bekijk live pipeline →"}
-                  </button>
-                ) : null}
-                {job.series_id && job.status === "completed" ? (
-                  <button
-                    type="button"
-                    onClick={() => onSelectSeries?.(job.series_id!)}
-                    className="text-[10px] font-semibold text-[#2F80ED] hover:underline"
-                  >
-                    Open series →
-                  </button>
-                ) : null}
-                {job.status === "failed" && job.series_id ? (
-                  <button
-                    type="button"
-                    onClick={() => void retryJob(job)}
-                    className="text-[10px] font-semibold text-emerald-700 hover:underline"
-                  >
-                    Opnieuw in wachtrij
-                  </button>
-                ) : null}
-                {job.status === "failed" && !job.series_id ? (
-                  <p className="text-[10px] text-[#667085]">
-                    Zoek &quot;{job.topic}&quot; in de series-lijst hieronder.
-                  </p>
-                ) : null}
-              </div>
+      {otherJobs.length > 0 ? (
+        <ul className="mt-4 max-h-72 space-y-2 overflow-y-auto">
+          <p className="sticky top-0 z-10 bg-emerald-50/95 pb-1 text-[10px] font-bold uppercase tracking-wide text-[#667085]">
+            Wachtrij
+          </p>
+          {otherJobs.map((job) => (
+            <li key={job.id}>
+              <QueueJobCard
+                job={job}
+                onSelectSeries={onSelectSeries}
+                onDelete={() => void deleteJob(job.id)}
+                onRetry={() => void retryJob(job)}
+              />
             </li>
           ))}
         </ul>
-      ) : (
+      ) : runningJobs.length === 0 ? (
         <p className="mt-4 text-center text-xs text-[#667085]">
           Nog geen stories in de wachtrij.
         </p>
-      )}
+      ) : null}
+    </div>
+  );
+}
+
+function QueueJobCard({
+  job,
+  highlighted = false,
+  onSelectSeries,
+  onDelete,
+  onRetry,
+}: {
+  job: StoryQueueJob;
+  highlighted?: boolean;
+  onSelectSeries?: (seriesId: string) => void;
+  onDelete: () => void;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      className={`rounded-lg border p-2.5 ${
+        highlighted
+          ? "border-[#2F80ED]/40 bg-[#2F80ED]/5"
+          : "border-[#07111F]/10 bg-white"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 text-sm font-semibold text-[#07111F]">
+            {job.topic}
+          </p>
+          <p className="mt-0.5 text-[10px] text-[#667085]">
+            {formatCatalogCategoryLabel(job.category)} · max {job.max_panels}{" "}
+            panels
+          </p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_COLORS[job.status]}`}
+        >
+          {STATUS_LABELS[job.status]}
+        </span>
+      </div>
+
+      {job.error ? (
+        <p className="mt-1.5 text-[10px] text-red-700">{job.error}</p>
+      ) : null}
+
+      <div className="mt-2 flex flex-wrap gap-2">
+        {job.status !== "running" ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-[10px] font-semibold text-[#667085] hover:text-red-700"
+          >
+            Verwijderen
+          </button>
+        ) : null}
+        {job.series_id &&
+        (job.status === "running" || job.status === "failed") ? (
+          <button
+            type="button"
+            onClick={() => onSelectSeries?.(job.series_id!)}
+            className="rounded-lg bg-[#2F80ED] px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-[#2563c7]"
+          >
+            {job.status === "failed"
+              ? "Open pipeline & hervat →"
+              : "Bekijk live pipeline →"}
+          </button>
+        ) : null}
+        {job.status === "running" && !job.series_id ? (
+          <span className="text-[10px] font-medium text-[#2F80ED]">
+            Series wordt aangemaakt…
+          </span>
+        ) : null}
+        {job.series_id && job.status === "completed" ? (
+          <button
+            type="button"
+            onClick={() => onSelectSeries?.(job.series_id!)}
+            className="text-[10px] font-semibold text-[#2F80ED] hover:underline"
+          >
+            Open series →
+          </button>
+        ) : null}
+        {job.status === "failed" && job.series_id ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="text-[10px] font-semibold text-emerald-700 hover:underline"
+          >
+            Opnieuw in wachtrij
+          </button>
+        ) : null}
+        {job.status === "failed" && !job.series_id ? (
+          <p className="text-[10px] text-[#667085]">
+            Zoek &quot;{job.topic}&quot; in de series-lijst hieronder.
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

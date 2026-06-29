@@ -1,27 +1,9 @@
+import { catalogSectionFromSlug } from "@/lib/browseCategories";
 import type { CatalogSeries } from "@/types/catalog";
 
 /** Map pipeline / DB category slug → browse section id */
 export function catalogSectionId(story: CatalogSeries): string | null {
-  const raw = (story.genre ?? "").toLowerCase().replace(/\s+/g, "_");
-
-  if (raw === "founder_stories" || raw === "founder-stories") {
-    return "founder-stories";
-  }
-  if (raw === "rise_and_fall" || raw === "rise-and-fall") {
-    return "rise-and-fall";
-  }
-  if (raw === "empires") return "empires";
-  if (raw === "heists" || raw === "heists_and_frauds" || raw === "heists-and-frauds") {
-    return "heists-and-frauds";
-  }
-  if (raw === "business" || raw === "company" || raw === "company-breakdowns") {
-    return "company-breakdowns";
-  }
-  if (raw === "history" || raw === "history-drop") {
-    return "history-drop";
-  }
-
-  return null;
+  return catalogSectionFromSlug(story.genre);
 }
 
 export function mergeCatalogById(

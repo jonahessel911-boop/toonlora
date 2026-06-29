@@ -1,7 +1,7 @@
 import type { Category } from "@/types/story";
 
 export const BRAND_TAGLINE =
-  "Business stories, told like a cinematic series.";
+  "Cinematic business stories, told like a series.";
 export const BRAND_HEADLINE =
   "Business stories you actually want to binge.";
 export const BRAND_SUBHEADLINE =

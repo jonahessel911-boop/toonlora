@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const title = String(formData.get("title") ?? "").trim();
-    const genre = String(formData.get("genre") ?? "Fantasy").trim();
+    const genre = String(formData.get("genre") ?? "rise_and_fall").trim();
     const synopsis = String(formData.get("synopsis") ?? "").trim();
     const creatorDisplayName =
       String(formData.get("creator_display_name") ?? "Toonlora Official").trim() ||

@@ -3,9 +3,9 @@
 import type { ReactNode } from "react";
 import {
   DEFAULT_PLATFORM_GENRE,
-  PLATFORM_GENRE_GROUPS,
   PLATFORM_GENRES,
 } from "@/lib/platformGenres";
+import { PIPELINE_CATEGORY_OPTIONS } from "@/lib/browseCategories";
 
 export { PLATFORM_GENRES, DEFAULT_PLATFORM_GENRE };
 
@@ -99,16 +99,18 @@ export function AdminTextarea(
 export function AdminGenreSelect(
   props: Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "children">
 ) {
+  return <AdminBrowseCategorySelect {...props} />;
+}
+
+export function AdminBrowseCategorySelect(
+  props: Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "children">
+) {
   return (
     <AdminSelect {...props}>
-      {PLATFORM_GENRE_GROUPS.map((group) => (
-        <optgroup key={group.label} label={group.label}>
-          {group.genres.map((genre) => (
-            <option key={genre} value={genre}>
-              {genre}
-            </option>
-          ))}
-        </optgroup>
+      {PIPELINE_CATEGORY_OPTIONS.map((category) => (
+        <option key={category.value} value={category.value}>
+          {category.label}
+        </option>
       ))}
     </AdminSelect>
   );

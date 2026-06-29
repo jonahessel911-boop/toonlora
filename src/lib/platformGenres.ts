@@ -1,52 +1,18 @@
-/** Full genre catalog for admin publishing and browse surfaces. */
+import {
+  BROWSE_CONTENT_CATEGORIES,
+  type PipelineCategorySlug,
+} from "@/lib/browseCategories";
+
+/** Business story categories for admin publishing and browse surfaces. */
 export const PLATFORM_GENRE_GROUPS = [
   {
-    label: "Popular",
-    genres: [
-      "Romance",
-      "Fantasy",
-      "Anime",
-      "Comedy",
-      "Drama",
-      "Action",
-      "Thriller",
-      "Horror",
-    ],
-  },
-  {
-    label: "Lifestyle",
-    genres: [
-      "Slice of Life",
-      "School",
-      "Office",
-      "Sports",
-      "Music",
-      "Cooking",
-      "Travel",
-    ],
-  },
-  {
-    label: "Fiction & history",
-    genres: [
-      "Adventure",
-      "Sci-Fi",
-      "Mystery",
-      "Historical",
-      "History",
-      "Business",
-      "War",
-      "Western",
-      "Biography",
-    ],
-  },
-  {
-    label: "Mature",
-    genres: ["18+", "Mature", "Dark Romance", "Spicy", "Psychological"],
+    label: "Business stories",
+    genres: BROWSE_CONTENT_CATEGORIES.map((category) => category.slug),
   },
 ] as const;
 
-export const PLATFORM_GENRES: string[] = PLATFORM_GENRE_GROUPS.flatMap(
-  (group) => [...group.genres]
+export const PLATFORM_GENRES: string[] = BROWSE_CONTENT_CATEGORIES.map(
+  (category) => category.slug
 );
 
-export const DEFAULT_PLATFORM_GENRE = "Fantasy";
+export const DEFAULT_PLATFORM_GENRE: PipelineCategorySlug = "rise_and_fall";

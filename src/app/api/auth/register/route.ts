@@ -54,6 +54,10 @@ export async function POST(request: Request) {
             (topic: unknown): topic is string => typeof topic === "string"
           )
         : [],
+      password:
+        typeof body.password === "string" && body.password.length >= 8
+          ? body.password
+          : undefined,
     });
 
     await recordLoginEvent(profile.id, "signup");

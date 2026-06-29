@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/api/session";
 import {
   getSubscriptionPlan,
-  subscriptionStripePriceData,
 } from "@/lib/payments/subscription-plans";
+import { resolveRecurringPriceId } from "@/lib/payments/stripe-subscription-price";
 import { setSubscriptionInDb } from "@/lib/services/subscription-repository";
 import { getSubscriptionPeriodEnd } from "@/lib/payments/stripe-subscription";
 import { getStripe, isStripeConfigured } from "@/lib/services/stripe";
@@ -42,14 +42,11 @@ export async function POST(request: Request) {
       metadata: { sessionId },
     });
 
-    const price = await stripe.prices.create({
-      ...subscriptionStripePriceData(plan),
-      active: true,
-    });
+    const priceId = await resolveRecurringPriceId(stripe, plan);
 
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
-      items: [{ price: price.id }],
+      items: [{ price: priceId }],
       default_payment_method: paymentMethodId,
       expand: ["items"],
       metadata: {

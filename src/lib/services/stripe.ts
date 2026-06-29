@@ -1,18 +1,19 @@
 import Stripe from "stripe";
+import { resolveStripeSecretKey } from "@/lib/payments/stripe-env";
 
 let stripeClient: Stripe | null = null;
 
 export function isStripeConfigured(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY?.trim());
+  return Boolean(resolveStripeSecretKey());
 }
 
 export function getStripe(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY?.trim();
+  const key = resolveStripeSecretKey();
   if (!key) {
     throw new Error("Stripe is not configured");
   }
 
-  if (!stripeClient) {
+  if (!stripeClient || stripeClient.getApiField("key") !== key) {
     stripeClient = new Stripe(key);
   }
 

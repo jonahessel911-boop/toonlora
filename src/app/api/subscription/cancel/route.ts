@@ -41,7 +41,9 @@ export async function POST(request: Request) {
           { cancel_at_period_end: true }
         );
         await setSubscriptionInDb(sessionId, {
-          status: updated.status,
+          status: updated.cancel_at_period_end
+            ? "cancel_at_period_end"
+            : updated.status,
           planId: record.planId,
           stripeSubscriptionId: updated.id,
           periodEnd: getSubscriptionPeriodEnd(updated),
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
     }
   } else {
     await setSubscriptionInDb(sessionId, {
-      status: immediate ? "cancelled" : "active",
+      status: immediate ? "cancelled" : "cancel_at_period_end",
       planId: record.planId,
       stripeSubscriptionId: record.stripeSubscriptionId,
       periodEnd: record.periodEnd ?? new Date().toISOString(),
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    status: immediate ? "cancelled" : "cancel_at_period_end",
+    status: refreshed.status,
     periodEnd: refreshed.periodEnd,
     active: isActiveSubscription(refreshed),
   });

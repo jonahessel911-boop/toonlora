@@ -11,6 +11,10 @@ import GenerationLoading from "@/components/create/GenerationLoading";
 import { storyToSeriesDetail, type SeriesDetail } from "@/lib/seriesCatalog";
 import { episodeToReaderPanels } from "@/lib/readerPanels";
 import { fetchPublishedStory, isStoryBrowsable } from "@/lib/fetchPublishedStory";
+import {
+  countReadableEpisodes,
+  getReadableEpisodes,
+} from "@/lib/readableEpisodes";
 import { useStoryStore } from "@/store/useStoryStore";
 import { useCreditsStore } from "@/store/useCreditsStore";
 import { useSubscriptionStore } from "@/store/useSubscriptionStore";
@@ -200,9 +204,14 @@ export default function StoryReaderClient({
   }
 
   const seriesDetail = storyToSeriesDetail(story);
+  const readableEpisodes = getReadableEpisodes(story);
   const episode =
-    story.episodes?.find((e) => e.episodeNumber === episodeFromUrl) ??
-    story.episodes?.[0];
+    readableEpisodes.find((e) => e.episodeNumber === episodeFromUrl) ??
+    readableEpisodes[0];
+
+  const legacyPages = (story.pages ?? []).filter((page) =>
+    Boolean(page?.text?.trim())
+  );
 
   if (episode) {
     return wrapWithComments(
@@ -236,11 +245,30 @@ export default function StoryReaderClient({
     );
   }
 
+  if (legacyPages.length === 0) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-4 text-center text-white">
+        <h1 className="font-heading text-2xl font-bold">No chapter yet</h1>
+        <p className="mt-2 text-sm text-white/60">
+          {countReadableEpisodes(story) === 0
+            ? "This series is still being created — no panels are ready to read yet."
+            : "This story does not have readable panels yet."}
+        </p>
+        <Link
+          href={`/story/${id}`}
+          className="btn-coral mt-6 rounded-full px-6 py-3 text-sm"
+        >
+          Back to series
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="bg-white">
         <FlipBookReader
-          pages={story.pages}
+          pages={legacyPages}
           showShare={!isPublic}
           showLibraryLink={!isPublic}
           onShare={handleShare}

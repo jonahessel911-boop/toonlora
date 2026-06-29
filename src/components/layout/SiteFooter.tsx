@@ -1,20 +1,25 @@
+"use client";
+
 import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import ToonloraLogo from "@/components/ui/ToonloraLogo";
-import { BRAND_TAGLINE } from "@/lib/brand";
-import { HOME_BROWSE_NAV } from "@/lib/homeBrowseNav";
-
-const FOOTER_LINKS = [
-  { href: "/", label: "Browse" },
-  { href: "/profile", label: "My Library" },
-  { href: "/subscribe", label: "Subscribe" },
-] as const;
-
-const FOOTER_CATEGORIES = HOME_BROWSE_NAV.filter(
-  (item) => item.id !== "home" && item.id !== "this-week"
-);
+import { useBrowseNav } from "@/hooks/useBrowseNav";
+import { useTranslations } from "next-intl";
 
 export default function SiteFooter() {
   const year = new Date().getFullYear();
+  const tNav = useTranslations("nav");
+  const tBrand = useTranslations("brand");
+  const browseNav = useBrowseNav();
+
+  const footerCategories = browseNav.filter(
+    (item) => item.id !== "home" && item.id !== "this-week"
+  );
+
+  const footerLinks = [
+    { href: "/", label: tNav("browse") },
+    { href: "/profile", label: tNav("myLibrary") },
+    { href: "/subscribe", label: tNav("subscribe") },
+  ] as const;
 
   return (
     <footer className="mt-auto border-t border-[#E7DDCC] bg-[#F6F1E7]">
@@ -25,16 +30,16 @@ export default function SiteFooter() {
               <ToonloraLogo variant="compact" iconSize={32} />
             </AffiliateLink>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-[#64748B]">
-              {BRAND_TAGLINE}
+              {tBrand("tagline")}
             </p>
           </div>
 
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
-              Categories
+              {tNav("categories")}
             </p>
             <ul className="mt-3 space-y-2">
-              {FOOTER_CATEGORIES.map((category) => (
+              {footerCategories.map((category) => (
                 <li key={category.id}>
                   <AffiliateLink
                     href={category.href}
@@ -49,10 +54,10 @@ export default function SiteFooter() {
 
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
-              Platform
+              {tNav("platform")}
             </p>
             <ul className="mt-3 space-y-2">
-              {FOOTER_LINKS.map((link) => (
+              {footerLinks.map((link) => (
                 <li key={link.href}>
                   <AffiliateLink
                     href={link.href}
@@ -67,7 +72,7 @@ export default function SiteFooter() {
 
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
-              Partners
+              {tNav("partners")}
             </p>
             <ul className="mt-3 space-y-2">
               <li>
@@ -75,7 +80,7 @@ export default function SiteFooter() {
                   href="/partners/affiliate"
                   className="text-sm font-semibold text-[#2F80ED] transition hover:text-[#1F6FD6]"
                 >
-                  Affiliate
+                  {tNav("affiliate")}
                 </AffiliateLink>
               </li>
             </ul>
@@ -84,7 +89,7 @@ export default function SiteFooter() {
 
         <div className="mt-10 border-t border-[#E7DDCC] pt-6 text-center sm:text-left">
           <p className="text-xs text-[#64748B]">
-            © {year} Toonlora. All rights reserved.
+            {tBrand("copyright", { year })}
           </p>
         </div>
       </div>

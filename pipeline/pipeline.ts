@@ -15,7 +15,7 @@ import {
   startPipelineRun,
 } from "./lib/supabase.js";
 import { slugify } from "./lib/json.js";
-import { tryCompleteQueueJobForSeries } from "./lib/queue-sync.js";
+import { tryCompleteQueueJobForSeries, assertCreationNotStopped } from "./lib/queue-sync.js";
 import {
   clearPipelineContext,
   getGenerateEpisodeNumbers,
@@ -117,6 +117,7 @@ async function runPipelineInner(
   const episodeNumbers = getGenerateEpisodeNumbers();
 
   for (const step of steps) {
+    await assertCreationNotStopped(seriesId);
     const runId = await startPipelineRun(seriesId, step);
     console.log(`\n[pipeline] ▶ ${step}`);
 

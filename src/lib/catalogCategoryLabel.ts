@@ -1,3 +1,8 @@
+import {
+  BROWSE_CONTENT_CATEGORIES,
+  catalogSectionFromSlug,
+} from "@/lib/browseCategories";
+
 /** Map DB / pipeline category slugs → browse display labels. */
 const CATEGORY_LABELS: Record<string, string> = {
   founder_stories: "Founder Stories",
@@ -9,7 +14,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   heists: "Heists & Frauds",
   heists_and_frauds: "Heists & Frauds",
   "heists-and-frauds": "Heists & Frauds",
-  business: "Business",
+  business: "Company Breakdowns",
   company: "Company Breakdowns",
   company_breakdowns: "Company Breakdowns",
   "company-breakdowns": "Company Breakdowns",
@@ -24,6 +29,14 @@ function normalizeCategoryKey(raw: string): string {
 
 export function formatCatalogCategoryLabel(raw: string | undefined | null): string {
   if (!raw?.trim()) return "Business";
+
+  const sectionId = catalogSectionFromSlug(raw);
+  if (sectionId) {
+    const fromBrowse = BROWSE_CONTENT_CATEGORIES.find(
+      (category) => category.sectionId === sectionId
+    );
+    if (fromBrowse) return fromBrowse.label;
+  }
 
   const trimmed = raw.trim();
   const normalized = normalizeCategoryKey(trimmed);

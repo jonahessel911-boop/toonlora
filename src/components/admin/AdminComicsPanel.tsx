@@ -8,6 +8,7 @@ import AdminUploadComicPanel from "@/components/admin/AdminUploadComicPanel";
 import {
   ADMIN_GRADIENTS,
   AdminAlert,
+  AdminBrowseCategorySelect,
   AdminField,
   AdminGenreSelect,
   AdminInput,
@@ -17,8 +18,11 @@ import {
   AdminTextarea,
   DEFAULT_PLATFORM_GENRE,
   GradientPicker,
-  PLATFORM_GENRES,
 } from "@/components/admin/adminUi";
+import {
+  PIPELINE_CATEGORY_OPTIONS,
+  resolvePipelineSlug,
+} from "@/lib/browseCategories";
 import type { CatalogSeries } from "@/types/catalog";
 import {
   PANEL_COUNT_MAX,
@@ -45,7 +49,7 @@ export default function AdminComicsPanel() {
   );
 
   const [title, setTitle] = useState("");
-  const [genre, setGenre] = useState(DEFAULT_PLATFORM_GENRE);
+  const [genre, setGenre] = useState<string>(DEFAULT_PLATFORM_GENRE);
   const [mainCharacter, setMainCharacter] = useState("");
   const [loveInterest, setLoveInterest] = useState("");
   const [storyIdea, setStoryIdea] = useState("");
@@ -84,7 +88,9 @@ export default function AdminComicsPanel() {
         row.title.toLowerCase().includes(q) ||
         row.genre.toLowerCase().includes(q) ||
         row.creatorDisplayName.toLowerCase().includes(q);
-      const matchGenre = filterGenre === "all" || row.genre === filterGenre;
+      const matchGenre =
+        filterGenre === "all" ||
+        resolvePipelineSlug(row.genre) === filterGenre;
       const matchStatus =
         filterStatus === "all" || row.status === filterStatus;
       return matchSearch && matchGenre && matchStatus;
@@ -155,6 +161,10 @@ export default function AdminComicsPanel() {
     void loadSeries();
   };
 
+  const changeCategory = async (id: string, category: string) => {
+    await patchSeries(id, { category });
+  };
+
   const deleteSeries = async (id: string, name: string) => {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/admin/series/${id}`, { method: "DELETE" });
@@ -223,7 +233,7 @@ export default function AdminComicsPanel() {
                     placeholder="Series title"
                   />
                 </AdminField>
-                <AdminField label="Genre">
+                <AdminField label="Category">
                   <AdminGenreSelect
                     value={genre}
                     onChange={(e) => setGenre(e.target.value)}
@@ -376,15 +386,15 @@ export default function AdminComicsPanel() {
               placeholder="Title, genre, creator…"
             />
           </AdminField>
-          <AdminField label="Genre" className="w-40">
+          <AdminField label="Category" className="w-48">
             <AdminSelect
               value={filterGenre}
               onChange={(e) => setFilterGenre(e.target.value)}
             >
-              <option value="all">All genres</option>
-              {PLATFORM_GENRES.map((g) => (
-                <option key={g} value={g}>
-                  {g}
+              <option value="all">All categories</option>
+              {PIPELINE_CATEGORY_OPTIONS.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
                 </option>
               ))}
             </AdminSelect>
@@ -422,6 +432,7 @@ export default function AdminComicsPanel() {
         onPublish={(id) => void patchSeries(id, { action: "publish" })}
         onUnpublish={(id) => void patchSeries(id, { action: "unpublish" })}
         onDelete={(id, name) => void deleteSeries(id, name)}
+        onCategoryChange={changeCategory}
       />
     </div>
   );

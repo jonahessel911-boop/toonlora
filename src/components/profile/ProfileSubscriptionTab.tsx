@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useState } from "react";
 import CinematicStoryCover from "@/components/home/stream/CinematicStoryCover";
 import type { RetentionStory } from "@/lib/profile/retentionStories";
 import {
@@ -20,6 +21,13 @@ const MUTED = "#64748B";
 const BLUE = "#2F80ED";
 
 type CancelStep = "idle" | "choose" | "retention" | "confirm";
+
+function parseCancelStep(value: string | null): CancelStep {
+  if (value === "choose" || value === "retention" || value === "confirm") {
+    return value;
+  }
+  return "idle";
+}
 
 interface ProfileSubscriptionTabProps {
   hasPlus: boolean;
@@ -78,16 +86,36 @@ export default function ProfileSubscriptionTab({
   retentionStories,
   onSubscriptionChange,
 }: ProfileSubscriptionTabProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { setSubscription, status } = useSubscriptionStore();
-  const [cancelStep, setCancelStep] = useState<CancelStep>("idle");
+  const cancelStep = parseCancelStep(searchParams.get("cancel"));
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const setCancelStep = useCallback(
+    (step: CancelStep) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", "subscription");
+      if (step === "idle") {
+        params.delete("cancel");
+      } else {
+        params.set("cancel", step);
+      }
+      const query = params.toString();
+      router.replace(query ? `/profile?${query}` : "/profile?tab=subscription", {
+        scroll: false,
+      });
+    },
+    [router, searchParams]
+  );
 
   const nextPayment = formatDate(periodEnd);
   const planName = planDisplayName(tier, planId);
   const priceLabel = planPriceLabel(hasPlus ? tier : "free", planId);
   const isPaused = status === "paused";
+  const isCancelling = status === "cancel_at_period_end";
 
   async function handlePause() {
     setLoading(true);
@@ -124,8 +152,14 @@ export default function ProfileSubscriptionTab({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not cancel subscription");
+      const nextStatus =
+        data.status === "cancel_at_period_end"
+          ? "cancel_at_period_end"
+          : data.active
+            ? "active"
+            : "cancelled";
       setSubscription({
-        status: data.active ? "active" : "cancelled",
+        status: nextStatus,
         planId,
         periodEnd: data.periodEnd ?? periodEnd,
       });
@@ -228,7 +262,10 @@ export default function ProfileSubscriptionTab({
           <ActionRow
             label="Cancel membership"
             description="End your plan after this billing period."
-            onClick={() => setCancelStep("retention")}
+            onClick={() => {
+              setError(null);
+              setCancelStep("retention");
+            }}
             disabled={loading}
           />
         </div>
@@ -379,10 +416,13 @@ export default function ProfileSubscriptionTab({
             style={{
               background: isPaused
                 ? MUTED
-                : "linear-gradient(90deg, #2F80ED, #1F6FD6)",
+                : isCancelling
+                  ? "rgba(100,116,139,0.12)"
+                  : "linear-gradient(90deg, #2F80ED, #1F6FD6)",
+              color: isCancelling ? MUTED : "white",
             }}
           >
-            {isPaused ? "Paused" : "Active"}
+            {isPaused ? "Paused" : isCancelling ? "Cancelling" : "Active"}
           </span>
           <p
             className="mt-3 font-heading text-lg font-extrabold"
@@ -401,7 +441,9 @@ export default function ProfileSubscriptionTab({
           </p>
           {nextPayment ? (
             <p className="mt-1 text-sm" style={{ color: MUTED }}>
-              {isPaused ? "Resumes billing" : "Next payment"}: {nextPayment}
+              {isCancelling
+                ? `Access until ${nextPayment}`
+                : `${isPaused ? "Resumes billing" : "Next payment"}: ${nextPayment}`}
             </p>
           ) : null}
           <p className="mt-2 text-sm" style={{ color: MUTED }}>
@@ -428,7 +470,7 @@ export default function ProfileSubscriptionTab({
         ) : null}
 
         <Link
-          href="/subscribe"
+          href="/subscribe?change=1"
           className="flex items-center justify-between border-t px-5 py-4 text-sm font-semibold transition hover:bg-[#F6F1E7]"
           style={{ borderColor: BORDER, color: TEXT_DARK }}
         >
@@ -442,10 +484,11 @@ export default function ProfileSubscriptionTab({
             setError(null);
             setCancelStep("choose");
           }}
-          className="flex w-full items-center justify-between border-t px-5 py-4 text-left text-sm font-semibold transition hover:bg-[#F6F1E7]"
+          disabled={isCancelling}
+          className="flex w-full items-center justify-between border-t px-5 py-4 text-left text-sm font-semibold transition hover:bg-[#F6F1E7] disabled:cursor-not-allowed disabled:opacity-50"
           style={{ borderColor: BORDER, color: TEXT_DARK }}
         >
-          Cancel membership
+          {isCancelling ? "Cancellation scheduled" : "Cancel membership"}
           <span style={{ color: MUTED }}>›</span>
         </button>
       </div>
@@ -497,9 +540,12 @@ function ActionRow({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
       disabled={disabled}
-      className="flex w-full items-center justify-between rounded-xl px-4 py-4 text-left transition hover:bg-[#F6F1E7] disabled:opacity-60"
+      className="flex w-full cursor-pointer items-center justify-between rounded-xl px-4 py-4 text-left transition hover:bg-[#F6F1E7] disabled:cursor-not-allowed disabled:opacity-60"
       style={{ background: PAPER_CARD, border: `1px solid ${BORDER}` }}
     >
       <div>

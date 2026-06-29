@@ -1,0 +1,167 @@
+{
+  "nav": {
+    "home": "Home",
+    "thisWeek": "Deze week",
+    "logIn": "Inloggen",
+    "createFreeAccount": "Gratis account aanmaken",
+    "myLibrary": "Mijn bibliotheek",
+    "logOut": "Uitloggen",
+    "browse": "Ontdekken",
+    "subscribe": "Abonneren",
+    "affiliate": "Affiliate",
+    "categories": "Categorieën",
+    "platform": "Platform",
+    "partners": "Partners",
+    "browseSections": "Blader door secties",
+    "menu": "Menu",
+    "closeMenu": "Menu sluiten",
+    "close": "Sluiten",
+    "readerFallback": "Toonlora-lezer"
+  },
+  "brand": {
+    "tagline": "Cinematische businessverhalen, verteld als een serie.",
+    "copyright": "© {year} Toonlora. Alle rechten voorbehouden."
+  },
+  "categories": {
+    "founder_stories": {
+      "label": "Oprichtersverhalen",
+      "subtitle": "De ambitie, obsessie, mislukkingen en beslissingen achter 's werelds beroemdste ondernemers."
+    },
+    "rise_and_fall": {
+      "label": "Opkomst & ondergang",
+      "subtitle": "De klim naar de top — en de crash die volgde."
+    },
+    "empires": {
+      "label": "Imperiums",
+      "subtitle": "Hoe de grootste merken ter wereld zijn opgebouwd — en behouden."
+    },
+    "heists_and_frauds": {
+      "label": "Fraude & oplichting",
+      "subtitle": "Miljardenbets, oplichting en de mensen die ermee wekwamen."
+    },
+    "company_breakdowns": {
+      "label": "Bedrijfsanalyses",
+      "subtitle": "Hoe legendarische bedrijven zijn opgebouwd, geschaald en soms vernietigd."
+    },
+    "history_drop": {
+      "label": "Geschiedenis",
+      "subtitle": "Cruciale momenten in de bedrijfsgeschiedenis — hoofdstuk voor hoofdstuk geïllustreerd."
+    },
+    "fallback": "Business"
+  },
+  "common": {
+    "continue": "Doorgaan",
+    "readNow": "Nu lezen",
+    "moreInfo": "Meer info",
+    "myList": "Mijn lijst",
+    "viewAll": "Alles bekijken ›",
+    "processing": "Bezig…",
+    "close": "Sluiten",
+    "back": "Terug",
+    "new": "Nieuw",
+    "chapters": "{count} hoofdstukken",
+    "minRead": "{count} min lezen",
+    "upgrade": "Upgraden",
+    "signIn": "Inloggen",
+    "createAccount": "Account aanmaken"
+  },
+  "home": {
+    "continueReading": "Verder lezen",
+    "pickUpWhereYouLeftOff": "Ga verder waar je gebleven was",
+    "yourRecentReads": "Je recente verhalen",
+    "top10ThisWeek": "Top 10 deze week",
+    "newStoriesSoon": "Nieuwe verhalen komen binnenkort — kijk deze week terug.",
+    "noPublishedStories": "Nog geen gepubliceerde verhalen — kom snel terug.",
+    "heroEyebrow": "DEZE WEEK",
+    "weeklyEpisodes": "Wekelijkse afleveringen"
+  },
+  "subscribe": {
+    "membership": "Toonlora-lidmaatschap",
+    "wantUnlimited": "Onbeperkt willen lezen?",
+    "fastPass": "Fast pass — {storyName}",
+    "unlockStory": "Ontgrendel {storyName}",
+    "weeklyLimitHit": "Je wekelijkse leeslimiet is bereikt",
+    "specialDeal": "Hier is een speciale deal voor jou:",
+    "weeklyResetIn": "Wekelijkse limiet reset over: {countdown}",
+    "fastPassHeadline": "Lees het volgende hoofdstuk {days} dagen eerder dan iedereen",
+    "fastPassBody": "Entrepreneur-leden krijgen een fast pass naar de aflevering van volgende week{chapter}.",
+    "chapterSuffix": " — Hoofdstuk {number}",
+    "defaultSubhead": "Diepgaande businessverhalen in cartoonvorm — kies het plan dat bij je past.",
+    "withPlanYouGet": "Met {planName} krijg je",
+    "cancelGuarantee": "Altijd opzegbaar · 30 dagen geld-terug-garantie",
+    "checkoutFailed": "Afrekenen mislukt",
+    "currentPlan": "Huidig plan",
+    "continueWithFree": "Doorgaan met Gratis",
+    "subscribePrice": "Abonneren — {price}/maand",
+    "earlyAccess": "Vroege toegang",
+    "perMonth": "/ maand",
+    "forever": "voor altijd",
+    "percentOff": "{percent}% korting",
+    "plans": {
+      "free": { "name": "Gratis", "description": "Hoofdstuk 1 is gratis. Maak een account voor 1 hoofdstuk per week." },
+      "achiever": { "name": "Achiever", "description": "Lees alles op het normale publicatieschema" },
+      "entrepreneur": { "name": "Entrepreneur", "description": "Lees elk verhaal 1 week vóór publicatie" }
+    },
+    "benefits": {
+      "free": ["1 hoofdstuk per week — helemaal gratis", "Alleen het publieke schema", "Blader door alle businesscategorieën"],
+      "achiever": ["Onbeperkt hoofdstukken op het publieke schema", "Elk actief verhaal in de normale lijn", "Reclamevrij op telefoon, tablet & desktop", "Bewaar je bibliotheek en voortgang"],
+      "entrepreneur": ["Alles in Achiever", "Nieuwe hoofdstukken 7 dagen eerder", "Eerste toegang tot flagship-verhalen", "Book Drop & History-serie vroeg"]
+    }
+  },
+  "paywall": {
+    "chooseMembership": "Kies je lidmaatschap",
+    "monthly": "Maandelijks",
+    "yearly": "Jaarlijks",
+    "savePercent": "Bespaar 37%",
+    "mostPopular": "Meest populair",
+    "trustedByReaders": "Vertrouwd door lezers",
+    "startReadingToday": "Begin vandaag met lezen",
+    "totalToday": "Totaal vandaag:",
+    "recurringNote": "Doorlopend abonnement — verlengt voor {price} tot je opzegt.",
+    "creditCard": "Creditcard",
+    "applePay": "Apple Pay",
+    "googlePay": "Google Pay",
+    "loadingPayment": "Veilige betaling laden…",
+    "loadingApplePay": "Apple Pay laden…",
+    "loadingGooglePay": "Google Pay laden…",
+    "googlePayFallback": "Google Pay werkt in Chrome als je bent ingelogd bij Google met een opgeslagen kaart. Of kies hierboven creditcard.",
+    "applePayFallback": "Apple Pay werkt in Safari op iPhone, iPad of Mac met een kaart in Wallet. Of kies hierboven creditcard.",
+    "legalPrefix": "Door verder te gaan ga je akkoord met onze",
+    "legalAnd": "en",
+    "termsOfUse": "Gebruiksvoorwaarden",
+    "privacyPolicy": "Privacybeleid",
+    "includedInEveryPlan": "Inbegrepen bij elk plan",
+    "showLess": "Minder tonen",
+    "moreCount": "+{count} meer",
+    "moneyBackTitle": "30 dagen geld-terug-garantie - geen vragen",
+    "moneyBackBody": "We geloven dat onze verhalen het verschil voor je maken. Zie je na verschillende hoofdstukken geen waarde in Toonlora, dan betalen we je geld dezelfde dag terug.",
+    "headline": "Ontgrendel de businessverhalen achter 's werelds grootste oprichters, fraude, imperiums en ineenstortingen.",
+    "subhead": "Echte geverifieerde verhalen. Diep onderzoek. Nieuwe afleveringen elke week.",
+    "planHighlights": {
+      "achiever": ["Onbeperkt hoofdstukken bij elk verhaal", "Nieuwe afleveringen elke week", "Reclamevrij op alle apparaten", "Bewaar voortgang in je bibliotheek"],
+      "entrepreneur": ["Alles in Achiever", "Lees nieuwe afleveringen 1 week eerder", "Bewaar verhalen in je bibliotheek", "Deel 1 verhaal per maand met een vriend", "Prioriteit voor nieuwe flagship-series"]
+    },
+    "membershipIncludes": [
+      "300+ diepgaande businessafleveringen",
+      "Elke week nieuwe hoofdstukken",
+      "Onderzocht en geschreven door 16 Harvard-studenten",
+      "Echte oprichtersverhalen, fraudezaken & bedrijfsanalyses",
+      "Specifieke info die je niet in headlines vindt",
+      "Geïllustreerd cinematisch hoofdstukformaat",
+      "Reclamevrij op elk apparaat",
+      "Bewaar voortgang in je bibliotheek",
+      "Comebacks van oprichters & imperiumopbouw",
+      "Fraudezaken van Enron tot FTX",
+      "Bedrijfsanalyses & strategische deep dives",
+      "Wekelijks nieuwe geverifieerde verhalen",
+      "Verhalen over miljardenineenstortingen",
+      "Machtsspelletjes & boardroomgevechten",
+      "Geschiedenisdrops & marktschokken",
+      "Watchlist op maat van je interesses",
+      "Lees op telefoon, tablet & desktop",
+      "Altijd opzegbaar via je profiel",
+      "30 dagen geld-terug-garantie",
+      "Vroege toegang met Entrepreneur-plan"
+    ]
+  }
+}

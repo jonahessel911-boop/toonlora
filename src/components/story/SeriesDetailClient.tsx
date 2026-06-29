@@ -8,6 +8,7 @@ import SimilarStories from "@/components/story/SimilarStories";
 import SubscriptionPaywall from "@/components/reader/SubscriptionPaywall";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
 import { fetchPublishedStory, isStoryBrowsable } from "@/lib/fetchPublishedStory";
+import { countReadableEpisodes } from "@/lib/readableEpisodes";
 import { appendAffiliateToHref, getStoredAffiliateSlug } from "@/lib/affiliate/client-tracking";
 import { buildPaywallPath, buildReaderSignupPath } from "@/lib/reader/nextEpisodeGate";
 import {
@@ -167,7 +168,8 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
 
   const episodeList = useMemo(() => {
     if (!series) return [];
-    const total = mock?.chapters ?? Math.max(series.episodes.length, 1);
+    const total = mock?.chapters ?? series.episodes.length;
+    if (total === 0) return [];
     return buildFullEpisodeList(
       id,
       total,
@@ -226,7 +228,10 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
   const storyDescription = mock?.hook ?? series.synopsis;
   const sagaBadge = caseFile.sagaLabel.toUpperCase();
   const totalChapters = mock?.chapters ?? episodeList.length;
-  const publishedCount = getPublishedChapterCount(id, totalChapters);
+  const publishedCount = mock
+    ? getPublishedChapterCount(id, totalChapters)
+    : countReadableEpisodes(loadedStory);
+  const canRead = publishedCount > 0;
   const readMinutes = mock?.readMinutes ?? caseFile.readMinutes;
   const schedule =
     mock?.id ? getSagaScheduleLabel(mock.id) : series.schedule;
@@ -376,19 +381,22 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
           </p>
 
           <p className="mt-3 text-sm text-[#C5D0DC]">
-            {totalChapters} chapters · {readMinutes} min reads · {schedule}
+            {totalChapters > 0
+              ? `${totalChapters} chapters · ${readMinutes} min reads · ${schedule}`
+              : `In production · ${schedule}`}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => void openEpisode(1)}
-              className="inline-flex h-11 items-center gap-2.5 rounded-[10px] bg-white px-6 text-sm font-extrabold text-[#111827] shadow-md transition hover:bg-[#F8FAFC]"
+              disabled={!canRead}
+              className="inline-flex h-11 items-center gap-2.5 rounded-[10px] bg-white px-6 text-sm font-extrabold text-[#111827] shadow-md transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#111827] text-[10px] text-white">
                 ▶
               </span>
-              Play Chapter 1
+              {canRead ? "Play Chapter 1" : "Coming soon"}
             </button>
             <button
               type="button"
@@ -447,7 +455,12 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
               </div>
 
               <NetflixChapterRow>
-                {episodeList.map((ep) => {
+                {episodeList.length === 0 ? (
+                  <p className="py-8 text-sm text-[#6B7280]">
+                    No chapters are ready yet. This series is still being created.
+                  </p>
+                ) : (
+                episodeList.map((ep) => {
                   const title = resolveChapterListTitle(id, ep.number, ep.title);
                   const displayTitle =
                     title.replace(/^Chapter\s+\d+\s*[—–-]\s*/i, "") || title;
@@ -490,7 +503,8 @@ export default function SeriesDetailClient({ id }: SeriesDetailClientProps) {
                       onFastPassClick={() => openFastPass(ep.number)}
                     />
                   );
-                })}
+                })
+                )}
               </NetflixChapterRow>
             </div>
           ) : null}

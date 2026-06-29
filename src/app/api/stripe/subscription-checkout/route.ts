@@ -3,11 +3,11 @@ import type Stripe from "stripe";
 import { getSessionFromRequest } from "@/lib/api/session";
 import { isServerDatabaseConfigured } from "@/lib/config";
 import { recordAnalyticsEventToDb } from "@/lib/services/analytics-repository";
-import { getProfileBySessionFromDb } from "@/lib/services/profile-repository";
+import { getProfileBySessionFromDb } from "@/lib/services/profile-lookup";
 import {
   getSubscriptionPlan,
-  subscriptionStripePriceData,
 } from "@/lib/payments/subscription-plans";
+import { resolveRecurringPriceId } from "@/lib/payments/stripe-subscription-price";
 import { resolveStripeCustomerId } from "@/lib/payments/stripe-checkout-customer";
 import { STRIPE_SUBSCRIPTION_PAYMENT_METHODS } from "@/lib/payments/stripe-payment-methods";
 import { getSiteUrl, getStripe, isStripeConfigured } from "@/lib/services/stripe";
@@ -65,6 +65,8 @@ export async function POST(request: Request) {
       }
     }
 
+    const priceId = await resolveRecurringPriceId(stripe, plan);
+
     const checkoutParams: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
       payment_method_types: [...STRIPE_SUBSCRIPTION_PAYMENT_METHODS],
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
       },
       line_items: [
         {
-          price_data: subscriptionStripePriceData(plan),
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
         planId: plan.id,
         type: "subscription",
       },
-      success_url: `${siteUrl}${safePath}${safePath.includes("?") ? "&" : "?"}subscribed=success`,
+      success_url: `${siteUrl}/subscribe/welcome?subscribed=success`,
       cancel_url: `${siteUrl}${safePath}${safePath.includes("?") ? "&" : "?"}subscribed=cancelled`,
     };
 

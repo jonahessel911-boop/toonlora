@@ -1,7 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ADMIN_GRADIENTS } from "@/components/admin/adminUi";
+import {
+  ADMIN_GRADIENTS,
+  AdminBrowseCategorySelect,
+} from "@/components/admin/adminUi";
+import { resolvePipelineSlug } from "@/lib/browseCategories";
 import type { CatalogSeries } from "@/types/catalog";
 
 interface AdminSeriesTableProps {
@@ -11,6 +16,7 @@ interface AdminSeriesTableProps {
   onPublish: (id: string) => void;
   onUnpublish: (id: string) => void;
   onDelete: (id: string, title: string) => void;
+  onCategoryChange: (id: string, category: string) => Promise<void>;
 }
 
 export default function AdminSeriesTable({
@@ -20,7 +26,25 @@ export default function AdminSeriesTable({
   onPublish,
   onUnpublish,
   onDelete,
+  onCategoryChange,
 }: AdminSeriesTableProps) {
+  const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
+  const [categoryError, setCategoryError] = useState("");
+
+  const handleCategoryChange = async (id: string, category: string) => {
+    setSavingCategoryId(id);
+    setCategoryError("");
+    try {
+      await onCategoryChange(id, category);
+    } catch (err) {
+      setCategoryError(
+        err instanceof Error ? err.message : "Failed to update category"
+      );
+    } finally {
+      setSavingCategoryId(null);
+    }
+  };
+
   if (loading && series.length === 0) {
     return (
       <div className="rounded-xl border border-[#EDEBE9] bg-white px-6 py-16 text-center text-sm text-[#605E5C]">
@@ -42,13 +66,18 @@ export default function AdminSeriesTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-[#EDEBE9] bg-white shadow-sm">
+      {categoryError ? (
+        <div className="border-b border-[#F1BBBC] bg-[#FDE7E9] px-4 py-2 text-xs font-semibold text-[#A4262C]">
+          {categoryError}
+        </div>
+      ) : null}
       <div className="overflow-x-auto">
         <table className="min-w-[920px] w-full text-left text-sm">
           <thead>
             <tr className="border-b border-[#EDEBE9] bg-[#FAF9F8] text-[11px] font-semibold uppercase tracking-wide text-[#605E5C]">
               <th className="px-4 py-3 w-14" />
               <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Genre</th>
+              <th className="px-4 py-3">Category</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Episodes</th>
               <th className="px-4 py-3">Creator</th>
@@ -59,96 +88,106 @@ export default function AdminSeriesTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-[#EDEBE9]">
-            {series.map((row) => (
-              <tr key={row.id} className="hover:bg-[#FAF9F8]/80">
-                <td className="px-4 py-3">
-                  <div
-                    className={`h-12 w-9 overflow-hidden rounded-md bg-gradient-to-br shadow-sm ${row.coverGradient ?? ADMIN_GRADIENTS[0].class}`}
-                  >
-                    {row.coverArtUrl ? (
-                      <img
-                        src={row.coverArtUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : null}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/story/${row.id}`}
-                    className="font-semibold text-[#0078D4] hover:underline"
-                  >
-                    {row.title}
-                  </Link>
-                  <p className="mt-0.5 max-w-[220px] truncate text-xs text-[#605E5C]">
-                    {row.synopsis || "—"}
-                  </p>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex rounded-full bg-[#F3F2F1] px-2.5 py-0.5 text-xs font-semibold text-[#323130]">
-                    {row.genre}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={row.status} />
-                </td>
-                <td className="px-4 py-3 text-[#323130]">{row.episodeCount}</td>
-                <td className="px-4 py-3 max-w-[120px] truncate text-[#605E5C]">
-                  {row.creatorDisplayName}
-                </td>
-                <td className="px-4 py-3 text-[#605E5C]">
-                  {row.featuredRank ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-[#605E5C]">
-                  {row.viewsCount.toLocaleString()}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-xs text-[#605E5C]">
-                  {new Date(row.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-1">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(row.id)}
-                      className="rounded-md border border-[#0078D4] px-2.5 py-1 text-xs font-semibold text-[#0078D4] hover:bg-[#EFF6FC]"
+            {series.map((row) => {
+              const categorySlug = resolvePipelineSlug(row.genre);
+
+              return (
+                <tr key={row.id} className="hover:bg-[#FAF9F8]/80">
+                  <td className="px-4 py-3">
+                    <div
+                      className={`h-12 w-9 overflow-hidden rounded-md bg-gradient-to-br shadow-sm ${row.coverGradient ?? ADMIN_GRADIENTS[0].class}`}
                     >
-                      Edit
-                    </button>
+                      {row.coverArtUrl ? (
+                        <img
+                          src={row.coverArtUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
                     <Link
-                      href={`/story/${row.id}/read`}
-                      className="rounded-md bg-[#0078D4] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#106EBE]"
+                      href={`/story/${row.id}`}
+                      className="font-semibold text-[#0078D4] hover:underline"
                     >
-                      Read
+                      {row.title}
                     </Link>
-                    {row.status === "published" ? (
+                    <p className="mt-0.5 max-w-[220px] truncate text-xs text-[#605E5C]">
+                      {row.synopsis || "—"}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <AdminBrowseCategorySelect
+                      value={categorySlug}
+                      disabled={savingCategoryId === row.id}
+                      onChange={(e) =>
+                        void handleCategoryChange(row.id, e.target.value)
+                      }
+                      className="mt-0 min-w-[11rem] py-1.5 text-xs"
+                      aria-label={`Category for ${row.title}`}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={row.status} />
+                  </td>
+                  <td className="px-4 py-3 text-[#323130]">{row.episodeCount}</td>
+                  <td className="px-4 py-3 max-w-[120px] truncate text-[#605E5C]">
+                    {row.creatorDisplayName}
+                  </td>
+                  <td className="px-4 py-3 text-[#605E5C]">
+                    {row.featuredRank ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-[#605E5C]">
+                    {row.viewsCount.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-xs text-[#605E5C]">
+                    {new Date(row.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-1">
                       <button
                         type="button"
-                        onClick={() => onUnpublish(row.id)}
-                        className="rounded-md border border-[#D2D0CE] px-2.5 py-1 text-xs font-semibold text-[#605E5C] hover:bg-[#F3F2F1]"
+                        onClick={() => onEdit(row.id)}
+                        className="rounded-md border border-[#0078D4] px-2.5 py-1 text-xs font-semibold text-[#0078D4] hover:bg-[#EFF6FC]"
                       >
-                        Unpublish
+                        Edit
                       </button>
-                    ) : (
+                      <Link
+                        href={`/story/${row.id}/read`}
+                        className="rounded-md bg-[#0078D4] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#106EBE]"
+                      >
+                        Read
+                      </Link>
+                      {row.status === "published" ? (
+                        <button
+                          type="button"
+                          onClick={() => onUnpublish(row.id)}
+                          className="rounded-md border border-[#D2D0CE] px-2.5 py-1 text-xs font-semibold text-[#605E5C] hover:bg-[#F3F2F1]"
+                        >
+                          Unpublish
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onPublish(row.id)}
+                          className="rounded-md border border-[#107C10] px-2.5 py-1 text-xs font-semibold text-[#107C10] hover:bg-[#DFF6DD]"
+                        >
+                          Publish
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => onPublish(row.id)}
-                        className="rounded-md border border-[#107C10] px-2.5 py-1 text-xs font-semibold text-[#107C10] hover:bg-[#DFF6DD]"
+                        onClick={() => onDelete(row.id, row.title)}
+                        className="rounded-md px-2.5 py-1 text-xs font-semibold text-[#A4262C] hover:bg-[#FDE7E9]"
                       >
-                        Publish
+                        Delete
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => onDelete(row.id, row.title)}
-                      className="rounded-md px-2.5 py-1 text-xs font-semibold text-[#A4262C] hover:bg-[#FDE7E9]"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

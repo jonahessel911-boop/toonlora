@@ -274,6 +274,7 @@ export async function updateAdminStoryEpisode(
     .update({
       title: input.title,
       genre: input.genre,
+      category: input.genre,
       cover_gradient: input.coverGradient,
       synopsis: input.synopsis,
       story_idea: input.synopsis,

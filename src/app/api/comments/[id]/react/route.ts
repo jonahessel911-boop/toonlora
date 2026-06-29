@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/api/session";
-import {
-  reactToComment,
-  reactToCommentLocal,
-} from "@/lib/services/comments-repository";
+import { reactToComment } from "@/lib/services/comments-repository";
+import { reactToCommentLocal } from "@/lib/services/comments-client";
 import { isServerDatabaseConfigured } from "@/lib/config";
 
 interface RouteParams {

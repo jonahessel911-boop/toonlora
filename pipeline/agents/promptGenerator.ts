@@ -20,7 +20,7 @@ const CAMERA_ROTATION = [
 ] as const;
 
 const CAPTION_BOX_POSITION =
-  "large box, 80% width centered, 58-72% height band, 32px inner padding, 140px+ bottom margin — never full width, never on subject, never below 74%";
+  "large box, 80% width centered, 50-62% height band, bottom edge at 58-62% max, 38%+ empty margin below box — never bottom edge, never below 62%";
 
 const PROMPT_SYSTEM = `You are a senior comic art director for Toonlora, a premium documentary-style digital comic platform. Your job is to take a panel script and write a complete, detailed image generation prompt that produces a ready-to-publish cinematic comic panel.
 
@@ -169,6 +169,11 @@ async function parsePromptsFromModel(
   raw: string,
   expectedPanelNumbers: number[]
 ): Promise<PromptResult[]> {
+  const extracted = extractPromptsFromRaw(raw, expectedPanelNumbers);
+  if (extracted.length === expectedPanelNumbers.length) {
+    return validatePromptResults(extracted, expectedPanelNumbers);
+  }
+
   try {
     const result = parseJsonFromModel<EpisodePromptsResult>(raw);
     const prompts = result.prompts ?? [];
@@ -176,12 +181,11 @@ async function parsePromptsFromModel(
       return validatePromptResults(prompts, expectedPanelNumbers);
     }
   } catch {
-    /* fall through to regex extraction */
+    /* fall through */
   }
 
-  const extracted = extractPromptsFromRaw(raw, expectedPanelNumbers);
   if (extracted.length > 0) {
-    return extracted;
+    return validatePromptResults(extracted, expectedPanelNumbers);
   }
 
   throw new Error(
@@ -204,41 +208,14 @@ function validatePromptResults(
   );
 }
 
-function extractPromptsFromRaw(
-  raw: string,
-  expectedPanelNumbers: number[]
-): PromptResult[] {
-  const results: PromptResult[] = [];
-
-  for (const panelNumber of expectedPanelNumbers) {
-    const prompt = extractImagePromptForPanel(raw, panelNumber);
-    if (prompt) {
-      results.push({ panel_number: panelNumber, image_prompt: prompt });
-    }
-  }
-
-  return results;
-}
-
-function extractImagePromptForPanel(
-  raw: string,
-  panelNumber: number
-): string | null {
-  const marker = new RegExp(
-    `"panel_number"\\s*:\\s*${panelNumber}[\\s\\S]*?"image_prompt"\\s*:\\s*"`,
-    "i"
-  );
-  const match = raw.match(marker);
-  if (!match || match.index == null) return null;
-
-  const start = match.index + match[0].length;
+function readJsonStringValue(raw: string, start: number): string | null {
   let value = "";
 
   for (let i = start; i < raw.length; i++) {
     const char = raw[i];
 
     if (char === "\\" && i + 1 < raw.length) {
-      const next = raw[i + 1];
+      const next = raw[i + 1]!;
       if (next === "n") value += "\n";
       else if (next === "r") value += "\r";
       else if (next === "t") value += "\t";
@@ -267,6 +244,102 @@ function extractImagePromptForPanel(
   }
 
   return value.trim() || null;
+}
+
+function extractAllImagePrompts(
+  raw: string
+): Array<{ panelNumber: number | null; prompt: string }> {
+  const results: Array<{ panelNumber: number | null; prompt: string }> = [];
+  const marker = /"image_prompt"\s*:\s*"/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = marker.exec(raw)) !== null) {
+    const prompt = readJsonStringValue(raw, match.index + match[0].length);
+    if (!prompt) continue;
+
+    const windowStart = Math.max(0, match.index - 400);
+    const windowEnd = Math.min(
+      raw.length,
+      match.index + match[0].length + prompt.length + 400
+    );
+    const window = raw.slice(windowStart, windowEnd);
+    const panelMatch = window.match(/"panel_number"\s*:\s*(\d+)/);
+    results.push({
+      panelNumber: panelMatch ? Number(panelMatch[1]) : null,
+      prompt,
+    });
+  }
+
+  return results;
+}
+
+function extractImagePromptForPanel(
+  raw: string,
+  panelNumber: number
+): string | null {
+  const forwardMarker = new RegExp(
+    `"panel_number"\\s*:\\s*${panelNumber}\\b[\\s\\S]*?"image_prompt"\\s*:\\s*"`,
+    "i"
+  );
+  const forwardMatch = raw.match(forwardMarker);
+  if (forwardMatch && forwardMatch.index != null) {
+    const prompt = readJsonStringValue(
+      raw,
+      forwardMatch.index + forwardMatch[0].length
+    );
+    if (prompt) return prompt;
+  }
+
+  const panelMarker = new RegExp(`"panel_number"\\s*:\\s*${panelNumber}\\b`);
+  const panelMatch = raw.match(panelMarker);
+  if (panelMatch && panelMatch.index != null) {
+    const before = raw.slice(0, panelMatch.index);
+    const reverseMarker = /"image_prompt"\s*:\s*"/gi;
+    let last: RegExpExecArray | null = null;
+    let reverse: RegExpExecArray | null;
+    while ((reverse = reverseMarker.exec(before)) !== null) {
+      last = reverse;
+    }
+    if (last) {
+      const prompt = readJsonStringValue(raw, last.index + last[0].length);
+      if (prompt) return prompt;
+    }
+  }
+
+  const fromScan = extractAllImagePrompts(raw).find(
+    (item) => item.panelNumber === panelNumber
+  );
+  return fromScan?.prompt ?? null;
+}
+
+function extractPromptsFromRaw(
+  raw: string,
+  expectedPanelNumbers: number[]
+): PromptResult[] {
+  const results: PromptResult[] = [];
+
+  for (const panelNumber of expectedPanelNumbers) {
+    const prompt = extractImagePromptForPanel(raw, panelNumber);
+    if (prompt) {
+      results.push({ panel_number: panelNumber, image_prompt: prompt });
+    }
+  }
+
+  if (
+    results.length === 0 &&
+    expectedPanelNumbers.length === 1 &&
+    extractAllImagePrompts(raw).length === 1
+  ) {
+    const only = extractAllImagePrompts(raw)[0]!;
+    return [
+      {
+        panel_number: expectedPanelNumbers[0]!,
+        image_prompt: only.prompt,
+      },
+    ];
+  }
+
+  return results;
 }
 
 async function callAnthropicForPrompts(
@@ -319,7 +392,7 @@ ${JSON.stringify(scriptPanel, null, 2)}
 Research facts:
 ${params.researchFacts}
 
-Write OPENING, STYLE (verbatim), FORMAT (verbatim), CHARACTER DESCRIPTION, SCENE (include composition safe zone — subject in top 62% only), TEXT (verbatim CAPTION BOX RULES + caption + dialogue), and IMPORTANT RULES (verbatim closing block).
+Write OPENING, STYLE (verbatim), FORMAT (verbatim), CHARACTER DESCRIPTION, SCENE (include composition safe zone — subject in top 50% only), TEXT (verbatim CAPTION BOX RULES + caption + dialogue), and IMPORTANT RULES (verbatim closing block).
 Send-ready for gpt-image-1. Portrait 1024x1536. Caption box: large, 80% width, 32px padding, never full-width.
 
 Return ONLY valid JSON. The image_prompt string MUST use \\" for any double quotes inside the text and \\n for line breaks — no raw unescaped quotes or newlines inside JSON strings.

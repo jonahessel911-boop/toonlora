@@ -1,12 +1,11 @@
+import { BROWSE_CONTENT_CATEGORIES } from "@/lib/browseCategories";
+
 export const LEAN_PANEL_COUNT = 1;
 
-export const PIPELINE_CATEGORIES = [
-  { value: "rise_and_fall", label: "Rise & Fall" },
-  { value: "founder_stories", label: "Founder Stories" },
-  { value: "heists_and_frauds", label: "Heists & Frauds" },
-  { value: "empires", label: "Empires" },
-  { value: "business", label: "Business" },
-] as const;
+export const PIPELINE_CATEGORIES = BROWSE_CONTENT_CATEGORIES.map((category) => ({
+  value: category.slug,
+  label: category.label,
+}));
 
 export const PIPELINE_CATEGORY_SLUGS = PIPELINE_CATEGORIES.map(
   (category) => category.value

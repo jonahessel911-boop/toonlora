@@ -130,6 +130,7 @@ export default function SignupOnboardingFlow({
         body: JSON.stringify({
           fullName,
           email: trimmedEmail,
+          password,
           wantsWeeklyNewsletter,
           newsletterTopics: savedTopics,
           affiliateSlug,

@@ -10,7 +10,13 @@ import {
 import { apiFetch } from "@/lib/session";
 
 interface SubscriptionState {
-  status: "none" | "active" | "cancelled" | "past_due" | "paused";
+  status:
+    | "none"
+    | "active"
+    | "cancelled"
+    | "past_due"
+    | "paused"
+    | "cancel_at_period_end";
   planId: string | null;
   periodEnd: string | null;
   hydrated: boolean;
@@ -55,7 +61,11 @@ export const useSubscriptionStore = create<SubscriptionState>()(
           };
           set({
             status: data.active
-              ? "active"
+              ? data.status === "cancel_at_period_end"
+                ? "cancel_at_period_end"
+                : data.status === "paused"
+                  ? "paused"
+                  : "active"
               : data.status === "cancelled"
                 ? "cancelled"
                 : data.status === "paused"
@@ -71,7 +81,13 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
       getTier: () => {
         const { status, planId, periodEnd } = get();
-        if (status !== "active") return "free";
+        if (
+          status !== "active" &&
+          status !== "paused" &&
+          status !== "cancel_at_period_end"
+        ) {
+          return "free";
+        }
         if (periodEnd && new Date(periodEnd).getTime() <= Date.now()) {
           return "free";
         }

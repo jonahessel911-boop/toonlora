@@ -21,6 +21,8 @@ export default function AnalyticsProvider({
       void apiFetch("/api/analytics/heartbeat", {
         method: "POST",
         body: JSON.stringify({ path: pathname }),
+      }).catch(() => {
+        /* ignore offline / aborted requests */
       });
     };
 
@@ -36,6 +38,8 @@ export default function AnalyticsProvider({
         method: "POST",
         body: JSON.stringify({ path: pathname }),
         keepalive: true,
+      }).catch(() => {
+        /* ignore offline / aborted requests */
       });
     };
 

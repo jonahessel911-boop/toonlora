@@ -74,7 +74,10 @@ export async function createPipelineSeries(
   return { seriesId: data.id as string, slug: data.slug as string };
 }
 
-export async function clearStalePipelineRuns(seriesId: string): Promise<void> {
+export async function clearStalePipelineRuns(
+  seriesId: string,
+  message = "Stopped — new pipeline run started"
+): Promise<void> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
 
@@ -82,10 +85,54 @@ export async function clearStalePipelineRuns(seriesId: string): Promise<void> {
     .from("pipeline_runs")
     .update({
       status: "failed",
-      error: "Stopped — new pipeline run started",
+      error: message,
     })
     .eq("series_id", seriesId)
     .eq("status", "running");
+}
+
+const STOP_MESSAGE = "Stopped — creation cancelled";
+
+/** Halt active pipeline runs and queue jobs (creator admin "Stop creation"). */
+export async function stopPipelineCreation(options: {
+  seriesId?: string;
+  stopAll?: boolean;
+} = {}): Promise<{ stoppedRuns: number; stoppedJobs: number }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("Database not configured");
+
+  let runsQuery = supabase
+    .from("pipeline_runs")
+    .update({ status: "failed", error: STOP_MESSAGE })
+    .eq("status", "running");
+
+  if (options.seriesId && !options.stopAll) {
+    runsQuery = runsQuery.eq("series_id", options.seriesId);
+  }
+
+  const { data: stoppedRuns, error: runsError } = await runsQuery.select("id");
+  if (runsError) throw new Error(runsError.message);
+
+  let queueQuery = supabase
+    .from("pipeline_queue")
+    .update({
+      status: "cancelled",
+      completed_at: new Date().toISOString(),
+      error: STOP_MESSAGE,
+    })
+    .eq("status", "running");
+
+  if (options.seriesId && !options.stopAll) {
+    queueQuery = queueQuery.eq("series_id", options.seriesId);
+  }
+
+  const { data: stoppedJobs, error: queueError } = await queueQuery.select("id");
+  if (queueError) throw new Error(queueError.message);
+
+  return {
+    stoppedRuns: stoppedRuns?.length ?? 0,
+    stoppedJobs: stoppedJobs?.length ?? 0,
+  };
 }
 
 function buildPipelineSpawnEnv(): NodeJS.ProcessEnv {

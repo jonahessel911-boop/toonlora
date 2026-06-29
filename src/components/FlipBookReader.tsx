@@ -11,7 +11,9 @@ interface FlipBookReaderProps {
   onShare?: () => void;
 }
 
-function PageContent({ page }: { page: StoryPage }) {
+function PageContent({ page }: { page: StoryPage | undefined }) {
+  if (!page) return null;
+
   return (
     <div className="flex h-full flex-col">
       {page.imageGradient && (
@@ -42,13 +44,29 @@ export default function FlipBookReader({
   showLibraryLink = true,
   onShare,
 }: FlipBookReaderProps) {
+  const validPages = pages.filter(
+    (page): page is StoryPage => Boolean(page?.text?.trim())
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<"next" | "prev" | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
-  const totalPages = pages.length;
-  const currentPage = pages[currentIndex];
+  const totalPages = validPages.length;
+  const currentPage = validPages[currentIndex];
+
+  if (totalPages === 0) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <p className="font-heading text-lg font-bold text-groen-deep">
+          No pages to read yet
+        </p>
+        <p className="mt-2 text-sm text-gray-500">
+          This story has no readable content at the moment.
+        </p>
+      </div>
+    );
+  }
 
   const goNext = useCallback(() => {
     if (currentIndex >= totalPages - 1 || isFlipping) return;
@@ -143,7 +161,7 @@ export default function FlipBookReader({
               transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
             >
               <div className="absolute left-0 top-0 h-full w-3 rounded-l-2xl bg-gradient-to-r from-amber-100/60 to-transparent" />
-              <PageContent page={pages[currentIndex]} />
+              <PageContent page={validPages[currentIndex]} />
             </motion.div>
           )}
 
@@ -156,7 +174,7 @@ export default function FlipBookReader({
               transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
             >
               <div className="absolute left-0 top-0 h-full w-3 rounded-l-2xl bg-gradient-to-r from-amber-100/60 to-transparent" />
-              <PageContent page={pages[currentIndex - 1]} />
+              <PageContent page={validPages[currentIndex - 1]} />
             </motion.div>
           )}
         </div>

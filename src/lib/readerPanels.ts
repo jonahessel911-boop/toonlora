@@ -29,7 +29,7 @@ export function episodeToReaderPanels(
   coverGradient: string,
   seriesId?: string
 ): ReaderPanelData[] {
-  const stripUrl = episode.comicPage.artUrl ?? undefined;
+  const stripUrl = episode.comicPage?.artUrl ?? undefined;
 
   const breakdownByNumber = new Map(
     (episode.panelBreakdown?.panels ?? []).map((p) => [p.panel_number, p])

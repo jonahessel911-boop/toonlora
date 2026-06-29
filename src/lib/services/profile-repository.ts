@@ -1,3 +1,4 @@
+import { hashPassword } from "@/lib/auth/password";
 import { ensureSession } from "@/lib/services/story-repository";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { ProfileRow } from "@/lib/supabase/types";
@@ -5,6 +6,7 @@ import type { ProfileRow } from "@/lib/supabase/types";
 export interface RegisterProfileInput {
   fullName: string;
   email: string;
+  password?: string;
   countryCode?: string;
   signupIp?: string | null;
   wantsRecommendations?: boolean;
@@ -37,7 +39,7 @@ export async function registerProfileInDb(
 
   const existing = bySession ?? byEmail;
 
-  const profilePayload = {
+  const profilePayload: Record<string, unknown> = {
     session_id: sessionId,
     email,
     full_name: fullName,
@@ -46,6 +48,10 @@ export async function registerProfileInDb(
     newsletter_topics: input.newsletterTopics ?? [],
     country_code: input.countryCode ?? null,
   };
+
+  if (input.password) {
+    profilePayload.password_hash = hashPassword(input.password);
+  }
 
   if (existing) {
     const { data: updated, error } = await supabase
@@ -70,19 +76,4 @@ export async function registerProfileInDb(
 
   if (error) throw new Error(error.message);
   return { profile: data as ProfileRow, isNew: true };
-}
-
-export async function getProfileBySessionFromDb(
-  sessionId: string
-): Promise<ProfileRow | null> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("session_id", sessionId)
-    .maybeSingle();
-
-  return (data as ProfileRow | null) ?? null;
 }

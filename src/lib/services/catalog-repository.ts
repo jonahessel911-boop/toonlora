@@ -1,3 +1,7 @@
+import {
+  catalogSectionFromSlug,
+  isPipelineCategorySlug,
+} from "@/lib/browseCategories";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatCatalogCategoryLabel } from "@/lib/catalogCategoryLabel";
 import {
@@ -49,6 +53,34 @@ async function episodeMetaForSeriesIds(
   }
 
   return meta;
+}
+
+async function firstPipelinePanelCover(
+  seriesId: string
+): Promise<string | undefined> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return undefined;
+
+  const { data: episode } = await supabase
+    .from("episodes")
+    .select("id")
+    .eq("series_id", seriesId)
+    .eq("episode_number", 1)
+    .maybeSingle();
+
+  if (!episode) return undefined;
+
+  const { data: panel } = await supabase
+    .from("panels")
+    .select("image_url")
+    .eq("episode_id", episode.id)
+    .not("image_url", "is", null)
+    .order("panel_number", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return (panel as { image_url?: string | null } | null)?.image_url?.trim() ||
+    undefined;
 }
 
 function coverFromSeriesRow(series: SeriesRow): string | undefined {
@@ -163,6 +195,36 @@ export async function listPublishedCatalog(
   });
 }
 
+export interface SitemapSeriesEntry {
+  id: string;
+  updatedAt: string | null;
+}
+
+/** Lightweight list for sitemap generation — all public published stories. */
+export async function listPublishedSeriesForSitemap(): Promise<
+  SitemapSeriesEntry[]
+> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("series")
+    .select("id, updated_at, published_at")
+    .eq("status", "published")
+    .eq("is_public", true)
+    .order("published_at", { ascending: false });
+
+  if (error || !data?.length) return [];
+
+  return data.map((row) => ({
+    id: row.id as string,
+    updatedAt:
+      (row.updated_at as string | null) ??
+      (row.published_at as string | null) ??
+      null,
+  }));
+}
+
 /** Series with a generated cover — shown on the browse index (incl. draft pipeline). */
 export async function listIndexCatalog(
   query: CatalogQuery = {}
@@ -223,6 +285,29 @@ export async function listAllSeriesAdmin(): Promise<CatalogSeries[]> {
       coverFromSeriesRow(row) ?? episodeMeta.cover
     );
   });
+}
+
+export async function updateSeriesCategory(
+  id: string,
+  categorySlug: string
+): Promise<void> {
+  if (!isPipelineCategorySlug(categorySlug)) {
+    throw new Error("Invalid category");
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("Database not configured");
+
+  const { error } = await supabase
+    .from("series")
+    .update({
+      category: categorySlug,
+      genre: categorySlug,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
 }
 
 export async function updateSeriesPublishing(
@@ -351,6 +436,19 @@ export async function getSeriesLikeCount(
   return data.likes_count ?? 0;
 }
 
+function isSeriesBrowsable(
+  row: SeriesRow,
+  coverArtUrl: string | undefined,
+  episodeCount: number
+): boolean {
+  if (row.status === "published") return true;
+  if (row.is_public) return true;
+  if (coverArtUrl) return true;
+  if (episodeCount > 0) return true;
+  return false;
+}
+
+/** Any series visible on browse / story detail (not only published + public). */
 export async function getCatalogSeriesById(
   id: string
 ): Promise<CatalogSeries | null> {
@@ -361,12 +459,56 @@ export async function getCatalogSeriesById(
     .from("series")
     .select("*")
     .eq("id", id)
-    .eq("status", "published")
-    .eq("is_public", true)
     .maybeSingle();
 
   if (!data) return null;
+
+  const row = data as SeriesRow;
   const meta = await episodeMetaForSeriesIds([id]);
   const episodeMeta = meta.get(id) ?? { count: 0 };
-  return rowToCatalog(data as SeriesRow, episodeMeta.count, episodeMeta.cover);
+  const coverArtUrl =
+    coverFromSeriesRow(row) ??
+    episodeMeta.cover ??
+    (await firstPipelinePanelCover(id));
+
+  if (!isSeriesBrowsable(row, coverArtUrl, episodeMeta.count)) {
+    return null;
+  }
+
+  return rowToCatalog(row, episodeMeta.count, coverArtUrl);
+}
+
+function hasRealCover(story: CatalogSeries): boolean {
+  return Boolean(story.coverArtUrl?.trim());
+}
+
+function isRelevantSimilarStory(
+  story: CatalogSeries,
+  current: CatalogSeries,
+  sectionId: ReturnType<typeof catalogSectionFromSlug>
+): boolean {
+  if (story.id === current.id) return false;
+  if (!hasRealCover(story)) return false;
+  if (story.episodeCount < 1) return false;
+
+  if (sectionId) {
+    return catalogSectionFromSlug(story.genre) === sectionId;
+  }
+
+  return story.genre === current.genre;
+}
+
+export async function listSimilarCatalogStories(
+  seriesId: string,
+  limit = 8
+): Promise<CatalogSeries[]> {
+  const current = await getCatalogSeriesById(seriesId);
+  if (!current) return [];
+
+  const sectionId = catalogSectionFromSlug(current.genre);
+  const candidates = await listPublishedCatalog({ sort: "featured", limit: 64 });
+
+  return candidates
+    .filter((story) => isRelevantSimilarStory(story, current, sectionId))
+    .slice(0, limit);
 }

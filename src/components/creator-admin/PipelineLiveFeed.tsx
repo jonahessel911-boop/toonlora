@@ -21,6 +21,7 @@ interface PipelineLiveFeedProps {
   seriesId: string | null;
   onArtifactsUpdated?: () => void;
   onPipelineResumed?: () => void;
+  onPipelineStopped?: () => void;
 }
 
 function depthLabel(depth: PipelineResearchEpisodeOutline["depth"]): string {
@@ -135,10 +136,12 @@ export default function PipelineLiveFeed({
   seriesId,
   onArtifactsUpdated,
   onPipelineResumed,
+  onPipelineStopped,
 }: PipelineLiveFeedProps) {
   const [live, setLive] = useState<PipelineLiveState | null>(null);
   const [resuming, setResuming] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [resumeError, setResumeError] = useState("");
   const [tick, setTick] = useState(0);
   const lastFingerprintRef = useRef("");
@@ -252,6 +255,38 @@ export default function PipelineLiveFeed({
     }
   }, [seriesId, live?.status.running, onPipelineResumed, loadLive, applyLive]);
 
+  const stopCreation = useCallback(async () => {
+    if (!seriesId) return;
+    const confirmed = window.confirm(
+      "Stop creation? The current pipeline will be halted. You can resume later from where it left off."
+    );
+    if (!confirmed) return;
+
+    setStopping(true);
+    setResumeError("");
+    try {
+      const res = await fetch("/api/creator-admin/pipeline/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seriesId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Stop creation failed");
+      }
+      onPipelineStopped?.();
+      lastFingerprintRef.current = "";
+      const next = await loadLive(seriesId);
+      if (next) applyLive(next);
+    } catch (err) {
+      setResumeError(
+        err instanceof Error ? err.message : "Stop creation failed"
+      );
+    } finally {
+      setStopping(false);
+    }
+  }, [seriesId, onPipelineStopped, loadLive, applyLive]);
+
   if (!seriesId || !live) return null;
 
   void tick;
@@ -261,7 +296,7 @@ export default function PipelineLiveFeed({
   const progress = status.panelProgress;
   const isComplete = status.completedSteps.includes("complete");
   const canResume = !status.running && !isComplete;
-  const canRestart = !restarting && !resuming;
+  const canRestart = !restarting && !resuming && !stopping;
   const failedRun = [...status.runs].reverse().find((run) => run.status === "failed");
   const failedStepLabel = failedRun
     ? STEP_LABELS[failedRun.step] ?? failedRun.step
@@ -407,10 +442,20 @@ export default function PipelineLiveFeed({
           </div>
 
           <div className="flex shrink-0 flex-wrap gap-2">
+            {status.running ? (
+              <button
+                type="button"
+                disabled={stopping || resuming || restarting}
+                onClick={() => void stopCreation()}
+                className="rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+              >
+                {stopping ? "Stopping…" : "Stop creation"}
+              </button>
+            ) : null}
             {canRestart ? (
               <button
                 type="button"
-                disabled={restarting || resuming}
+                disabled={restarting || resuming || stopping}
                 onClick={() => void restartPipeline()}
                 className="rounded-lg border border-[#07111F]/15 bg-white px-4 py-2.5 text-sm font-semibold text-[#07111F] hover:bg-[#07111F]/5 disabled:opacity-50"
               >
@@ -420,7 +465,7 @@ export default function PipelineLiveFeed({
             {canResume ? (
               <button
                 type="button"
-                disabled={resuming || restarting}
+                disabled={resuming || restarting || stopping}
                 onClick={() => void resumePipeline()}
                 className="rounded-lg bg-[#2F80ED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2563c7] disabled:opacity-50"
               >

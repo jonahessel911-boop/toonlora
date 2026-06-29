@@ -10,25 +10,22 @@ import TopTenCard from "@/components/home/stream/TopTenCard";
 import { prioritizeCoverArt, withRealCoverArt } from "@/components/home/StoryCard";
 import { useContinueReading } from "@/hooks/useContinueReading";
 import { useCatalog } from "@/hooks/useCatalog";
-import { HOME_BROWSE_NAV, HOME_SECTION_SUBTITLES } from "@/lib/homeBrowseNav";
-import { FEATURED_HERO } from "@/lib/home/featuredHero";
-import { groupCatalogBySection } from "@/lib/home/indexCatalog";
+import { BROWSE_CONTENT_CATEGORIES } from "@/lib/browseCategories";
+import { useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
+import { getCategorySubtitle } from "@/lib/i18n/browse-nav";
 import { formatCatalogCategoryLabel } from "@/lib/catalogCategoryLabel";
+import { groupCatalogBySection } from "@/lib/home/indexCatalog";
+import { FEATURED_HERO } from "@/lib/home/featuredHero";
 import { continueItemToCatalogCard } from "@/lib/reading/continueReading";
 import { NAVY_COVER_GRADIENT } from "@/lib/theme/navy";
 import type { CatalogSeries } from "@/types/catalog";
 import { catalogToCard } from "@/types/catalog";
-import { useEffect, useMemo } from "react";
 import { useUserStore } from "@/store/useUserStore";
 
-const BROWSE_SECTION_IDS = [
-  "founder-stories",
-  "rise-and-fall",
-  "empires",
-  "heists-and-frauds",
-  "company-breakdowns",
-  "history-drop",
-] as const;
+const BROWSE_SECTION_IDS = BROWSE_CONTENT_CATEGORIES.map(
+  (category) => category.sectionId
+);
 
 function PosterSkeleton() {
   return (
@@ -54,6 +51,8 @@ function enrichCatalogCard(story: CatalogSeries, index?: number): CatalogSeries 
 
 /** Netflix-style cinematic browse index — published catalog only. */
 export default function BrowseHome() {
+  const tHome = useTranslations("home");
+  const tCategories = useTranslations("categories");
   const { email } = useUserStore();
   const loggedIn = Boolean(email);
 
@@ -146,14 +145,7 @@ export default function BrowseHome() {
     [catalogWithArt]
   );
 
-  const browseSections = HOME_BROWSE_NAV.filter(
-    (item) =>
-      item.id !== "this-week" &&
-      item.id !== "home" &&
-      item.id !== "founder-stories"
-  );
-
-  const founderStories = sectionStories["founder-stories"] ?? [];
+  const browseSections = BROWSE_CONTENT_CATEGORIES;
 
   return (
     <div className="min-h-[100dvh] bg-[#0E1117]">
@@ -163,9 +155,9 @@ export default function BrowseHome() {
         {continueStories.length > 0 ? (
           <StreamRail
             id="continue"
-            title="Continue Reading"
+            title={tHome("continueReading")}
             subtitle={
-              loggedIn ? "Pick up where you left off" : "Your recent reads"
+              loggedIn ? tHome("pickUpWhereYouLeftOff") : tHome("yourRecentReads")
             }
             noTopBorder
           >
@@ -185,7 +177,7 @@ export default function BrowseHome() {
         {topTen.length > 0 ? (
           <StreamRail
             id="top-10"
-            title="Top 10 This Week"
+            title={tHome("top10ThisWeek")}
             viewAllHref="/#top-10"
           >
             {topTen.map((story, index) => (
@@ -199,46 +191,45 @@ export default function BrowseHome() {
           </StreamRail>
         ) : null}
 
-        {founderStories.length > 0 || loadingIndex ? (
-          <StreamRail
-            id="founder-stories"
-            title="Founder Stories"
-            subtitle={HOME_SECTION_SUBTITLES["founder-stories"]}
-            viewAllHref="/#founder-stories"
-          >
-            {loadingIndex && founderStories.length === 0
-              ? Array.from({ length: 5 }).map((_, i) => (
+        {browseSections.map((category) => {
+          const stories = sectionStories[category.sectionId] ?? [];
+          const isFounderSection = category.sectionId === "founder-stories";
+
+          return (
+            <StreamRail
+              key={category.sectionId}
+              id={category.sectionId}
+              title={tCategories(`${category.slug}.label`)}
+              subtitle={getCategorySubtitle(category.sectionId, (key) =>
+                tCategories(key as Parameters<typeof tCategories>[0])
+              )}
+              viewAllHref={`/#${category.sectionId}`}
+            >
+              {loadingIndex && stories.length === 0 ? (
+                Array.from({ length: 5 }).map((_, i) => (
                   <PosterSkeleton key={i} />
                 ))
-              : founderStories.map((story) => (
+              ) : stories.length === 0 ? (
+                <p className="px-1 text-sm text-[#64748B]">
+                  New stories coming soon — check back this week.
+                </p>
+              ) : isFounderSection ? (
+                stories.map((story) => (
                   <FounderStoryCard
                     key={story.id}
                     story={story}
                     listSection="founder_stories"
                   />
-                ))}
-          </StreamRail>
-        ) : null}
-
-        {browseSections.map(({ id, label }) => {
-          const stories = sectionStories[id as keyof typeof sectionStories] ?? [];
-          if (stories.length === 0) return null;
-
-          return (
-            <StreamRail
-              key={id}
-              id={id}
-              title={label}
-              subtitle={HOME_SECTION_SUBTITLES[id]}
-              viewAllHref={`/#${id}`}
-            >
-              {stories.map((story) => (
-                <StreamPosterCard
-                  key={story.id}
-                  story={story}
-                  listSection={id.replace(/-/g, "_")}
-                />
-              ))}
+                ))
+              ) : (
+                stories.map((story) => (
+                  <StreamPosterCard
+                    key={story.id}
+                    story={story}
+                    listSection={category.sectionId.replace(/-/g, "_")}
+                  />
+                ))
+              )}
             </StreamRail>
           );
         })}
@@ -248,7 +239,7 @@ export default function BrowseHome() {
         continueStories.length === 0 ? (
           <div className="px-4 py-16 text-center sm:px-6">
             <p className="text-sm text-[#667085]">
-              No published stories yet — check back soon.
+              {tHome("noPublishedStories")}
             </p>
           </div>
         ) : null}

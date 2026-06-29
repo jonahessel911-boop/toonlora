@@ -17,14 +17,7 @@ import { hasOpenAIKey, requireOpenAIKey } from "@/lib/engine/openai-client";
 import { parseJsonFromModel } from "@/lib/parseModelJson";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  rise_and_fall: "Rise & Fall",
-  founder_stories: "Founder Stories",
-  business: "Business",
-  empires: "Empires",
-  heists_and_frauds: "Heists & Frauds",
-  heists: "Heists & Frauds",
-};
+import { labelForPipelineSlug } from "@/lib/browseCategories";
 
 const FOUNDER_TITLE_SYSTEM = `You are a Toonlora series title writer for cinematic founder graphic novels.
 
@@ -199,10 +192,7 @@ export async function generateSeriesCover(seriesId: string): Promise<SeriesCover
   const live = await getPipelineLiveState(seriesId);
   if (!live) throw new Error("Series not found");
 
-  const categoryLabel =
-    CATEGORY_LABELS[live.series.category ?? ""] ??
-    live.series.category ??
-    "Business";
+  const categoryLabel = labelForPipelineSlug(live.series.category);
 
   const usageItems: ApiUsageLineItem[] = [];
 

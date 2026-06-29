@@ -10,7 +10,9 @@ import {
   AdminInput,
   AdminPrimaryButton,
   AdminTextarea,
+  DEFAULT_PLATFORM_GENRE,
 } from "@/components/admin/adminUi";
+import { resolvePipelineSlug } from "@/lib/browseCategories";
 
 type EditorPanel =
   | { id: string; kind: "existing"; url: string; previewUrl: string }
@@ -35,7 +37,7 @@ export default function AdminEpisodeEditor({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [genre, setGenre] = useState("Fantasy");
+  const [genre, setGenre] = useState<string>(DEFAULT_PLATFORM_GENRE);
   const [synopsis, setSynopsis] = useState("");
   const [creatorName, setCreatorName] = useState("Toonlora Official");
   const [featuredRank, setFeaturedRank] = useState("");
@@ -73,7 +75,7 @@ export default function AdminEpisodeEditor({
           story.episodes?.[0];
 
         setTitle(story.title);
-        setGenre(String(story.genre));
+        setGenre(resolvePipelineSlug(String(story.genre ?? story.category)));
         setSynopsis(story.synopsis ?? story.prompt ?? "");
         setCreatorName(story.creatorDisplayName ?? "Toonlora Official");
         setFeaturedRank(
@@ -223,7 +225,7 @@ export default function AdminEpisodeEditor({
               onChange={(e) => setTitle(e.target.value)}
             />
           </AdminField>
-          <AdminField label="Genre">
+          <AdminField label="Category">
             <AdminGenreSelect
               value={genre}
               onChange={(e) => setGenre(e.target.value)}

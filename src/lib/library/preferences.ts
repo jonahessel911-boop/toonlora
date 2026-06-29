@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from "@/lib/constants";
+import { isPlaceholderFollowingStory } from "@/lib/library/following-ids";
 
 export interface FollowingStory {
   seriesId: string;
@@ -101,6 +102,8 @@ export function getFollowEntry(seriesId: string): FollowingStory | undefined {
 }
 
 export function followSeries(entry: FollowingStory): void {
+  if (isPlaceholderFollowingStory(entry.seriesId)) return;
+
   const existing = getFollowingStories();
   if (existing.some((s) => s.seriesId === entry.seriesId)) {
     setFollowingStories(

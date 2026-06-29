@@ -12,6 +12,7 @@ import { useSubscriptionStore } from "@/store/useSubscriptionStore";
 export default function SubscribePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const changePlan = searchParams.get("change") === "1";
   const storyId = searchParams.get("storyId") ?? "";
   const storyTitleParam = searchParams.get("storyTitle");
   const nextEpisode = Math.max(2, Number(searchParams.get("ep") ?? 2) || 2);
@@ -64,6 +65,7 @@ export default function SubscribePageClient() {
   }, [weeklyLimitReached, storyId, nextEpisode]);
 
   useEffect(() => {
+    if (changePlan) return;
     if (status !== "active" && !isSubscriber()) return;
 
     if (storyId) {
@@ -74,14 +76,20 @@ export default function SubscribePageClient() {
     }
 
     router.replace("/profile");
-  }, [status, storyId, nextEpisode, router, isSubscriber]);
+  }, [changePlan, status, storyId, nextEpisode, router, isSubscriber]);
 
   const displayTitle =
     storyTitle || storyTitleParam || "Toonlora Originals";
-  const returnPath = storyId
-    ? `/story/${storyId}/read?ep=${nextEpisode}`
-    : "/profile";
-  const closePath = storyId ? `/story/${storyId}/read` : "/profile";
+  const returnPath = changePlan
+    ? "/profile?tab=subscription"
+    : storyId
+      ? `/story/${storyId}/read?ep=${nextEpisode}`
+      : "/profile";
+  const closePath = changePlan
+    ? "/profile?tab=subscription"
+    : storyId
+      ? `/story/${storyId}/read`
+      : "/profile";
 
   return (
     <SubscriptionPaywall
@@ -96,6 +104,10 @@ export default function SubscribePageClient() {
       weeklyLimitReached={weeklyLimitReached}
       weeklyFreeResetsAt={weeklyFreeResetsAt}
       fastPass={fastPass}
+      changePlan={changePlan}
+      onPlanChanged={() => {
+        router.push("/profile?tab=subscription&planChanged=1");
+      }}
     />
   );
 }

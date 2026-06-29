@@ -10,7 +10,7 @@ import {
   isPaidTier,
   type SubscriptionTierId,
 } from "@/lib/payments/subscription-plans";
-import { getProfileBySessionFromDb } from "@/lib/services/profile-repository";
+import { getProfileBySessionFromDb } from "@/lib/services/profile-lookup";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { ensureSession } from "@/lib/services/story-repository";
 import {

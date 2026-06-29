@@ -1,11 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import AffiliateLink from "@/components/affiliate/AffiliateLink";
 import StoryCoverImage from "@/components/ui/StoryCoverImage";
-import { findMockStory } from "@/lib/mock/businessStoryCatalog";
-import { mockStoryToCatalogSeries } from "@/lib/mock/mockCatalogCards";
-import { getSimilarStoryIds } from "@/lib/mock/mockSeriesDetail";
 import { PAGE_CONTAINER_CLASS } from "@/lib/layout";
+import type { CatalogSeries } from "@/types/catalog";
 
 interface SimilarStoriesProps {
   seriesId: string;
@@ -16,8 +15,46 @@ export default function SimilarStories({
   seriesId,
   variant = "light",
 }: SimilarStoriesProps) {
-  const ids = getSimilarStoryIds(seriesId);
+  const [stories, setStories] = useState<CatalogSeries[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const isDark = variant === "dark";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSimilar() {
+      try {
+        const response = await fetch(`/api/stories/${seriesId}/similar`);
+        if (!response.ok) {
+          if (!cancelled) setStories([]);
+          return;
+        }
+
+        const data = (await response.json()) as { series?: CatalogSeries[] };
+        if (!cancelled) {
+          setStories(
+            (data.series ?? []).filter((story) => Boolean(story.coverArtUrl))
+          );
+        }
+      } catch {
+        if (!cancelled) setStories([]);
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    }
+
+    setLoaded(false);
+    setStories([]);
+    void loadSimilar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [seriesId]);
+
+  if (!loaded || stories.length === 0) {
+    return null;
+  }
 
   return (
     <section
@@ -36,16 +73,16 @@ export default function SimilarStories({
           More Like This
         </h2>
         <div className="mt-6 flex gap-5 overflow-x-auto pb-2 scrollbar-hide">
-          {ids.map((id) => {
-            const mock = findMockStory(id);
-            if (!mock) return null;
-            const card = mockStoryToCatalogSeries(mock);
-            const seed = id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+          {stories.map((story) => {
+            const seed = story.id
+              .split("")
+              .reduce((a, c) => a + c.charCodeAt(0), 0);
+            const subtitle = story.synopsis?.trim() || story.sagaLabel;
 
             return (
               <AffiliateLink
-                key={id}
-                href={`/story/${id}`}
+                key={story.id}
+                href={`/story/${story.id}`}
                 className="group w-[min(44vw,200px)] min-w-[180px] flex-shrink-0 sm:w-[220px] sm:min-w-[220px] md:w-[240px] md:min-w-[240px]"
               >
                 <div
@@ -56,11 +93,11 @@ export default function SimilarStories({
                   }`}
                 >
                   <StoryCoverImage
-                    title={mock.title}
-                    genre={mock.sagaLabel}
-                    gradient={card.coverGradient}
+                    title={story.title}
+                    genre={story.sagaLabel ?? story.genre}
+                    gradient={story.coverGradient}
                     seed={seed}
-                    coverArtUrl={mock.coverArtUrl}
+                    coverArtUrl={story.coverArtUrl}
                     className="aspect-[2/3]"
                   />
                 </div>
@@ -71,15 +108,15 @@ export default function SimilarStories({
                       : "text-[#111827] group-hover:text-[#2F80ED]"
                   }`}
                 >
-                  {mock.title}
+                  {story.title}
                 </p>
-                {mock.subtitle ? (
+                {subtitle ? (
                   <p
                     className={`line-clamp-2 text-sm sm:text-base ${
                       isDark ? "text-[#999]" : "text-muted"
                     }`}
                   >
-                    {mock.subtitle}
+                    {subtitle}
                   </p>
                 ) : null}
               </AffiliateLink>

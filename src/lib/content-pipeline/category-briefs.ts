@@ -31,10 +31,16 @@ const CATEGORY_BRIEFS: Record<string, string> = {
 export function normalizeCategorySlug(
   raw: string | null | undefined
 ): string {
-  if (!raw?.trim()) return "business";
+  if (!raw?.trim()) return "company_breakdowns";
   const normalized = raw.trim().toLowerCase().replace(/[\s-]+/g, "_");
   if (normalized === "heist" || normalized === "heists_and_fraud") {
     return "heists_and_frauds";
+  }
+  if (normalized === "business" || normalized === "company") {
+    return "company_breakdowns";
+  }
+  if (normalized === "history") {
+    return "history_drop";
   }
   return normalized;
 }

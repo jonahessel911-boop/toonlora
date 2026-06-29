@@ -13,13 +13,16 @@ import {
   fetchPublishedStory,
   getStoryCoverArtUrl,
 } from "@/lib/fetchPublishedStory";
+import { isPlaceholderFollowingStory } from "@/lib/library/following-ids";
 import {
   getFollowingStories,
   getNotificationPreferences,
+  setFollowingStories,
   setNotificationPreferences,
   type FollowingStory,
   type NotificationPreferences,
 } from "@/lib/library/preferences";
+import { prunePlaceholderFollowingStories } from "@/lib/library/following-cleanup";
 import {
   buildResumeReadHref,
   computeSeriesReadPercent,
@@ -615,7 +618,7 @@ export default function ProfileApp() {
       buildRetentionStories({
         engagement,
         continueReading: continueItems,
-        following: getFollowingStories(),
+        following: prunePlaceholderFollowingStories(),
       }),
     [engagement, continueItems]
   );
@@ -628,20 +631,32 @@ export default function ProfileApp() {
   }, [engagement, continueItems]);
 
   const refreshLibrary = useCallback(async () => {
-    const follows = getFollowingStories();
+    const follows = prunePlaceholderFollowingStories();
     const progressBySeries = new Map(
       continueItems.map((entry) => [entry.seriesId, entry.episodeNumber])
     );
 
-    const enriched = await Promise.all(
-      follows.map((story) =>
-        hydrateFollowingStory(
+    const hydrated = await Promise.all(
+      follows.map(async (story) => {
+        if (isPlaceholderFollowingStory(story.seriesId)) return null;
+        const published = await fetchPublishedStory(story.seriesId);
+        if (!published) return null;
+        return hydrateFollowingStory(
           story,
           progressBySeries.get(story.seriesId) ?? 0,
           continueItems
-        )
-      )
+        );
+      })
     );
+
+    const enriched = hydrated.filter(
+      (story): story is FollowingStoryDisplay => story !== null
+    );
+
+    if (enriched.length !== follows.length) {
+      const validIds = new Set(enriched.map((story) => story.seriesId));
+      setFollowingStories(follows.filter((story) => validIds.has(story.seriesId)));
+    }
 
     const readSource =
       engagement?.readStories && engagement.readStories.length > 0

@@ -1,5 +1,6 @@
 import CharacterPageClient from "@/components/character/CharacterPageClient";
 import { slugToDisplayName } from "@/lib/characters/characterSlug";
+import { pageTitle } from "@/lib/seo/site";
 
 interface CharacterPageProps {
   params: Promise<{ slug: string }>;
@@ -10,8 +11,8 @@ export async function generateMetadata({ params }: CharacterPageProps) {
   const name = slugToDisplayName(decodeURIComponent(slug));
 
   return {
-    title: `${name} — Characters | Toonlora`,
-    description: `See stories featuring ${name} on Toonlora.`,
+    title: pageTitle(`${name} — Business Stories`),
+    description: `Read illustrated business stories about ${name} on Toonlora. Founder stories, company breakdowns, and cinematic business history.`,
   };
 }
 

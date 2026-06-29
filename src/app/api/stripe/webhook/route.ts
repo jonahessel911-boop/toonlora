@@ -31,7 +31,7 @@ async function activateSubscriptionFromCheckout(
 
   if (subscriptionId) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-      expand: ["items"],
+      expand: ["items", "customer"],
     });
     status = subscription.status;
     periodEnd = getSubscriptionPeriodEnd(subscription);
@@ -126,7 +126,24 @@ export async function POST(request: Request) {
     }
   }
 
+  if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const subscriptionRef =
+      invoice.parent?.subscription_details?.subscription;
+    const subscriptionId =
+      typeof subscriptionRef === "string"
+        ? subscriptionRef
+        : subscriptionRef?.id;
+    if (subscriptionId) {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+        expand: ["items"],
+      });
+      await syncSubscriptionEvent(subscription);
+    }
+  }
+
   if (
+    event.type === "customer.subscription.created" ||
     event.type === "customer.subscription.updated" ||
     event.type === "customer.subscription.deleted"
   ) {

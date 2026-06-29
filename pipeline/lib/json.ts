@@ -46,15 +46,78 @@ function escapeControlCharsInJsonStrings(json: string): string {
   return result;
 }
 
+function repairTrailingCommas(json: string): string {
+  return json.replace(/,\s*([}\]])/g, "$1");
+}
+
+/** Escape double quotes that appear mid-string without a backslash (common LLM mistake). */
+function repairUnescapedQuotesInJson(json: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < json.length; i++) {
+    const char = json[i];
+
+    if (!inString) {
+      result += char;
+      if (char === '"') inString = true;
+      continue;
+    }
+
+    if (escaped) {
+      result += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      result += char;
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      let j = i + 1;
+      while (j < json.length && /\s/.test(json[j]!)) j++;
+      const next = json[j];
+      if (
+        next === undefined ||
+        next === "," ||
+        next === "}" ||
+        next === "]"
+      ) {
+        result += char;
+        inString = false;
+      } else {
+        result += '\\"';
+      }
+      continue;
+    }
+
+    result += char;
+  }
+
+  if (inString) result += '"';
+  return result;
+}
+
 function parseJsonCandidates(candidates: string[]): unknown {
   let lastError: Error | undefined;
 
   for (const text of candidates) {
     for (const attempt of [
       text,
+      repairTrailingCommas(text),
       escapeControlCharsInJsonStrings(text),
+      repairUnescapedQuotesInJson(text),
+      repairTrailingCommas(repairUnescapedQuotesInJson(text)),
       repairTruncatedJson(text),
       repairTruncatedJson(escapeControlCharsInJsonStrings(text)),
+      repairTruncatedJson(repairUnescapedQuotesInJson(text)),
+      repairTruncatedJson(
+        repairTrailingCommas(repairUnescapedQuotesInJson(escapeControlCharsInJsonStrings(text)))
+      ),
     ]) {
       if (!attempt) continue;
       try {

@@ -10,6 +10,7 @@ export interface Database {
           subscription_plan_id: string | null;
           subscription_stripe_id: string | null;
           subscription_period_end: string | null;
+          subscription_welcome_sent: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -21,6 +22,7 @@ export interface Database {
           subscription_plan_id?: string | null;
           subscription_stripe_id?: string | null;
           subscription_period_end?: string | null;
+          subscription_welcome_sent?: boolean;
         };
         Update: {
           credits?: number;
@@ -29,6 +31,7 @@ export interface Database {
           subscription_plan_id?: string | null;
           subscription_stripe_id?: string | null;
           subscription_period_end?: string | null;
+          subscription_welcome_sent?: boolean;
         };
       };
       series: {
@@ -121,6 +124,7 @@ export interface Database {
           country_code: string | null;
           signup_ip: string | null;
           referred_by_affiliate_id: string | null;
+          password_hash: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -134,10 +138,12 @@ export interface Database {
           country_code?: string | null;
           signup_ip?: string | null;
           referred_by_affiliate_id?: string | null;
+          password_hash?: string | null;
         };
         Update: {
           session_id?: string;
           full_name?: string;
+          password_hash?: string | null;
           wants_recommendations?: boolean;
           wants_weekly_newsletter?: boolean;
           newsletter_topics?: string[];

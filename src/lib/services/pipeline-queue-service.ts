@@ -56,14 +56,91 @@ export async function listPipelineQueueJobs(
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
 
-  const { data, error } = await supabase
-    .from("pipeline_queue")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const [{ data: running }, { data: rest, error }] = await Promise.all([
+    supabase.from("pipeline_queue").select("*").eq("status", "running"),
+    supabase
+      .from("pipeline_queue")
+      .select("*")
+      .neq("status", "running")
+      .order("created_at", { ascending: false })
+      .limit(Math.max(limit - 10, 20)),
+  ]);
 
   if (error) throw new Error(error.message);
-  return (data ?? []).map((row) => rowToJob(row as Record<string, unknown>));
+
+  const merged = [
+    ...(running ?? []).map((row) => rowToJob(row as Record<string, unknown>)),
+    ...(rest ?? []).map((row) => rowToJob(row as Record<string, unknown>)),
+  ];
+
+  return merged.slice(0, limit);
+}
+
+/** Fix stale "running" jobs when the pipeline already finished (or died). */
+export async function reconcilePipelineQueue(): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  const { data: runningJobs } = await supabase
+    .from("pipeline_queue")
+    .select("id, series_id, started_at")
+    .eq("status", "running");
+
+  if (!runningJobs?.length) return;
+
+  const { count: activeRunCount } = await supabase
+    .from("pipeline_runs")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "running");
+
+  const pipelineBusy = (activeRunCount ?? 0) > 0;
+
+  for (const job of runningJobs) {
+    const seriesId = job.series_id as string | null;
+    const startedAt = job.started_at as string | null;
+    const jobId = job.id as string;
+
+    if (seriesId) {
+      const { data: runs } = await supabase
+        .from("pipeline_runs")
+        .select("step, status")
+        .eq("series_id", seriesId);
+
+      const hasActiveRun = runs?.some((run) => run.status === "running");
+      const pipelineComplete = runs?.some(
+        (run) => run.step === "complete" && run.status === "completed"
+      );
+
+      if (pipelineComplete && !hasActiveRun) {
+        await supabase
+          .from("pipeline_queue")
+          .update({
+            status: "completed",
+            series_id: seriesId,
+            completed_at: new Date().toISOString(),
+            error: null,
+          })
+          .eq("id", jobId);
+        continue;
+      }
+    }
+
+    if (!pipelineBusy && startedAt) {
+      const ageMs = Date.now() - new Date(startedAt).getTime();
+      const staleMs = 20 * 60 * 1000;
+      if (ageMs > staleMs) {
+        await supabase
+          .from("pipeline_queue")
+          .update({
+            status: "pending",
+            error: "Worker timeout — opnieuw in wachtrij gezet",
+            started_at: null,
+            completed_at: null,
+          })
+          .eq("id", jobId);
+      }
+    }
+  }
 }
 
 export async function getPipelineQueueStats(): Promise<PipelineQueueStats> {

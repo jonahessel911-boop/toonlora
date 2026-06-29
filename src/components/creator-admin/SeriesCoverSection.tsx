@@ -4,14 +4,7 @@ import ApiUsageDisplay from "@/components/creator-admin/ApiUsageDisplay";
 import type { CreatorAdminSeriesDetail } from "@/types/creator-admin";
 import type { ApiUsageSummary } from "@/lib/api-usage-cost";
 
-const CATEGORY_LABELS: Record<string, string> = {
-  rise_and_fall: "Rise & Fall",
-  founder_stories: "Founder Stories",
-  business: "Business",
-  empires: "Empires",
-  heists_and_frauds: "Heists & Frauds",
-  heists: "Heists & Frauds",
-};
+import { labelForPipelineSlug } from "@/lib/browseCategories";
 
 interface SeriesCoverSectionProps {
   series: CreatorAdminSeriesDetail;
@@ -26,8 +19,7 @@ export default function SeriesCoverSection({
   lastUsage,
   onGenerate,
 }: SeriesCoverSectionProps) {
-  const categoryLabel =
-    CATEGORY_LABELS[series.category ?? ""] ?? series.category ?? "Business";
+  const categoryLabel = labelForPipelineSlug(series.category);
   const headline = series.display_title ?? series.title;
 
   return (

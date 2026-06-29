@@ -1,0 +1,167 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "thisWeek": "Diese Woche",
+    "logIn": "Anmelden",
+    "createFreeAccount": "Kostenloses Konto erstellen",
+    "myLibrary": "Meine Bibliothek",
+    "logOut": "Abmelden",
+    "browse": "Entdecken",
+    "subscribe": "Abonnieren",
+    "affiliate": "Partnerprogramm",
+    "categories": "Kategorien",
+    "platform": "Plattform",
+    "partners": "Partner",
+    "browseSections": "Bereiche durchsuchen",
+    "menu": "Menü",
+    "closeMenu": "Menü schließen",
+    "close": "Schließen",
+    "readerFallback": "Toonlora-Leser"
+  },
+  "brand": {
+    "tagline": "Filmische Business-Geschichten, erzählt wie eine Serie.",
+    "copyright": "© {year} Toonlora. Alle Rechte vorbehalten."
+  },
+  "categories": {
+    "founder_stories": {
+      "label": "Gründergeschichten",
+      "subtitle": "Ambition, Obsession, Scheitern und Entscheidungen der berühmtesten Unternehmer der Welt."
+    },
+    "rise_and_fall": {
+      "label": "Aufstieg & Fall",
+      "subtitle": "Der Weg nach oben — und der Absturz danach."
+    },
+    "empires": {
+      "label": "Imperien",
+      "subtitle": "Wie die größten Marken der Welt aufgebaut — und gehalten wurden."
+    },
+    "heists_and_frauds": {
+      "label": "Betrug & Schwindel",
+      "subtitle": "Milliardenwetten, Betrügereien und diejenigen, die damit durchkamen."
+    },
+    "company_breakdowns": {
+      "label": "Unternehmensanalysen",
+      "subtitle": "Wie legendäre Unternehmen aufgebaut, skaliert und manchmal zerstört wurden."
+    },
+    "history_drop": {
+      "label": "Geschichte",
+      "subtitle": "Wendepunkte der Wirtschaftsgeschichte — Kapitel für Kapitel illustriert."
+    },
+    "fallback": "Business"
+  },
+  "common": {
+    "continue": "Weiter",
+    "readNow": "Jetzt lesen",
+    "moreInfo": "Mehr Infos",
+    "myList": "Meine Liste",
+    "viewAll": "Alle anzeigen ›",
+    "processing": "Wird verarbeitet…",
+    "close": "Schließen",
+    "back": "Zurück",
+    "new": "Neu",
+    "chapters": "{count} Kapitel",
+    "minRead": "{count} Min. Lesezeit",
+    "upgrade": "Upgrade",
+    "signIn": "Anmelden",
+    "createAccount": "Konto erstellen"
+  },
+  "home": {
+    "continueReading": "Weiterlesen",
+    "pickUpWhereYouLeftOff": "Dort weitermachen, wo du aufgehört hast",
+    "yourRecentReads": "Deine letzten Geschichten",
+    "top10ThisWeek": "Top 10 diese Woche",
+    "newStoriesSoon": "Neue Geschichten kommen bald — schau diese Woche wieder vorbei.",
+    "noPublishedStories": "Noch keine veröffentlichten Geschichten — bald wieder vorbei.",
+    "heroEyebrow": "DIESE WOCHE",
+    "weeklyEpisodes": "Wöchentliche Folgen"
+  },
+  "subscribe": {
+    "membership": "Toonlora-Mitgliedschaft",
+    "wantUnlimited": "Unbegrenzt lesen?",
+    "fastPass": "Fast Pass — {storyName}",
+    "unlockStory": "{storyName} freischalten",
+    "weeklyLimitHit": "Du hast dein wöchentliches Leselimit erreicht",
+    "specialDeal": "Hier ist ein Sonderangebot für dich:",
+    "weeklyResetIn": "Wöchentliches Limit zurücksetzen in: {countdown}",
+    "fastPassHeadline": "Lies das nächste Kapitel {days} Tage vor allen anderen",
+    "fastPassBody": "Entrepreneur-Mitglieder erhalten einen Fast Pass zur Folge nächster Woche{chapter}.",
+    "chapterSuffix": " — Kapitel {number}",
+    "defaultSubhead": "Tiefgehende Business-Geschichten als Cartoon — wähle den passenden Plan.",
+    "withPlanYouGet": "Mit {planName} erhältst du",
+    "cancelGuarantee": "Jederzeit kündbar · 30 Tage Geld-zurück-Garantie",
+    "checkoutFailed": "Checkout fehlgeschlagen",
+    "currentPlan": "Aktueller Plan",
+    "continueWithFree": "Mit Gratis fortfahren",
+    "subscribePrice": "Abonnieren — {price}/Monat",
+    "earlyAccess": "Früher Zugang",
+    "perMonth": "/ Monat",
+    "forever": "für immer",
+    "percentOff": "{percent}% Rabatt",
+    "plans": {
+      "free": { "name": "Gratis", "description": "Kapitel 1 ist gratis. Konto für 1 Kapitel pro Woche erstellen." },
+      "achiever": { "name": "Achiever", "description": "Alles im normalen Veröffentlichungsplan lesen" },
+      "entrepreneur": { "name": "Entrepreneur", "description": "Jede Geschichte 1 Woche vor Veröffentlichung lesen" }
+    },
+    "benefits": {
+      "free": ["1 Kapitel pro Woche — komplett gratis", "Nur öffentlicher Veröffentlichungsplan", "Alle Business-Kategorien durchsuchen"],
+      "achiever": ["Unbegrenzte Kapitel im öffentlichen Plan", "Jede aktive Geschichte in der normalen Linie", "Werbefrei auf Handy, Tablet & Desktop", "Bibliothek und Fortschritt speichern"],
+      "entrepreneur": ["Alles in Achiever", "Neue Kapitel 7 Tage früher", "Erster Zugang zu Flagship-Gründergeschichten", "Book Drop & History früh"]
+    }
+  },
+  "paywall": {
+    "chooseMembership": "Wähle deine Mitgliedschaft",
+    "monthly": "Monatlich",
+    "yearly": "Jährlich",
+    "savePercent": "37% sparen",
+    "mostPopular": "Am beliebtesten",
+    "trustedByReaders": "Vertraut von Lesern",
+    "startReadingToday": "Heute mit dem Lesen beginnen",
+    "totalToday": "Heute gesamt:",
+    "recurringNote": "Wiederkehrendes Abo — verlängert sich für {price}, bis du kündigst.",
+    "creditCard": "Kreditkarte",
+    "applePay": "Apple Pay",
+    "googlePay": "Google Pay",
+    "loadingPayment": "Sichere Zahlung wird geladen…",
+    "loadingApplePay": "Apple Pay wird geladen…",
+    "loadingGooglePay": "Google Pay wird geladen…",
+    "googlePayFallback": "Google Pay funktioniert in Chrome, wenn du bei Google angemeldet bist und eine Karte gespeichert hast. Oder wähle oben Kreditkarte.",
+    "applePayFallback": "Apple Pay funktioniert in Safari auf iPhone, iPad oder Mac mit einer Karte in Wallet. Oder wähle oben Kreditkarte.",
+    "legalPrefix": "Mit dem Fortfahren stimmst du unseren",
+    "legalAnd": "und der",
+    "termsOfUse": "Nutzungsbedingungen",
+    "privacyPolicy": "Datenschutzerklärung",
+    "includedInEveryPlan": "In jedem Plan enthalten",
+    "showLess": "Weniger anzeigen",
+    "moreCount": "+{count} mehr",
+    "moneyBackTitle": "30 Tage Geld-zurück-Garantie - ohne Fragen",
+    "moneyBackBody": "Wir glauben, dass unsere Geschichten einen Unterschied für dich machen. Siehst du nach mehreren Kapiteln keinen Wert in Toonlora, erstatten wir dein Geld am selben Tag.",
+    "headline": "Schalte die Business-Geschichten hinter den größten Gründern, Betrügereien, Imperien und Zusammenbrüchen der Welt frei.",
+    "subhead": "Echte verifizierte Geschichten. Tiefgehende Recherche. Neue Folgen jede Woche.",
+    "planHighlights": {
+      "achiever": ["Unbegrenzte Kapitel bei jeder Geschichte", "Neue Folgen jede Woche", "Werbefrei auf allen Geräten", "Fortschritt in der Bibliothek speichern"],
+      "entrepreneur": ["Alles in Achiever", "Neue Folgen 1 Woche früher lesen", "Geschichten in der Bibliothek speichern", "1 Geschichte pro Monat mit einem Freund teilen", "Priorität für neue Flagship-Serien"]
+    },
+    "membershipIncludes": [
+      "300+ tiefgehende Business-Folgen",
+      "Jede Woche neue Kapitel",
+      "Recherchiert und geschrieben von 16 Harvard-Studenten",
+      "Echte Gründergeschichten, Betrugsfälle & Unternehmensanalysen",
+      "Spezifische Infos, die du in Schlagzeilen nicht findest",
+      "Illustriertes cinematisches Kapitelformat",
+      "Werbefrei auf jedem Gerät",
+      "Fortschritt in der Bibliothek speichern",
+      "Gründer-Comebacks & Imperiumsaufbau",
+      "Betrugsfälle von Enron bis FTX",
+      "Unternehmensanalysen & Strategie-Deep-Dives",
+      "Wöchentlich neue verifizierte Geschichten",
+      "Milliarden-Zusammenbrüche",
+      "Machtspiele & Boardroom-Kämpfe",
+      "Geschichts-Drops & Marktschocks",
+      "Watchlist nach deinen Interessen",
+      "Lesen auf Handy, Tablet & Desktop",
+      "Jederzeit im Profil kündbar",
+      "30 Tage Geld-zurück-Garantie",
+      "Früher Zugang mit Entrepreneur-Plan"
+    ]
+  }
+}

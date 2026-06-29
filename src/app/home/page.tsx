@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import NetflixHomeLanding from "@/components/home/netflix/NetflixHomeLanding";
+import { BRAND_SUBHEADLINE } from "@/lib/brand";
+import { PLATFORM_FULL_NAME } from "@/lib/seo/site";
 
 export const metadata: Metadata = {
-  title: "Toonlora — Unlimited business stories in cartoon format",
-  description:
-    "Business stories you actually want to binge. Chapter 1 free. Weekly illustrated chapters about founders, empires, and billion-dollar decisions.",
+  title: PLATFORM_FULL_NAME,
+  description: BRAND_SUBHEADLINE,
 };
 
 export default function HomeLandingPage() {

@@ -4,6 +4,7 @@ import {
   enqueuePipelineStory,
   getPipelineQueueStats,
   listPipelineQueueJobs,
+  reconcilePipelineQueue,
 } from "@/lib/services/pipeline-queue-service";
 
 export async function GET() {
@@ -15,6 +16,7 @@ export async function GET() {
   }
 
   try {
+    await reconcilePipelineQueue();
     const [jobs, stats] = await Promise.all([
       listPipelineQueueJobs(),
       getPipelineQueueStats(),

@@ -6,7 +6,7 @@ export interface SubscriptionPlan {
   name: string;
   label: string;
   amountCents: number;
-  billingInterval: "month" | null;
+  billingInterval: "month" | "year" | null;
   priceLabel: string;
   /** Full price before paywall promo discount (shown struck-through). */
   compareAtCents?: number;
@@ -91,12 +91,56 @@ export const ENTREPRENEUR_PLAN: SubscriptionPlan = {
   checkoutEnabled: true,
 };
 
+export const ACHIEVER_YEARLY_PLAN: SubscriptionPlan = {
+  id: "sub-achiever-yearly",
+  tier: "achiever",
+  name: "Achiever",
+  label: "Achiever Yearly",
+  amountCents: 5999,
+  billingInterval: "year",
+  priceLabel: "€59,99",
+  compareAtCents: ACHIEVER_PLAN.amountCents * 12,
+  discountPercent: Math.round(
+    (1 - 5999 / (ACHIEVER_PLAN.amountCents * 12)) * 100
+  ),
+  description: "Read everything in the normal chapter line",
+  features: ACHIEVER_PLAN.features,
+  checkoutEnabled: true,
+};
+
+export const ENTREPRENEUR_YEARLY_PLAN: SubscriptionPlan = {
+  id: "sub-entrepreneur-yearly",
+  tier: "entrepreneur",
+  name: "Entrepreneur",
+  label: "Entrepreneur Yearly",
+  amountCents: 9999,
+  billingInterval: "year",
+  priceLabel: "€99,99",
+  compareAtCents: ENTREPRENEUR_PLAN.amountCents * 12,
+  discountPercent: Math.round(
+    (1 - 9999 / (ENTREPRENEUR_PLAN.amountCents * 12)) * 100
+  ),
+  description: "Read every story 1 week before public release",
+  features: ENTREPRENEUR_PLAN.features,
+  popular: true,
+  checkoutEnabled: true,
+};
+
 /** Display order on paywall: Free, Achiever, Entrepreneur */
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   FREE_PLAN,
   ACHIEVER_PLAN,
   ENTREPRENEUR_PLAN,
+  ACHIEVER_YEARLY_PLAN,
+  ENTREPRENEUR_YEARLY_PLAN,
 ];
+
+export const MONTHLY_SUBSCRIPTION_PLANS = [ACHIEVER_PLAN, ENTREPRENEUR_PLAN] as const;
+
+export const YEARLY_SUBSCRIPTION_PLANS = [
+  ACHIEVER_YEARLY_PLAN,
+  ENTREPRENEUR_YEARLY_PLAN,
+] as const;
 
 export const PAID_SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS.filter(
   (plan) => plan.checkoutEnabled
@@ -127,20 +171,76 @@ export function formatEur(cents: number): string {
 
 export function planMonthlyRevenueCents(plan: SubscriptionPlan): number {
   if (!plan.billingInterval) return 0;
+  if (plan.billingInterval === "year") return Math.round(plan.amountCents / 12);
   return plan.amountCents;
 }
 
+export function planIntervalSuffix(plan: SubscriptionPlan): string {
+  if (plan.billingInterval === "year") return "/yr";
+  if (plan.billingInterval === "month") return "/mo";
+  return "";
+}
+
+export function planPerDayLabel(plan: SubscriptionPlan): string {
+  const days = plan.billingInterval === "year" ? 365 : 30;
+  const perDay = (plan.amountCents / 100 / days).toFixed(2);
+  return `€${perDay}/day`;
+}
+
+export function yearlyPlanForTier(
+  tier: SubscriptionTierId
+): SubscriptionPlan | undefined {
+  if (tier === "achiever") return ACHIEVER_YEARLY_PLAN;
+  if (tier === "entrepreneur") return ENTREPRENEUR_YEARLY_PLAN;
+  return undefined;
+}
+
+export function monthlyPlanForTier(
+  tier: SubscriptionTierId
+): SubscriptionPlan | undefined {
+  if (tier === "achiever") return ACHIEVER_PLAN;
+  if (tier === "entrepreneur") return ENTREPRENEUR_PLAN;
+  return undefined;
+}
+
 export function subscriptionStripePriceData(plan: SubscriptionPlan) {
+  const interval = (plan.billingInterval === "year" ? "year" : "month") as
+    | "month"
+    | "year";
   return {
     currency: "eur" as const,
     unit_amount: plan.amountCents,
     recurring: {
-      interval: "month" as const,
+      interval,
       interval_count: 1,
     },
     product_data: {
-      name: `Toonlora ${plan.name}`,
-      description: plan.description,
+      name: `Toonlora ${plan.name}${plan.billingInterval === "year" ? " (Yearly)" : ""}`,
     },
+    lookup_key: planStripeLookupKey(plan),
+  };
+}
+
+export function planStripeLookupKey(plan: SubscriptionPlan): string {
+  return `toonlora_${plan.id}`;
+}
+
+export function planSubscriptionLabel(plan: SubscriptionPlan): string {
+  if (plan.billingInterval === "year") {
+    return `${formatEur(plan.amountCents)}/year`;
+  }
+  return `${formatEur(plan.amountCents)}/month`;
+}
+
+export function planApplePayRecurringBilling(plan: SubscriptionPlan) {
+  return {
+    amount: plan.amountCents,
+    label:
+      plan.billingInterval === "year"
+        ? "Yearly Toonlora subscription"
+        : "Monthly Toonlora subscription",
+    recurringPaymentIntervalUnit:
+      plan.billingInterval === "year" ? ("year" as const) : ("month" as const),
+    recurringPaymentIntervalCount: 1,
   };
 }

@@ -1,0 +1,206 @@
+{
+  "nav": {
+    "home": "Home",
+    "thisWeek": "This Week",
+    "logIn": "Log in",
+    "createFreeAccount": "Create free account",
+    "myLibrary": "My Library",
+    "logOut": "Log out",
+    "browse": "Browse",
+    "subscribe": "Subscribe",
+    "affiliate": "Affiliate",
+    "categories": "Categories",
+    "platform": "Platform",
+    "partners": "Partners",
+    "browseSections": "Browse sections",
+    "menu": "Menu",
+    "closeMenu": "Close menu",
+    "close": "Close",
+    "readerFallback": "Toonlora reader"
+  },
+  "brand": {
+    "tagline": "Cinematic business stories, told like a series.",
+    "copyright": "© {year} Toonlora. All rights reserved."
+  },
+  "categories": {
+    "founder_stories": {
+      "label": "Founder Stories",
+      "subtitle": "The ambition, obsession, failures, and decisions behind the world's most famous entrepreneurs."
+    },
+    "rise_and_fall": {
+      "label": "Rise & Fall",
+      "subtitle": "The climb to the top — and the crash that followed."
+    },
+    "empires": {
+      "label": "Empires",
+      "subtitle": "How the biggest brands on Earth were built — and kept."
+    },
+    "heists_and_frauds": {
+      "label": "Heists & Frauds",
+      "subtitle": "Billion-dollar bets, scams, and the people who got away with it."
+    },
+    "company_breakdowns": {
+      "label": "Company Breakdowns",
+      "subtitle": "How legendary companies were built, scaled, and sometimes destroyed."
+    },
+    "history_drop": {
+      "label": "History Drop",
+      "subtitle": "Pivotal moments in business history — illustrated chapter by chapter."
+    },
+    "fallback": "Business"
+  },
+  "common": {
+    "continue": "Continue",
+    "readNow": "Read Now",
+    "moreInfo": "More Info",
+    "myList": "My List",
+    "viewAll": "View all ›",
+    "processing": "Processing…",
+    "close": "Close",
+    "back": "Back",
+    "new": "New",
+    "chapters": "{count} chapters",
+    "minRead": "{count} min read",
+    "upgrade": "Upgrade",
+    "signIn": "Sign in",
+    "createAccount": "Create account"
+  },
+  "home": {
+    "continueReading": "Continue Reading",
+    "pickUpWhereYouLeftOff": "Pick up where you left off",
+    "yourRecentReads": "Your recent reads",
+    "top10ThisWeek": "Top 10 This Week",
+    "newStoriesSoon": "New stories coming soon — check back this week.",
+    "noPublishedStories": "No published stories yet — check back soon.",
+    "heroEyebrow": "THIS WEEK'S DROP",
+    "weeklyEpisodes": "Weekly episodes"
+  },
+  "subscribe": {
+    "membership": "Toonlora membership",
+    "wantUnlimited": "Want to read unlimited?",
+    "fastPass": "Fast pass — {storyName}",
+    "unlockStory": "Unlock {storyName}",
+    "weeklyLimitHit": "Oops, you hit your weekly read limit",
+    "specialDeal": "Here is a special deal for you:",
+    "weeklyResetIn": "Weekly read limit reset in: {countdown}",
+    "fastPassHeadline": "Read the next chapter {days} days before everyone else",
+    "fastPassBody": "Entrepreneur members get a fast pass to next week's episode{chapter}.",
+    "chapterSuffix": " — Chapter {number}",
+    "defaultSubhead": "In-depth business stories in a cartoon — pick the plan that fits you.",
+    "changePlanTitle": "Change your plan",
+    "changePlanSubhead": "Switch between Achiever and Entrepreneur. Your billing cycle stays the same.",
+    "switchPlan": "Switch to {planName} — {price}/month",
+    "planUpdated": "Your plan has been updated.",
+    "planChangeFailed": "Could not change plan",
+    "withPlanYouGet": "With {planName} you get",
+    "cancelGuarantee": "Cancel anytime · 30-day money-back guarantee",
+    "checkoutFailed": "Checkout failed",
+    "currentPlan": "Current plan",
+    "continueWithFree": "Continue with Free",
+    "subscribePrice": "Subscribe — {price}/month",
+    "earlyAccess": "Early access",
+    "perMonth": "/ month",
+    "forever": "forever",
+    "percentOff": "{percent}% off",
+    "plans": {
+      "free": {
+        "name": "Free",
+        "description": "Chapter 1 is free to preview. Create an account for 1 chapter per week."
+      },
+      "achiever": {
+        "name": "Achiever",
+        "description": "Read everything in the normal chapter line"
+      },
+      "entrepreneur": {
+        "name": "Entrepreneur",
+        "description": "Read every story 1 week before public release"
+      }
+    },
+    "benefits": {
+      "free": [
+        "1 chapter per week — completely free",
+        "Public release schedule only",
+        "Browse all business story categories"
+      ],
+      "achiever": [
+        "Unlimited chapters on the public schedule",
+        "Every active story in the normal chapter line",
+        "Ad-free reading on phone, tablet & desktop",
+        "Save your library and reading progress"
+      ],
+      "entrepreneur": [
+        "Everything in Achiever",
+        "New chapters 7 days before public release",
+        "First access to flagship founder stories",
+        "Book Drop & History series early"
+      ]
+    }
+  },
+  "paywall": {
+    "chooseMembership": "Choose your membership",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "savePercent": "Save 37%",
+    "mostPopular": "Most popular",
+    "trustedByReaders": "Trusted by readers",
+    "startReadingToday": "Start reading today",
+    "totalToday": "Total today:",
+    "recurringNote": "Recurring subscription — renews at {price} until you cancel.",
+    "creditCard": "Credit card",
+    "applePay": "Apple Pay",
+    "googlePay": "Google Pay",
+    "loadingPayment": "Loading secure payment…",
+    "loadingApplePay": "Loading Apple Pay…",
+    "loadingGooglePay": "Loading Google Pay…",
+    "googlePayFallback": "Google Pay works in Chrome when you're signed into Google with a saved card. Or switch to credit card above.",
+    "applePayFallback": "Apple Pay works in Safari on iPhone, iPad, or Mac with a card in Wallet. Or switch to credit card above.",
+    "legalPrefix": "By proceeding, you agree to our",
+    "legalAnd": "and",
+    "termsOfUse": "Terms of Use",
+    "privacyPolicy": "Privacy Policy",
+    "includedInEveryPlan": "Included in every plan",
+    "showLess": "Show less",
+    "moreCount": "+{count} more",
+    "moneyBackTitle": "30-day money back guarantee - no questions asked",
+    "moneyBackBody": "We believe that our stories will make a difference for you. However, if you don't see the value of Toonlora after completing different chapters and stories, we'll be ready to refund your money the same day.",
+    "headline": "Unlock the business stories behind the world's biggest founders, frauds, empires and collapses.",
+    "subhead": "Real verified stories. Deep research. New episodes every week.",
+    "planHighlights": {
+      "achiever": [
+        "Unlimited chapters on every story",
+        "New episodes every week",
+        "Ad-free reading on all devices",
+        "Save progress across your library"
+      ],
+      "entrepreneur": [
+        "Everything in Achiever",
+        "Read new episodes 1 week earlier",
+        "Save stories to your library",
+        "Share 1 story per month with a friend",
+        "Priority for new flagship series"
+      ]
+    },
+    "membershipIncludes": [
+      "300+ in-depth business episodes",
+      "New chapters added every week",
+      "Researched and written by 16 Harvard students",
+      "Real founder stories, fraud cases & company breakdowns",
+      "Specific info you won't get from headlines",
+      "Illustrated cinematic chapter format",
+      "Ad-free reading on every device",
+      "Save progress across your library",
+      "Founder comebacks & empire builds",
+      "Fraud cases from Enron to FTX",
+      "Company breakdowns & strategy deep dives",
+      "New verified stories added weekly",
+      "Billion-dollar collapse narratives",
+      "Power moves & boardroom battles",
+      "History drops & market shocks",
+      "Watchlist tailored to your interests",
+      "Read on phone, tablet & desktop",
+      "Cancel anytime from your profile",
+      "30-day money-back guarantee",
+      "Early access with Entrepreneur plan"
+    ]
+  }
+}

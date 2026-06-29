@@ -37,7 +37,6 @@ export async function POST(request: Request) {
             unit_amount: pkg.amountCents,
             product_data: {
               name: `${pkg.coins} Toonlora Coins`,
-              description: "Coins for Lora Studio — generate characters, panels, and covers.",
             },
           },
           quantity: 1,
