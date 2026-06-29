@@ -1,6 +1,11 @@
 import { ensureSession } from "@/lib/services/story-repository";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import {
+  humanizeLpFunnelStep,
+  LP_FUNNEL_STEP_ORDER,
+  lpFunnelStepIndex,
+} from "@/lib/analytics/lp-funnel";
+import {
   getSubscriptionPlan,
   planMonthlyRevenueCents,
 } from "@/lib/payments/subscription-plans";
@@ -56,6 +61,62 @@ export interface ReadingProgressInput {
   totalPanels: number;
   seriesTitle?: string;
   genre?: string;
+}
+
+export interface LpFunnelStepMetric {
+  step: string;
+  stepIndex: number;
+  label: string;
+  /** Total page views (every time the step was shown). */
+  pageViews: number;
+  /** Unique sessions that viewed this step. */
+  uniqueVisitors: number;
+  completions: number;
+  uniqueCompletions: number;
+  backClicks: number;
+  /** % of funnel entrants who reached this step. */
+  shareOfStarts: number;
+  /** % lost since funnel start (did not reach this step). */
+  dropOffFromStart: number;
+  /** % of previous-step visitors who reached this step. */
+  stepRetention: number;
+  /** % who left between previous step and this one. */
+  stepFallOff: number;
+  /** % of viewers who clicked continue on this step. */
+  completionRate: number;
+}
+
+export interface LpFunnelReport {
+  lpId: string;
+  variant?: string;
+  /** Unique sessions that entered the funnel. */
+  uniqueVisitors: number;
+  /** Sum of all step page views. */
+  totalPageViews: number;
+  checkoutStarts: number;
+  paymentSubmits: number;
+  subscribes: number;
+  checkoutStartRate: number;
+  paymentSubmitRate: number;
+  subscribeRate: number;
+  steps: LpFunnelStepMetric[];
+}
+
+export interface LpFunnelOverviewRow {
+  lpId: string;
+  variant?: string;
+  totalPageViews: number;
+  uniqueVisitors: number;
+  checkoutStarts: number;
+  subscribes: number;
+  subscribeRate: number;
+}
+
+export interface LpFunnelReportsResponse {
+  reports: LpFunnelReport[];
+  overview: LpFunnelOverviewRow[];
+  days: number | null;
+  generatedAt: string;
 }
 
 export async function resolveProfileId(
@@ -543,6 +604,209 @@ export async function getAdminReportingMetrics(): Promise<AdminReportingMetrics>
     signupCount: totalUsers,
     avgTimeOnPlatformSeconds,
     avgTimeOnPlatformFormatted: formatDuration(avgTimeOnPlatformSeconds),
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+function propString(
+  properties: Record<string, unknown>,
+  key: string
+): string | null {
+  const value = properties[key];
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return null;
+}
+
+export async function getLpFunnelReports(
+  days: number | null = 30
+): Promise<LpFunnelReportsResponse> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("Database not configured");
+
+  let query = supabase
+    .from("analytics_events")
+    .select("session_id, event_type, properties")
+    .in("event_type", ["lp_funnel_start", "lp_funnel_step", "lp_funnel_convert"]);
+
+  if (days != null && days > 0) {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    query = query.gte("created_at", cutoff);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    if (
+      error.code === "PGRST205" ||
+      error.message.includes("analytics_events")
+    ) {
+      return {
+        reports: [],
+        overview: [],
+        days,
+        generatedAt: new Date().toISOString(),
+      };
+    }
+    throw new Error(error.message);
+  }
+
+  const events = (data ?? []) as Array<{
+    session_id: string;
+    event_type: string;
+    properties: Record<string, unknown>;
+  }>;
+
+  const byLp = new Map<string, typeof events>();
+  for (const event of events) {
+    const lpId = propString(event.properties ?? {}, "lp_id");
+    if (!lpId) continue;
+    const list = byLp.get(lpId) ?? [];
+    list.push(event);
+    byLp.set(lpId, list);
+  }
+
+  const reports: LpFunnelReport[] = [];
+
+  for (const [lpId, lpEvents] of byLp) {
+    const starts = new Set<string>();
+    const stepPageViews = new Map<string, number>();
+    const stepUniqueVisitors = new Map<string, Set<string>>();
+    const stepCompletions = new Map<string, number>();
+    const stepUniqueCompletions = new Map<string, Set<string>>();
+    const stepBackClicks = new Map<string, number>();
+    const checkoutStarts = new Set<string>();
+    const paymentSubmits = new Set<string>();
+    const subscribes = new Set<string>();
+    let variant: string | undefined;
+
+    const bump = (map: Map<string, number>, key: string) => {
+      map.set(key, (map.get(key) ?? 0) + 1);
+    };
+
+    const addUnique = (map: Map<string, Set<string>>, key: string, sessionId: string) => {
+      if (!map.has(key)) map.set(key, new Set());
+      map.get(key)!.add(sessionId);
+    };
+
+    for (const event of lpEvents) {
+      const props = event.properties ?? {};
+      if (!variant) {
+        const v = propString(props, "variant");
+        if (v) variant = v;
+      }
+
+      if (event.event_type === "lp_funnel_start") {
+        starts.add(event.session_id);
+        continue;
+      }
+
+      if (event.event_type === "lp_funnel_step") {
+        const step = propString(props, "step");
+        const action = propString(props, "action");
+        if (!step || !action) continue;
+
+        if (action === "view") {
+          bump(stepPageViews, step);
+          addUnique(stepUniqueVisitors, step, event.session_id);
+        } else if (action === "complete") {
+          bump(stepCompletions, step);
+          addUnique(stepUniqueCompletions, step, event.session_id);
+        } else if (action === "back") {
+          bump(stepBackClicks, step);
+        }
+        continue;
+      }
+
+      if (event.event_type === "lp_funnel_convert") {
+        const convertEvent = propString(props, "convert_event");
+        if (convertEvent === "checkout_start") {
+          checkoutStarts.add(event.session_id);
+        } else if (convertEvent === "payment_submit") {
+          paymentSubmits.add(event.session_id);
+        } else if (convertEvent === "subscribe") {
+          subscribes.add(event.session_id);
+        }
+      }
+    }
+
+    const steps: LpFunnelStepMetric[] = [];
+    let previousUnique = starts.size;
+    let totalPageViews = 0;
+
+    for (const step of LP_FUNNEL_STEP_ORDER) {
+      const pageViews = stepPageViews.get(step) ?? 0;
+      const uniqueVisitors = stepUniqueVisitors.get(step)?.size ?? 0;
+      const completions = stepCompletions.get(step) ?? 0;
+      const uniqueCompletions = stepUniqueCompletions.get(step)?.size ?? 0;
+      const backClicks = stepBackClicks.get(step) ?? 0;
+      totalPageViews += pageViews;
+
+      const startCount = starts.size;
+      const shareOfStarts = pct(uniqueVisitors, startCount);
+      const dropOffFromStart =
+        startCount > 0 ? pct(startCount - uniqueVisitors, startCount) : 0;
+      const stepRetention = pct(uniqueVisitors, previousUnique);
+      const stepFallOff =
+        previousUnique > 0 ? pct(previousUnique - uniqueVisitors, previousUnique) : 0;
+      const completionRate = pct(uniqueCompletions, uniqueVisitors);
+
+      steps.push({
+        step,
+        stepIndex: lpFunnelStepIndex(step),
+        label: humanizeLpFunnelStep(step),
+        pageViews,
+        uniqueVisitors,
+        completions,
+        uniqueCompletions,
+        backClicks,
+        shareOfStarts,
+        dropOffFromStart,
+        stepRetention,
+        stepFallOff,
+        completionRate,
+      });
+
+      if (uniqueVisitors > 0) previousUnique = uniqueVisitors;
+    }
+
+    const startCount = starts.size;
+    reports.push({
+      lpId,
+      variant,
+      uniqueVisitors: startCount,
+      totalPageViews,
+      checkoutStarts: checkoutStarts.size,
+      paymentSubmits: paymentSubmits.size,
+      subscribes: subscribes.size,
+      checkoutStartRate: pct(checkoutStarts.size, startCount),
+      paymentSubmitRate: pct(paymentSubmits.size, checkoutStarts.size),
+      subscribeRate: pct(subscribes.size, startCount),
+      steps,
+    });
+  }
+
+  reports.sort((a, b) => {
+    const aNum = Number(a.lpId);
+    const bNum = Number(b.lpId);
+    if (!Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum !== bNum) {
+      return aNum - bNum;
+    }
+    return a.lpId.localeCompare(b.lpId);
+  });
+
+  return {
+    reports,
+    overview: reports.map((r) => ({
+      lpId: r.lpId,
+      variant: r.variant,
+      totalPageViews: r.totalPageViews,
+      uniqueVisitors: r.uniqueVisitors,
+      checkoutStarts: r.checkoutStarts,
+      subscribes: r.subscribes,
+      subscribeRate: r.subscribeRate,
+    })),
+    days,
     generatedAt: new Date().toISOString(),
   };
 }

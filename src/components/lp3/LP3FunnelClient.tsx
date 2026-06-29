@@ -20,6 +20,14 @@ import {
 } from "@/lib/lp3/content";
 import { useLp3FunnelCopy } from "@/lib/lp3/useLp3FunnelCopy";
 import {
+  useLpFunnelId,
+  useLpFunnelStepAnalytics,
+} from "@/lib/lp3/useLpFunnelAnalytics";
+import {
+  trackLpFunnelStepBack,
+  trackLpFunnelStepComplete,
+} from "@/lib/analytics/lp-funnel-tracking";
+import {
   ENTREPRENEUR_PLAN,
   MONTHLY_SUBSCRIPTION_PLANS,
   YEARLY_SUBSCRIPTION_PLANS,
@@ -197,6 +205,8 @@ export default function LP3FunnelClient({
   const tPaywall = useTranslations("paywall");
   const tLp4 = useTranslations("lp4");
   const copy = useLp3FunnelCopy();
+  const lpId = useLpFunnelId(variant);
+  useLpFunnelStepAnalytics(lpId, variant, step);
 
   const progressIndex = LP3_PROGRESS_STEPS.indexOf(step);
   const progressPct =
@@ -212,6 +222,7 @@ export default function LP3FunnelClient({
     copy.storyReveals[revealKey] ?? copy.storyReveals.default;
 
   const goNext = useCallback(() => {
+    trackLpFunnelStepComplete(lpId, step, variant);
     const idx = LP3_PROGRESS_STEPS.indexOf(step);
     if (step === "intro") {
       setStep("categories");
@@ -220,17 +231,18 @@ export default function LP3FunnelClient({
     if (idx >= 0 && idx < LP3_PROGRESS_STEPS.length - 1) {
       setStep(LP3_PROGRESS_STEPS[idx + 1]!);
     }
-  }, [step]);
+  }, [lpId, step, variant]);
 
   const goBack = useCallback(() => {
     if (step === "intro") return;
+    trackLpFunnelStepBack(lpId, step, variant);
     if (step === "categories") {
       setStep("intro");
       return;
     }
     const idx = LP3_PROGRESS_STEPS.indexOf(step);
     if (idx > 0) setStep(LP3_PROGRESS_STEPS[idx - 1]!);
-  }, [step]);
+  }, [lpId, step, variant]);
 
   useEffect(() => {
     if (step !== "loading") return;
@@ -252,6 +264,7 @@ export default function LP3FunnelClient({
 
       if (elapsed >= LP3_LOADING_DURATION_MS) {
         clearInterval(tick);
+        trackLpFunnelStepComplete(lpId, "loading", variant);
         setStep("checkout");
       }
     };
@@ -260,7 +273,7 @@ export default function LP3FunnelClient({
     const tick = setInterval(tickProgress, 80);
 
     return () => clearInterval(tick);
-  }, [step]);
+  }, [lpId, step, variant]);
 
   const paidPlans: SubscriptionPlan[] =
     billingPeriod === "month"
@@ -1043,8 +1056,9 @@ export default function LP3FunnelClient({
         </div>
 
         <LP3CheckoutPayments
-          plan={selectedPlan}
+          lpId={lpId}
           funnelVariant={variant}
+          plan={selectedPlan}
           email={email || undefined}
           fullName={fullName || undefined}
           checkoutError={checkoutError}

@@ -4,7 +4,10 @@ export type AnalyticsEventType =
   | "next_episode_click"
   | "checkout_started"
   | "paywall_view"
-  | "series_view";
+  | "series_view"
+  | "lp_funnel_start"
+  | "lp_funnel_step"
+  | "lp_funnel_convert";
 
 export interface AnalyticsEventPayload {
   eventType: AnalyticsEventType;

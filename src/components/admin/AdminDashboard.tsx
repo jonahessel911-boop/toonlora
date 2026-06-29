@@ -5,10 +5,11 @@ import type { AdminReportingMetrics } from "@/lib/services/analytics-repository"
 import AdminAffiliatesPanel from "@/components/admin/AdminAffiliatesPanel";
 import AdminComicsPanel from "@/components/admin/AdminComicsPanel";
 import AdminEngagementCharts from "@/components/admin/AdminEngagementCharts";
+import AdminLpFunnelPanel from "@/components/admin/AdminLpFunnelPanel";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<
-    "reporting" | "content" | "affiliates"
+    "reporting" | "lpFunnels" | "content" | "affiliates"
   >("reporting");
   const [metrics, setMetrics] = useState<AdminReportingMetrics | null>(null);
   const [error, setError] = useState("");
@@ -78,6 +79,15 @@ export default function AdminDashboard() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab("lpFunnels")}
+            className={`shrink-0 rounded px-3 py-1 text-[11px] font-semibold ${
+              activeTab === "lpFunnels" ? "bg-white/20" : "text-white/60"
+            }`}
+          >
+            LP funnels
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab("content")}
             className={`shrink-0 rounded px-3 py-1 text-[11px] font-semibold ${
               activeTab === "content" ? "bg-white/20" : "text-white/60"
@@ -114,6 +124,18 @@ export default function AdminDashboard() {
             >
               <span aria-hidden>📊</span>
               User reporting
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("lpFunnels")}
+              className={`flex w-full items-center gap-2 border-l-2 px-4 py-2 text-sm ${
+                activeTab === "lpFunnels"
+                  ? "border-[#0078D4] bg-white font-semibold text-[#0078D4]"
+                  : "border-transparent text-[#323130] hover:bg-white/60"
+              }`}
+            >
+              <span aria-hidden>🎯</span>
+              LP funnel analytics
             </button>
             <button
               type="button"
@@ -154,6 +176,11 @@ export default function AdminDashboard() {
                   Reporting <span className="mx-1">›</span>{" "}
                   <span className="text-[#323130]">User engagement</span>
                 </>
+              ) : activeTab === "lpFunnels" ? (
+                <>
+                  Reporting <span className="mx-1">›</span>{" "}
+                  <span className="text-[#323130]">LP funnel drop-off</span>
+                </>
               ) : activeTab === "content" ? (
                 <>
                   Content <span className="mx-1">›</span>{" "}
@@ -171,9 +198,11 @@ export default function AdminDashboard() {
                 <h1 className="text-xl font-semibold text-[#323130] sm:text-2xl">
                   {activeTab === "reporting"
                     ? "Platform analytics"
-                    : activeTab === "content"
-                      ? "Comics & publishing"
-                      : "Affiliate program"}
+                    : activeTab === "lpFunnels"
+                      ? "LP funnel analytics"
+                      : activeTab === "content"
+                        ? "Comics & publishing"
+                        : "Affiliate program"}
                 </h1>
                 {activeTab === "reporting" && metrics ? (
                   <p className="mt-1.5 text-xs text-[#605E5C] sm:text-sm">
@@ -181,6 +210,11 @@ export default function AdminDashboard() {
                     <time dateTime={metrics.generatedAt}>
                       {new Date(metrics.generatedAt).toLocaleString()}
                     </time>
+                  </p>
+                ) : activeTab === "lpFunnels" ? (
+                  <p className="mt-1.5 text-xs text-[#605E5C] sm:text-sm">
+                    Per-step drop-off and conversion for every{" "}
+                    <code className="text-xs">/lp/{"{n}"}</code> landing page.
                   </p>
                 ) : activeTab === "content" ? (
                   <p className="mt-1.5 text-xs text-[#605E5C] sm:text-sm">
@@ -211,6 +245,8 @@ export default function AdminDashboard() {
               <AdminComicsPanel />
             ) : activeTab === "affiliates" ? (
               <AdminAffiliatesPanel />
+            ) : activeTab === "lpFunnels" ? (
+              <AdminLpFunnelPanel />
             ) : (
               <>
             {error ? (

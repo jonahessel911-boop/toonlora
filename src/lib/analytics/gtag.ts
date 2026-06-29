@@ -6,6 +6,7 @@ import {
   ttqTrackSignup,
   ttqTrackSubscribe,
 } from "@/lib/analytics/ttq";
+import { trackLpFunnelSubscribeIfActive } from "@/lib/analytics/lp-funnel-tracking";
 
 type GtagParams = Record<string, string | number | boolean | undefined>;
 
@@ -195,4 +196,5 @@ export function trackSubscribe(params: {
     value: params.valueCents != null ? params.valueCents / 100 : undefined,
     subscriptionId: params.subscriptionId,
   });
+  trackLpFunnelSubscribeIfActive(params.planId);
 }
