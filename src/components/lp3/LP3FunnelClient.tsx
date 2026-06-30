@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import LP3Shell, { LP3FooterDock } from "@/components/lp3/LP3Shell";
@@ -16,6 +17,7 @@ import {
   LP3_LOADING_DURATION_MS,
   LP3_LOADING_TASKS,
   LP3_PROGRESS_STEPS,
+  LP4_PROGRESS_STEPS,
   type LP3StepId,
 } from "@/lib/lp3/content";
 import { useLp3FunnelCopy } from "@/lib/lp3/useLp3FunnelCopy";
@@ -23,6 +25,7 @@ import {
   useLpFunnelId,
   useLpFunnelStepAnalytics,
 } from "@/lib/lp3/useLpFunnelAnalytics";
+import { useLpLanderContext } from "@/lib/lp/useLpLanderContext";
 import {
   trackLpFunnelStepBack,
   trackLpFunnelStepComplete,
@@ -39,8 +42,18 @@ import {
   yearlyPlanForTier,
   type SubscriptionPlan,
 } from "@/lib/payments/subscription-plans";
-import { formatLp3StoryGridLabel } from "@/lib/lp3/story-labels";
-import { MOCK_STORY_CATALOG } from "@/lib/mock/businessStoryCatalog";
+import {
+  formatCoverTitleLabel,
+  findStoryByCoverTitle,
+  normalizeCoverTitleSlug,
+} from "@/lib/lp3/coverTitleParam";
+import { mergeStoryOptions } from "@/lib/lp3/storyOptions";
+import { CoverMosaic } from "@/components/lp/LpCoverIntro";
+import LpStoryTeaserIntro from "@/components/lp/LpStoryTeaserIntro";
+import {
+  resolveStoryIdFromCoverTitle,
+  resolveStoryTeaser,
+} from "@/lib/lp/storyTeasers";
 import { useCatalog } from "@/hooks/useCatalog";
 import { useUserStore } from "@/store/useUserStore";
 import type { CatalogSeries } from "@/types/catalog";
@@ -49,57 +62,6 @@ interface LP3FunnelClientProps {
   initialCatalog?: CatalogSeries[];
   /** LP/4 uses a single hero image on the intro step instead of the cover mosaic. */
   variant?: "lp3" | "lp4";
-}
-
-interface StoryOption {
-  id: string;
-  title: string;
-  displayTitle: string;
-  subtitle: string;
-  coverArtUrl?: string;
-  coverGradient: string;
-}
-
-function mergeStoryOptions(catalog: CatalogSeries[]): StoryOption[] {
-  const fromCatalog = catalog
-    .filter((s) => s.coverArtUrl)
-    .map((s) => {
-      const title = s.title.split("—")[0]?.trim() || s.title;
-      return {
-        id: s.id,
-        title,
-        displayTitle: formatLp3StoryGridLabel({
-          id: s.id,
-          title,
-          fullTitle: s.title,
-          genre: s.genre,
-          sagaSubtitle: s.sagaSubtitle,
-        }),
-        subtitle: s.synopsis?.slice(0, 60) || s.sagaLabel || "Business story",
-        coverArtUrl: s.coverArtUrl,
-        coverGradient: s.coverGradient,
-      };
-    });
-
-  const seen = new Set(fromCatalog.map((s) => s.id));
-  const fromMock = MOCK_STORY_CATALOG.flatMap((cat) =>
-    cat.stories.map((s) => ({
-      id: s.id,
-      title: s.title,
-      displayTitle: formatLp3StoryGridLabel({
-        id: s.id,
-        title: s.title,
-        fullTitle: s.title,
-        genre: cat.id,
-        sagaSubtitle: s.subtitle,
-      }),
-      subtitle: s.subtitle,
-      coverArtUrl: s.coverArtUrl,
-      coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
-    }))
-  ).filter((s) => !seen.has(s.id));
-
-  return [...fromCatalog, ...fromMock].slice(0, 12);
 }
 
 function LP3ContinueButton({
@@ -122,35 +84,6 @@ function LP3ContinueButton({
     >
       {label}
     </button>
-  );
-}
-
-function CoverMosaic({ stories }: { stories: StoryOption[] }) {
-  const tiles = stories.slice(0, 12);
-  return (
-    <div className="relative mx-auto max-w-lg overflow-hidden px-2">
-      <div className="grid grid-cols-4 gap-1 sm:grid-cols-5 sm:gap-1.5">
-        {tiles.map((story, i) => (
-          <div
-            key={`${story.id}-${i}`}
-            className="aspect-[2/3] overflow-hidden rounded-md shadow-sm"
-          >
-            {story.coverArtUrl ? (
-              <LP3CoverThumb
-                src={story.coverArtUrl}
-                priority={i < 10}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div
-                className={`h-full w-full bg-gradient-to-br ${story.coverGradient}`}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#F6F1E7] to-transparent" />
-    </div>
   );
 }
 
@@ -184,10 +117,28 @@ export default function LP3FunnelClient({
   });
   const catalog = initialCatalog.length > 0 ? initialCatalog : clientCatalog;
   const stories = useMemo(() => mergeStoryOptions(catalog), [catalog]);
+  const searchParams = useSearchParams();
+  const coverTitleParam = searchParams.get("cover_title");
+  const coverCompany = coverTitleParam
+    ? formatCoverTitleLabel(coverTitleParam)
+    : null;
+  const coverStory = useMemo(
+    () => findStoryByCoverTitle(stories, coverTitleParam),
+    [stories, coverTitleParam]
+  );
+  const teaserStoryId = resolveStoryIdFromCoverTitle(coverTitleParam);
+  const showStoryTeaser = Boolean(coverTitleParam?.trim());
+  const teaserStoryIdResolved =
+    coverStory?.id ?? teaserStoryId ?? normalizeCoverTitleSlug(coverTitleParam ?? "");
+  const storyTeaser = useMemo(
+    () => resolveStoryTeaser(teaserStoryIdResolved, coverTitleParam),
+    [teaserStoryIdResolved, coverTitleParam]
+  );
 
   const [step, setStep] = useState<LP3StepId>("intro");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedStories, setSelectedStories] = useState<string[]>([]);
+  const [selectedStoryWhy, setSelectedStoryWhy] = useState<string | null>(null);
   const [selectedFeel, setSelectedFeel] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedHabit, setSelectedHabit] = useState<string | null>(null);
@@ -203,15 +154,48 @@ export default function LP3FunnelClient({
     () => LP3_LOADING_TASKS.map(() => 0)
   );
   const tPaywall = useTranslations("paywall");
+  const tLp3 = useTranslations("lp3");
   const tLp4 = useTranslations("lp4");
   const copy = useLp3FunnelCopy();
   const lpId = useLpFunnelId(variant);
-  useLpFunnelStepAnalytics(lpId, variant, step);
+  const lander = useLpLanderContext(lpId);
+  useLpFunnelStepAnalytics(variant, step);
 
-  const progressIndex = LP3_PROGRESS_STEPS.indexOf(step);
+  const progressSteps =
+    variant === "lp4" ? LP4_PROGRESS_STEPS : LP3_PROGRESS_STEPS;
+
+  const featuredStoryName =
+    coverStory?.displayTitle ??
+    coverCompany ??
+    (coverTitleParam ? formatCoverTitleLabel(coverTitleParam) : null) ??
+    "this business story";
+
+  const slideshowStories = useMemo(() => {
+    const withoutHero = stories.filter((s) => s.id !== teaserStoryIdResolved);
+    return withoutHero.length > 0 ? withoutHero : stories;
+  }, [stories, teaserStoryIdResolved]);
+
+  const checkoutStories = useMemo(() => {
+    if (!coverTitleParam?.trim()) return stories;
+    const hero =
+      coverStory ?? stories.find((s) => s.id === teaserStoryIdResolved);
+    if (!hero) return stories;
+    return [hero, ...stories.filter((s) => s.id !== hero.id)];
+  }, [stories, coverStory, coverTitleParam, teaserStoryIdResolved]);
+
+  useEffect(() => {
+    if (variant !== "lp3" || !teaserStoryIdResolved) return;
+    setSelectedStories((prev) =>
+      prev.includes(teaserStoryIdResolved)
+        ? prev
+        : [teaserStoryIdResolved, ...prev]
+    );
+  }, [variant, teaserStoryIdResolved]);
+
+  const progressIndex = progressSteps.indexOf(step);
   const progressPct =
     progressIndex >= 0
-      ? ((progressIndex + 1) / LP3_PROGRESS_STEPS.length) * 100
+      ? ((progressIndex + 1) / progressSteps.length) * 100
       : 0;
 
   const primaryCategory = selectedCategories[0] ?? "founder_stories";
@@ -222,27 +206,28 @@ export default function LP3FunnelClient({
     copy.storyReveals[revealKey] ?? copy.storyReveals.default;
 
   const goNext = useCallback(() => {
-    trackLpFunnelStepComplete(lpId, step, variant);
-    const idx = LP3_PROGRESS_STEPS.indexOf(step);
+    trackLpFunnelStepComplete(lander, step, variant);
+    const idx = progressSteps.indexOf(step);
     if (step === "intro") {
-      setStep("categories");
+      setStep(variant === "lp4" ? "categories" : "storyWhy");
       return;
     }
-    if (idx >= 0 && idx < LP3_PROGRESS_STEPS.length - 1) {
-      setStep(LP3_PROGRESS_STEPS[idx + 1]!);
+    if (idx >= 0 && idx < progressSteps.length - 1) {
+      setStep(progressSteps[idx + 1]!);
     }
-  }, [lpId, step, variant]);
+  }, [lander, step, variant, progressSteps]);
 
   const goBack = useCallback(() => {
     if (step === "intro") return;
-    trackLpFunnelStepBack(lpId, step, variant);
-    if (step === "categories") {
+    trackLpFunnelStepBack(lander, step, variant);
+    const firstStep = variant === "lp4" ? "categories" : "storyWhy";
+    if (step === firstStep) {
       setStep("intro");
       return;
     }
-    const idx = LP3_PROGRESS_STEPS.indexOf(step);
-    if (idx > 0) setStep(LP3_PROGRESS_STEPS[idx - 1]!);
-  }, [lpId, step, variant]);
+    const idx = progressSteps.indexOf(step);
+    if (idx > 0) setStep(progressSteps[idx - 1]!);
+  }, [lander, step, variant, progressSteps]);
 
   useEffect(() => {
     if (step !== "loading") return;
@@ -264,7 +249,7 @@ export default function LP3FunnelClient({
 
       if (elapsed >= LP3_LOADING_DURATION_MS) {
         clearInterval(tick);
-        trackLpFunnelStepComplete(lpId, "loading", variant);
+        trackLpFunnelStepComplete(lander, "loading", variant);
         setStep("checkout");
       }
     };
@@ -273,7 +258,7 @@ export default function LP3FunnelClient({
     const tick = setInterval(tickProgress, 80);
 
     return () => clearInterval(tick);
-  }, [lpId, step, variant]);
+  }, [lander, step, variant]);
 
   const paidPlans: SubscriptionPlan[] =
     billingPeriod === "month"
@@ -302,9 +287,21 @@ export default function LP3FunnelClient({
 
   if (step === "intro") {
     const introTitle =
-      variant === "lp4" ? tLp4("intro.headline") : copy.intro.title;
+      variant === "lp4"
+        ? tLp4("intro.headline")
+        : copy.intro.title;
     const introSubtitle =
       variant === "lp4" ? tLp4("intro.subtitle") : copy.intro.subtitle;
+
+    const teaserHeroStory =
+      coverStory ??
+      stories.find((s) => s.id === teaserStoryIdResolved) ?? {
+        id: teaserStoryIdResolved,
+        title: coverCompany ?? storyTeaser.hook,
+        displayTitle: coverCompany ?? storyTeaser.hook,
+        subtitle: "",
+        coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
+      };
 
     return (
       <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#F6F1E7]">
@@ -319,6 +316,21 @@ export default function LP3FunnelClient({
                 {introSubtitle}
               </p>
             </div>
+          ) : showStoryTeaser ? (
+            <>
+              <LpStoryTeaserIntro
+                teaser={storyTeaser}
+                story={teaserHeroStory}
+                className="pb-2 pt-4 sm:pt-5"
+              />
+              <div className="mx-auto max-w-lg px-4 pb-4">
+                <LP3CoverSlideshow
+                  stories={slideshowStories}
+                  label={tLp3("intro.moreStories")}
+                  showFooterNote={false}
+                />
+              </div>
+            </>
           ) : (
             <>
               <CoverMosaic stories={stories} />
@@ -334,10 +346,43 @@ export default function LP3FunnelClient({
           )}
         </div>
         <LP3FooterDock>
-          <LP3ContinueButton onClick={goNext} />
+          <LP3ContinueButton onClick={goNext}>
+            {showStoryTeaser ? tLp3("intro.startReading") : undefined}
+          </LP3ContinueButton>
           <LP3LegalFooter />
         </LP3FooterDock>
       </div>
+    );
+  }
+
+  if (step === "storyWhy" && variant === "lp3") {
+    return (
+      <LP3Shell
+        stepLabel={copy.stepLabels.storyWhy}
+        progress={progressPct}
+        showBack
+        onBack={goBack}
+      >
+        <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
+          {copy.storyWhy.title(featuredStoryName)}
+        </h2>
+        <div className="mx-auto mt-4 max-w-md space-y-2">
+          {copy.storyWhyOptions.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => {
+                setSelectedStoryWhy(opt.id);
+                goNext();
+              }}
+              className="flex w-full items-center gap-3 rounded-full border border-[#E7DDCC] bg-white px-4 py-3 text-left transition hover:border-[#2F80ED]/40 hover:ring-2 hover:ring-[#2F80ED]/20 active:border-[#2F80ED] active:ring-2 active:ring-[#2F80ED]/30"
+            >
+              <span className="text-2xl">{opt.emoji}</span>
+              <span className="font-semibold text-[#0A1628]">{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      </LP3Shell>
     );
   }
 
@@ -387,7 +432,9 @@ export default function LP3FunnelClient({
         }
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
-          {copy.stories.title}
+          {variant === "lp3"
+            ? copy.stories.titleOther
+            : copy.stories.title}
         </h2>
         <p className="mt-1.5 text-center text-xs text-[#64748B]">
           {storyCount === 0
@@ -935,15 +982,21 @@ export default function LP3FunnelClient({
     <LP3Shell showLogo compactLogo>
       <div className="mx-auto w-full max-w-lg">
         <h1 className="text-center font-heading text-[1.2rem] font-extrabold leading-snug text-[#0A1628] sm:text-[1.35rem]">
-          {tPaywall("headline")}
+          {showStoryTeaser
+            ? tLp3("checkout.headlineWithStory", { story: featuredStoryName })
+            : tPaywall("headline")}
         </h1>
         <p className="mx-auto mt-2 max-w-md text-center text-sm font-normal leading-relaxed text-[#475569]">
           {tPaywall("subhead")}
         </p>
 
         <LP3CoverSlideshow
-          stories={stories}
-          label={copy.checkout.readStoriesLike}
+          stories={checkoutStories}
+          label={
+            showStoryTeaser
+              ? tLp3("checkout.readStoryAndMore", { story: featuredStoryName })
+              : copy.checkout.readStoriesLike
+          }
         />
 
         <div>
@@ -1056,7 +1109,7 @@ export default function LP3FunnelClient({
         </div>
 
         <LP3CheckoutPayments
-          lpId={lpId}
+          lander={lander}
           funnelVariant={variant}
           plan={selectedPlan}
           email={email || undefined}

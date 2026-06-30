@@ -39,9 +39,11 @@ function CoverTile({
 export default function LP3CoverSlideshow({
   stories,
   label,
+  showFooterNote = true,
 }: {
   stories: LP3CoverSlide[];
   label: string;
+  showFooterNote?: boolean;
 }) {
   const slides = useMemo(() => {
     const withCovers = stories.filter((s) => s.coverArtUrl);
@@ -83,9 +85,11 @@ export default function LP3CoverSlideshow({
           ))}
         </motion.div>
       </div>
-      <p className="mt-3 text-center text-xs font-semibold leading-snug text-[#475569] sm:text-sm">
-        +300 other verified business stories &amp; new episodes added every week
-      </p>
+      {showFooterNote ? (
+        <p className="mt-3 text-center text-xs font-semibold leading-snug text-[#475569] sm:text-sm">
+          +3000 other verified business stories &amp; new episodes added every week
+        </p>
+      ) : null}
     </div>
   );
 }

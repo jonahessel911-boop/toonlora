@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import LP3FunnelClient from "@/components/lp3/LP3FunnelClient";
+import LP5FunnelClient from "@/components/lp5/LP5FunnelClient";
 import { isServerDatabaseConfigured } from "@/lib/config";
 import { listIndexCatalog } from "@/lib/services/catalog-repository";
 import { PLATFORM_FULL_NAME } from "@/lib/seo/site";
 import { catalogToCard, type CatalogSeries } from "@/types/catalog";
 
 export const metadata: Metadata = {
-  title: `Business Stories | ${PLATFORM_FULL_NAME}`,
+  title: `Start reading | ${PLATFORM_FULL_NAME}`,
   description:
-    "Answer a few questions to uncover the most in-depth business stories in the world.",
+    "Read chapter 1 free — then unlock 3000+ verified business stories.",
   robots: { index: false, follow: false },
 };
 
-export default async function LandingPage4() {
+export default async function LandingPage5() {
   let initialCatalog: CatalogSeries[] = [];
 
   if (isServerDatabaseConfigured()) {
@@ -33,7 +33,7 @@ export default async function LandingPage4() {
         </div>
       }
     >
-      <LP3FunnelClient initialCatalog={initialCatalog} variant="lp4" />
+      <LP5FunnelClient initialCatalog={initialCatalog} />
     </Suspense>
   );
 }

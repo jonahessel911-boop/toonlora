@@ -75,6 +75,9 @@
     "heroEyebrow": "THIS WEEK'S DROP",
     "weeklyEpisodes": "Weekly episodes"
   },
+  "schedule": {
+    "nextMondayNewEpisode": "Next Monday ({date}) new episode"
+  },
   "subscribe": {
     "membership": "Toonlora membership",
     "wantUnlimited": "Want to read unlimited?",
@@ -182,7 +185,7 @@
       ]
     },
     "membershipIncludes": [
-      "300+ in-depth business episodes",
+      "3000+ in-depth business episodes",
       "New chapters added every week",
       "Researched and written by 16 Harvard students",
       "Real founder stories, fraud cases & company breakdowns",
@@ -207,6 +210,7 @@
   "lp3": {
     "steps": {
       "intro": "",
+      "storyWhy": "Interests",
       "categories": "Interests",
       "stories": "Interests",
       "time": "Interests",
@@ -223,14 +227,21 @@
       "checkout": "Membership"
     },
     "intro": {
-      "title": "Let's tailor your watchlist",
-      "subtitle": "Answer a few questions to uncover the most in-depth business stories in the world."
+      "title": "You're about to read the real stories behind iconic companies",
+      "titleWithCover": "You're about to read the real story behind {company}",
+      "subtitle": "Deep-researched. Illustrated. 5-minute chapters.",
+      "moreStories": "+ 3000 other in-depth business stories",
+      "startReading": "Start reading"
+    },
+    "storyWhy": {
+      "title": "Why do you think {story} is an interesting business story?"
     },
     "categories": {
       "title": "Which side of business fascinates you most?"
     },
     "stories": {
       "title": "Which business stories are you most curious about?",
+      "titleOther": "What other kinds of business stories might you like?",
       "tapOne": "Tap at least one to continue",
       "selected": "{count} selected",
       "fallbackSubtitle": "Business story"
@@ -248,6 +259,14 @@
       "title": "What do you want most from a business story?"
     },
     "options": {
+      "storyWhy": {
+        "rise-fall": "The rise and fall",
+        "founder": "The founder's decisions",
+        "money": "The money and hype",
+        "collapse": "How it all collapsed",
+        "lessons": "What it teaches about business",
+        "drama": "The drama behind the headlines"
+      },
       "feel": {
         "fired-up": "Fired up",
         "shocked": "Shocked",
@@ -389,6 +408,8 @@
     },
     "checkout": {
       "readStoriesLike": "Read stories like:",
+      "readStoryAndMore": "Read {story} + other in-depth stories like:",
+      "headlineWithStory": "Read {story} + 3000 other verified business stories written by Harvard students",
       "trustedByReaders": "Trusted by readers"
     },
     "reviews": {
@@ -407,6 +428,44 @@
         "title": "I downloaded this expecting a quick read",
         "body": "I downloaded this expecting a quick escape, but I got hooked on the FTX saga almost immediately. It feels like Succession, but with real balance sheets and much higher stakes."
       }
+    }
+  },
+  "lp5": {
+    "intro": {
+      "startChapterFree": "Start Chapter 1 Free",
+      "chapterUnlocked": "Chapter 1 is unlocked",
+      "riskReversal": "No account needed · No payment required · 5-minute read",
+      "bulletsTitle": "In Chapter 1, you'll discover:",
+      "default": {
+        "headlineLine1": "{company} built a story the market couldn't stop believing.",
+        "headlineLine2": "Then the illusion started to crack.",
+        "subtitle": "Read Chapter 1 free — a cinematic business story about hype, money, ego, and collapse.",
+        "bullets": [
+          "How the company rose faster than anyone expected",
+          "Why investors kept betting bigger",
+          "The first warning signs almost everyone ignored"
+        ]
+      },
+      "stories": {
+        "wework": {
+          "headlineLine1": "WeWork was worth $47 billion.",
+          "headlineLine2": "Then the illusion collapsed.",
+          "subtitle": "Read Chapter 1 free — a cinematic business story about hype, money, ego, and collapse.",
+          "bullets": [
+            "How WeWork became one of the most hyped startups in the world",
+            "Why investors kept pouring in billions",
+            "The first cracks behind the $47B dream"
+          ]
+        }
+      }
+    },
+    "read": {
+      "unavailableTitle": "Chapter not available yet",
+      "unavailableBody": "This story is still being prepared. You can still unlock full access below.",
+      "continueToUnlock": "Unlock full access"
+    },
+    "checkout": {
+      "headline": "Read {story} + 3000 other verified business stories written by Harvard students"
     }
   },
   "lp4": {

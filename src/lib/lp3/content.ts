@@ -2,6 +2,7 @@ import { BROWSE_CONTENT_CATEGORIES } from "@/lib/browseCategories";
 
 export type LP3StepId =
   | "intro"
+  | "storyWhy"
   | "categories"
   | "stories"
   | "time"
@@ -20,6 +21,21 @@ export type LP3StepId =
 export const LP3_LOADING_DURATION_MS = 15_000;
 
 export const LP3_PROGRESS_STEPS: LP3StepId[] = [
+  "storyWhy",
+  "stories",
+  "depth",
+  "quiz",
+  "quiz2",
+  "reveal",
+  "stat",
+  "profile",
+  "journey",
+  "loading",
+  "checkout",
+];
+
+/** LP/4 keeps the longer interest quiz. */
+export const LP4_PROGRESS_STEPS: LP3StepId[] = [
   "categories",
   "stories",
   "time",
@@ -36,8 +52,18 @@ export const LP3_PROGRESS_STEPS: LP3StepId[] = [
   "checkout",
 ];
 
+export const LP3_STORY_WHY_OPTIONS = [
+  { id: "rise-fall", emoji: "📉", label: "The rise and fall" },
+  { id: "founder", emoji: "🚀", label: "The founder's decisions" },
+  { id: "money", emoji: "💰", label: "The money and hype" },
+  { id: "collapse", emoji: "💥", label: "How it all collapsed" },
+  { id: "lessons", emoji: "💡", label: "What it teaches about business" },
+  { id: "drama", emoji: "🎭", label: "The drama behind the headlines" },
+] as const;
+
 export const LP3_STEP_LABELS: Record<LP3StepId, string> = {
   intro: "",
+  storyWhy: "Interests",
   categories: "Interests",
   stories: "Interests",
   time: "Interests",
@@ -211,7 +237,7 @@ export const LP3_PLAN_HIGHLIGHTS: Record<"achiever" | "entrepreneur", string[]> 
 export const LP3_MEMBERSHIP_INCLUDES_PREVIEW_COUNT = 5;
 
 export const LP3_MEMBERSHIP_INCLUDES = [
-  "300+ in-depth business episodes",
+  "3000+ in-depth business episodes",
   "New chapters added every week",
   "Researched and written by 16 Harvard students",
   "Real founder stories, fraud cases & company breakdowns",
@@ -235,7 +261,7 @@ export const LP3_MEMBERSHIP_INCLUDES = [
 
 export const LP3_LIBRARY_UNLOCK = {
   title: "Your membership unlocks the full Toonlora library:",
-  body: "300+ cinematic business episodes about founders, frauds, power moves and billion-dollar collapses — with new verified chapters added every week.",
+  body: "3000+ cinematic business episodes about founders, frauds, power moves and billion-dollar collapses — with new verified chapters added every week.",
 };
 
 export const LP3_BENEFITS = LP3_MEMBERSHIP_INCLUDES;

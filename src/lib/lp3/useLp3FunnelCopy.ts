@@ -9,6 +9,8 @@ import {
   LP3_HABIT_OPTIONS,
   LP3_LOADING_TASKS,
   LP3_PROGRESS_STEPS,
+  LP4_PROGRESS_STEPS,
+  LP3_STORY_WHY_OPTIONS,
   LP3_QUIZ,
   LP3_QUIZ_2,
   LP3_REVIEWS,
@@ -46,9 +48,17 @@ export function useLp3FunnelCopy() {
   const tCategories = useTranslations("categories");
 
   return useMemo(() => {
+    const stepKeys = [
+      ...new Set([...LP3_PROGRESS_STEPS, ...LP4_PROGRESS_STEPS]),
+    ] as LP3StepId[];
     const stepLabels = Object.fromEntries(
-      LP3_PROGRESS_STEPS.map((step) => [step, t(`steps.${step}`)])
+      stepKeys.map((step) => [step, t(`steps.${step}`)])
     ) as Record<LP3StepId, string>;
+
+    const storyWhyOptions = LP3_STORY_WHY_OPTIONS.map((opt) => ({
+      ...opt,
+      label: t(`options.storyWhy.${opt.id}`),
+    }));
 
     const categoryOptions = LP3_CATEGORY_OPTIONS.map((cat) => ({
       ...cat,
@@ -119,11 +129,15 @@ export function useLp3FunnelCopy() {
         title: t("intro.title"),
         subtitle: t("intro.subtitle"),
       },
+      storyWhy: {
+        title: (story: string) => t("storyWhy.title", { story }),
+      },
       categories: {
         title: t("categories.title"),
       },
       stories: {
         title: t("stories.title"),
+        titleOther: t("stories.titleOther"),
         tapOne: t("stories.tapOne"),
         selected: (count: number) => t("stories.selected", { count }),
         fallbackSubtitle: t("stories.fallbackSubtitle"),
@@ -182,6 +196,7 @@ export function useLp3FunnelCopy() {
         trustedByReaders: t("checkout.trustedByReaders"),
       },
       categoryOptions,
+      storyWhyOptions,
       feelOptions,
       timeOptions,
       habitOptions,

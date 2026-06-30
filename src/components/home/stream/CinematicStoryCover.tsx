@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import NextMondayEpisodeLabel from "@/components/ui/NextMondayEpisodeLabel";
 
 interface CinematicStoryCoverProps {
   coverArtUrl?: string;
@@ -21,14 +22,19 @@ export default function CinematicStoryCover({
 
   if (showPhoto) {
     return (
-      <img
-        src={coverArtUrl}
-        alt=""
-        className={`h-full w-full object-cover object-center ${className}`}
-        loading="lazy"
-        decoding="async"
-        onError={() => setFailed(true)}
-      />
+      <div className={`relative h-full w-full overflow-hidden ${className}`}>
+        <img
+          src={coverArtUrl}
+          alt=""
+          className="h-full w-full object-cover object-center"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+        <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex justify-center">
+          <NextMondayEpisodeLabel className="max-w-full" />
+        </div>
+      </div>
     );
   }
 
@@ -59,6 +65,9 @@ export default function CinematicStoryCover({
         <p className="mt-1 font-heading text-lg font-extrabold leading-tight text-[#F9FAFB]">
           {title}
         </p>
+      </div>
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex justify-center">
+        <NextMondayEpisodeLabel className="max-w-full" />
       </div>
     </div>
   );

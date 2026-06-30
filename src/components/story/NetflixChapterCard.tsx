@@ -1,6 +1,7 @@
 "use client";
 
 import CoverArt from "@/components/ui/CoverArt";
+import NextMondayEpisodeLabel from "@/components/ui/NextMondayEpisodeLabel";
 import type { ChapterAccessBadge } from "@/lib/mock/mockSeriesDetail";
 import { chapterBadgeLabel } from "@/lib/mock/mockSeriesDetail";
 
@@ -94,6 +95,10 @@ export default function NetflixChapterCard({
               {chapterBadgeLabel(badge)}
             </span>
           ) : null}
+
+          <div className="pointer-events-none absolute inset-x-3 bottom-[4.75rem] z-10 flex justify-center sm:bottom-[5.25rem]">
+            <NextMondayEpisodeLabel className="max-w-full" />
+          </div>
 
           {progressPercent > 0 ? (
             <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/20">

@@ -75,6 +75,9 @@
     "heroEyebrow": "DIESE WOCHE",
     "weeklyEpisodes": "Wöchentliche Folgen"
   },
+  "schedule": {
+    "nextMondayNewEpisode": "Nächsten Montag ({date}) neue Folge"
+  },
   "subscribe": {
     "membership": "Toonlora-Mitgliedschaft",
     "wantUnlimited": "Unbegrenzt lesen?",
@@ -177,7 +180,7 @@
       ]
     },
     "membershipIncludes": [
-      "300+ tiefgehende Business-Folgen",
+      "3000+ tiefgehende Business-Folgen",
       "Jede Woche neue Kapitel",
       "Recherchiert und geschrieben von 16 Harvard-Studenten",
       "Echte Gründergeschichten, Betrugsfälle & Unternehmensanalysen",
@@ -218,8 +221,9 @@
       "checkout": "Mitgliedschaft"
     },
     "intro": {
-      "title": "Lass uns deine Watchlist anpassen",
-      "subtitle": "Beantworte ein paar Fragen und entdecke die tiefgehendsten Business-Geschichten der Welt."
+      "title": "Du stehst kurz davor, die echten Geschichten hinter ikonischen Unternehmen zu lesen",
+      "titleWithCover": "Du stehst kurz davor, die echte Geschichte hinter {company} zu lesen",
+      "subtitle": "Tief recherchiert. Illustriert. 5-Minuten-Kapitel."
     },
     "categories": {
       "title": "Welche Seite von Business fasziniert dich am meisten?"
@@ -402,6 +406,44 @@
         "title": "Ich wollte nur kurz lesen",
         "body": "Ich erwartete eine schnelle Flucht, war aber sofort süchtig nach der FTX-Saga. Wie Succession, aber mit echten Bilanzen und viel höheren Einsätzen."
       }
+    }
+  },
+  "lp5": {
+    "intro": {
+      "startChapterFree": "Start Chapter 1 Free",
+      "chapterUnlocked": "Chapter 1 is unlocked",
+      "riskReversal": "No account needed · No payment required · 5-minute read",
+      "bulletsTitle": "In Chapter 1, you'll discover:",
+      "default": {
+        "headlineLine1": "{company} built a story the market couldn't stop believing.",
+        "headlineLine2": "Then the illusion started to crack.",
+        "subtitle": "Read Chapter 1 free — a cinematic business story about hype, money, ego, and collapse.",
+        "bullets": [
+          "How the company rose faster than anyone expected",
+          "Why investors kept betting bigger",
+          "The first warning signs almost everyone ignored"
+        ]
+      },
+      "stories": {
+        "wework": {
+          "headlineLine1": "WeWork was worth $47 billion.",
+          "headlineLine2": "Then the illusion collapsed.",
+          "subtitle": "Read Chapter 1 free — a cinematic business story about hype, money, ego, and collapse.",
+          "bullets": [
+            "How WeWork became one of the most hyped startups in the world",
+            "Why investors kept pouring in billions",
+            "The first cracks behind the $47B dream"
+          ]
+        }
+      }
+    },
+    "read": {
+      "unavailableTitle": "Kapitel noch nicht verfügbar",
+      "unavailableBody": "Diese Geschichte wird noch vorbereitet. Du kannst unten trotzdem vollen Zugang freischalten.",
+      "continueToUnlock": "Vollen Zugang freischalten"
+    },
+    "checkout": {
+      "headline": "Lies {story} + 3000 weitere verifizierte Business-Geschichten von Harvard-Studenten"
     }
   },
   "lp4": {

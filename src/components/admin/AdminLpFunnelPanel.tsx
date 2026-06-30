@@ -1,10 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   LpFunnelReport,
   LpFunnelReportsResponse,
 } from "@/lib/services/analytics-repository";
+import {
+  LP_FUNNEL_KEY_METRICS,
+  lpFunnelHasKeyMetrics,
+  type LpFunnelKeyMetricDefinition,
+} from "@/lib/lp/funnelMetrics";
 
 const DAY_OPTIONS = [
   { label: "7 days", value: 7 },
@@ -12,6 +17,142 @@ const DAY_OPTIONS = [
   { label: "90 days", value: 90 },
   { label: "All time", value: null },
 ] as const;
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={className}
+      aria-hidden
+    >
+      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L4 13.172V16h2.828l7.38-7.379-2.83-2.828z" />
+    </svg>
+  );
+}
+
+function EditableAngleLabel({
+  reportKey,
+  label,
+  onRenamed,
+  onError,
+  className,
+  labelClassName,
+}: {
+  reportKey: string;
+  label: string;
+  onRenamed: (reportKey: string, label: string) => void;
+  onError: (message: string) => void;
+  className?: string;
+  labelClassName?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(label);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(label);
+  }, [label, editing]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  const cancel = () => {
+    setDraft(label);
+    setEditing(false);
+  };
+
+  const save = async () => {
+    const next = draft.trim();
+    if (!next) {
+      onError("Name cannot be empty.");
+      return;
+    }
+    if (next === label) {
+      setEditing(false);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/lp-funnel/angles", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportKey, label: next }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        onError(json.error ?? "Could not save name.");
+        return;
+      }
+      onRenamed(reportKey, next);
+      setEditing(false);
+    } catch {
+      onError("Could not save name.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div
+        className={`flex items-center gap-1.5 ${className ?? ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          value={draft}
+          disabled={saving}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void save();
+            if (e.key === "Escape") cancel();
+          }}
+          className="min-w-0 flex-1 rounded-md border border-[#C8C6C4] bg-white px-2 py-1 text-sm font-semibold text-[#323130] outline-none focus:border-[#0078D4] focus:ring-1 focus:ring-[#0078D4]"
+          aria-label="Lander angle name"
+        />
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => void save()}
+          className="rounded-md bg-[#0078D4] px-2 py-1 text-xs font-semibold text-white hover:bg-[#106EBE] disabled:opacity-50"
+        >
+          {saving ? "…" : "Save"}
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={cancel}
+          className="rounded-md border border-[#EDEBE9] bg-white px-2 py-1 text-xs font-semibold text-[#605E5C] hover:bg-[#FAF9F8] disabled:opacity-50"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-1.5 ${className ?? ""}`}>
+      <span className={labelClassName ?? "font-semibold text-[#0078D4]"}>{label}</span>
+      <button
+        type="button"
+        title="Edit name"
+        aria-label={`Edit name for ${label}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          setEditing(true);
+        }}
+        className="rounded p-1 text-[#605E5C] hover:bg-[#EDEBE9] hover:text-[#0078D4]"
+      >
+        <PencilIcon className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 
 function pctBar(rate: number, color: string) {
   return (
@@ -32,11 +173,13 @@ function SummaryCard({
   value,
   hint,
   accent = "#0078D4",
+  subValue,
 }: {
   label: string;
   value: string;
   hint?: string;
   accent?: string;
+  subValue?: string;
 }) {
   return (
     <div className="rounded-xl border border-[#EDEBE9] bg-white p-4 shadow-sm">
@@ -53,26 +196,118 @@ function SummaryCard({
       <p className="mt-2 text-2xl font-semibold tabular-nums text-[#323130]">
         {value}
       </p>
+      {subValue ? (
+        <p className="mt-0.5 text-sm font-semibold tabular-nums text-[#0078D4]">
+          {subValue}
+        </p>
+      ) : null}
       {hint ? <p className="mt-1 text-xs leading-snug text-[#605E5C]">{hint}</p> : null}
+    </div>
+  );
+}
+
+const KEY_METRIC_ACCENTS = ["#0078D4", "#5C2D91", "#CA5010", "#107C10"];
+
+function LpFunnelKeyMetricsPanel({ report }: { report: LpFunnelReport }) {
+  const metrics = LP_FUNNEL_KEY_METRICS[report.lpId];
+  if (!metrics?.length) return null;
+
+  const getCount = (metric: LpFunnelKeyMetricDefinition) => {
+    const value = report[metric.countKey];
+    return typeof value === "number" ? value : 0;
+  };
+
+  const getRate = (metric: LpFunnelKeyMetricDefinition) => {
+    if (!metric.rateKey) return null;
+    const rate = report[metric.rateKey];
+    return typeof rate === "number" ? rate : 0;
+  };
+
+  return (
+    <div>
+      <h2 className="mb-1 text-sm font-semibold text-[#323130]">
+        Key metrics · /lp/{report.lpId}
+      </h2>
+      <p className="mb-4 text-xs text-[#605E5C]">
+        Conversion funnel for {report.angleLabel}. Rates are % of visitors.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric, index) => {
+          const count = getCount(metric);
+          const rate = getRate(metric);
+          return (
+            <SummaryCard
+              key={metric.id}
+              label={metric.label}
+              value={count.toLocaleString()}
+              subValue={
+                rate != null && metric.id !== "visitors"
+                  ? `${rate}% of visitors`
+                  : undefined
+              }
+              hint={metric.hint}
+              accent={KEY_METRIC_ACCENTS[index % KEY_METRIC_ACCENTS.length]}
+            />
+          );
+        })}
+      </div>
+      <div className="mt-4 overflow-x-auto rounded-xl border border-[#EDEBE9] bg-white p-4 shadow-sm">
+        <div className="flex min-w-[520px] items-stretch gap-2">
+          {metrics.map((metric, index) => {
+            const count = getCount(metric);
+            const visitors = report.uniqueVisitors;
+            const width =
+              visitors > 0 ? Math.max(8, (count / visitors) * 100) : 0;
+            const isLast = index === metrics.length - 1;
+            return (
+              <div key={metric.id} className="flex flex-1 items-center gap-2">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#605E5C]">
+                    {metric.label}
+                  </p>
+                  <div className="h-3 overflow-hidden rounded-full bg-[#EDEBE9]">
+                    <div
+                      className="h-full rounded-full bg-[#0078D4] transition-all"
+                      style={{ width: `${width}%` }}
+                    />
+                  </div>
+                  <p className="text-xs font-semibold tabular-nums text-[#323130]">
+                    {count.toLocaleString()}
+                  </p>
+                </div>
+                {!isLast ? (
+                  <span className="shrink-0 text-[#C8C6C4]" aria-hidden>
+                    →
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
 
 function OverviewTable({
   data,
-  selectedLpId,
+  selectedReportKey,
   onSelect,
+  onRenamed,
+  onRenameError,
 }: {
   data: LpFunnelReportsResponse;
-  selectedLpId: string | null;
-  onSelect: (lpId: string) => void;
+  selectedReportKey: string | null;
+  onSelect: (reportKey: string) => void;
+  onRenamed: (reportKey: string, label: string) => void;
+  onRenameError: (message: string) => void;
 }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-[#EDEBE9] bg-white shadow-sm">
       <table className="min-w-full text-left text-sm">
         <thead className="border-b border-[#EDEBE9] bg-[#FAF9F8] text-xs uppercase tracking-wide text-[#605E5C]">
           <tr>
-            <th className="px-4 py-3 font-semibold">Landing page</th>
+            <th className="px-4 py-3 font-semibold">Lander</th>
             <th className="px-4 py-3 font-semibold">Page views</th>
             <th className="px-4 py-3 font-semibold">Unique visitors</th>
             <th className="px-4 py-3 font-semibold">Checkout</th>
@@ -83,19 +318,20 @@ function OverviewTable({
         <tbody>
           {data.overview.map((row) => (
             <tr
-              key={row.lpId}
+              key={row.reportKey}
               className={`cursor-pointer border-b border-[#EDEBE9] last:border-0 hover:bg-[#FAF9F8] ${
-                selectedLpId === row.lpId ? "bg-[#EFF6FC]" : ""
+                selectedReportKey === row.reportKey ? "bg-[#EFF6FC]" : ""
               }`}
-              onClick={() => onSelect(row.lpId)}
+              onClick={() => onSelect(row.reportKey)}
             >
-              <td className="px-4 py-3 font-semibold text-[#0078D4]">
-                /lp/{row.lpId}
-                {row.variant ? (
-                  <span className="ml-1.5 text-xs font-normal text-[#605E5C]">
-                    ({row.variant})
-                  </span>
-                ) : null}
+              <td className="px-4 py-3">
+                <EditableAngleLabel
+                  reportKey={row.reportKey}
+                  label={row.angleLabel}
+                  onRenamed={onRenamed}
+                  onError={onRenameError}
+                />
+                <p className="mt-0.5 text-xs text-[#605E5C]">/lp/{row.lpId}</p>
               </td>
               <td className="px-4 py-3 tabular-nums">
                 {row.totalPageViews.toLocaleString()}
@@ -189,10 +425,10 @@ function FunnelTable({ report }: { report: LpFunnelReport }) {
 export default function AdminLpFunnelPanel() {
   const [days, setDays] = useState<number | null>(30);
   const [data, setData] = useState<LpFunnelReportsResponse | null>(null);
-  const [selectedLpId, setSelectedLpId] = useState<string | null>(null);
+  const [selectedReportKey, setSelectedReportKey] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resetting, setResetting] = useState(false);
+  const [resettingLpId, setResettingLpId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -208,9 +444,9 @@ export default function AdminLpFunnelPanel() {
         return;
       }
       setData(json);
-      setSelectedLpId((prev) => {
-        if (prev && json.reports.some((r) => r.lpId === prev)) return prev;
-        return json.reports[0]?.lpId ?? null;
+      setSelectedReportKey((prev) => {
+        if (prev && json.reports.some((r) => r.reportKey === prev)) return prev;
+        return json.reports[0]?.reportKey ?? null;
       });
     } catch {
       setError("Could not load LP funnel analytics.");
@@ -223,32 +459,52 @@ export default function AdminLpFunnelPanel() {
     void load();
   }, [load]);
 
-  const handleReset = useCallback(async () => {
-    const confirmed = window.confirm(
-      "Reset LP funnel analytics?\n\nThis clears all /lp/{n} funnel events (page views, step drop-off, conversions).\n\nPlatform analytics and user data are kept. This cannot be undone."
-    );
-    if (!confirmed) return;
+  const handleResetLander = useCallback(
+    async (lpId: string, label: string) => {
+      const confirmed = window.confirm(
+        `Reset analytics for ${label} (/lp/${lpId})?\n\nThis clears funnel events for this lander only. Other landers are kept. This cannot be undone.`
+      );
+      if (!confirmed) return;
 
-    setResetting(true);
-    setError("");
-    try {
-      const res = await fetch("/api/admin/lp-funnel/reset", { method: "POST" });
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error ?? "Reset failed.");
-        return;
+      setResettingLpId(lpId);
+      setError("");
+      try {
+        const res = await fetch("/api/admin/lp-funnel/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lpId }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setError(json.error ?? "Reset failed.");
+          return;
+        }
+        await load();
+      } catch {
+        setError("Could not reset LP funnel analytics.");
+      } finally {
+        setResettingLpId(null);
       }
-      await load();
-    } catch {
-      setError("Could not reset LP funnel analytics.");
-    } finally {
-      setResetting(false);
-    }
-  }, [load]);
+    },
+    [load]
+  );
+
+  const handleRename = useCallback((reportKey: string, label: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const apply = <T extends { reportKey: string; angleLabel: string }>(row: T) =>
+        row.reportKey === reportKey ? { ...row, angleLabel: label } : row;
+      return {
+        ...prev,
+        reports: prev.reports.map(apply),
+        overview: prev.overview.map(apply),
+      };
+    });
+  }, []);
 
   const report = useMemo(
-    () => data?.reports.find((r) => r.lpId === selectedLpId) ?? null,
-    [data, selectedLpId]
+    () => data?.reports.find((r) => r.reportKey === selectedReportKey) ?? null,
+    [data, selectedReportKey]
   );
 
   const totals = useMemo(() => {
@@ -286,18 +542,10 @@ export default function AdminLpFunnelPanel() {
           <button
             type="button"
             onClick={() => void load()}
-            disabled={loading || resetting}
+            disabled={loading || resettingLpId !== null}
             className="rounded-lg border border-[#EDEBE9] bg-white px-4 py-2 text-sm font-semibold text-[#0078D4] shadow-sm hover:bg-[#EFF6FC] disabled:opacity-50"
           >
             {loading ? "Refreshing…" : "Refresh"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleReset()}
-            disabled={loading || resetting}
-            className="rounded-lg border border-[#F1BBBC] bg-white px-4 py-2 text-sm font-semibold text-[#A4262C] shadow-sm hover:bg-[#FDE7E9] disabled:opacity-50"
-          >
-            {resetting ? "Resetting…" : "Reset analytics"}
           </button>
         </div>
       </div>
@@ -355,42 +603,58 @@ export default function AdminLpFunnelPanel() {
 
           <div>
             <h2 className="mb-3 text-sm font-semibold text-[#323130]">
-              All landing pages
+              All landers
             </h2>
             <p className="mb-4 text-xs text-[#605E5C]">
-              Click a row to see step-by-step page views and fall-off rates.
+              One row per landing page. Click the edit icon to rename how it appears here.
             </p>
             <OverviewTable
               data={data}
-              selectedLpId={selectedLpId}
-              onSelect={setSelectedLpId}
+              selectedReportKey={selectedReportKey}
+              onSelect={setSelectedReportKey}
+              onRenamed={handleRename}
+              onRenameError={setError}
             />
           </div>
 
           {report ? (
             <>
-              <div className="flex flex-wrap gap-2">
-                {data.reports.map((r) => (
-                  <button
-                    key={r.lpId}
-                    type="button"
-                    onClick={() => setSelectedLpId(r.lpId)}
-                    className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
-                      selectedLpId === r.lpId
-                        ? "border-[#0078D4] bg-[#0078D4] text-white"
-                        : "border-[#EDEBE9] bg-white text-[#323130] hover:bg-[#FAF9F8]"
-                    }`}
-                  >
-                    LP/{r.lpId}
-                  </button>
-                ))}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-2">
+                  {data.reports.map((r) => (
+                    <button
+                      key={r.reportKey}
+                      type="button"
+                      onClick={() => setSelectedReportKey(r.reportKey)}
+                      className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
+                        selectedReportKey === r.reportKey
+                          ? "border-[#0078D4] bg-[#0078D4] text-white"
+                          : "border-[#EDEBE9] bg-white text-[#323130] hover:bg-[#FAF9F8]"
+                      }`}
+                    >
+                      {r.angleLabel}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void handleResetLander(report.lpId, report.angleLabel)
+                  }
+                  disabled={loading || resettingLpId !== null}
+                  className="rounded-lg border border-[#F1BBBC] bg-white px-4 py-2 text-sm font-semibold text-[#A4262C] shadow-sm hover:bg-[#FDE7E9] disabled:opacity-50"
+                >
+                  {resettingLpId === report.lpId
+                    ? "Resetting…"
+                    : `Reset /lp/${report.lpId}`}
+                </button>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <SummaryCard
                   label="Page views"
                   value={report.totalPageViews.toLocaleString()}
-                  hint={`/lp/${report.lpId} — all step impressions`}
+                  hint={`${report.angleLabel} · /lp/${report.lpId}`}
                 />
                 <SummaryCard
                   label="Unique visitors"
@@ -412,9 +676,13 @@ export default function AdminLpFunnelPanel() {
                 />
               </div>
 
+              {lpFunnelHasKeyMetrics(report.lpId) ? (
+                <LpFunnelKeyMetricsPanel report={report} />
+              ) : null}
+
               <div>
                 <h2 className="mb-3 text-sm font-semibold text-[#323130]">
-                  Page views &amp; fall-off per step · LP/{report.lpId}
+                  Page views &amp; fall-off per step · {report.angleLabel}
                 </h2>
                 <p className="mb-4 text-xs leading-relaxed text-[#605E5C]">
                   <strong>Page views</strong> = every time the step was shown (incl.

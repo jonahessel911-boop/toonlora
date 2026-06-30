@@ -11,6 +11,7 @@ import PanelBlock from "@/components/reader/PanelBlock";
 import ReaderBackButton from "@/components/reader/ReaderBackButton";
 import { trackReadingProgress } from "@/components/analytics/AnalyticsProvider";
 import { trackEpisodeComplete, trackNextEpisodeClick, trackPaywallView } from "@/lib/analytics/gtag";
+import { trackLpFunnelChapter2UnlockClick } from "@/lib/analytics/lp-funnel-tracking";
 import { formatChapterTitle } from "@/lib/brand";
 import {
   buildPaywallPath,
@@ -57,6 +58,9 @@ interface WebtoonReaderProps {
   credits?: number;
   generating?: boolean;
   isCatalog?: boolean;
+  /** LP funnel: skip signup/paywall and run this when the reader taps next after ch.1 */
+  onCatalogNextEpisode?: () => void;
+  hideBackButton?: boolean;
 }
 
 export default function WebtoonReader({
@@ -77,6 +81,8 @@ export default function WebtoonReader({
   isCatalog = false,
   episodes,
   initialPanelIndex = 0,
+  onCatalogNextEpisode,
+  hideBackButton = false,
 }: WebtoonReaderProps) {
   const [maxPanelIndex, setMaxPanelIndex] = useState(() =>
     Math.max(0, initialPanelIndex)
@@ -162,6 +168,10 @@ export default function WebtoonReader({
   }, []);
 
   const proceedToNextEpisode = useCallback(() => {
+    if (onCatalogNextEpisode) {
+      onCatalogNextEpisode();
+      return;
+    }
     if (needsSignup) {
       navigateWithAffiliate(
         buildReaderSignupPath(seriesId, seriesTitle, episodeNumber)
@@ -186,6 +196,7 @@ export default function WebtoonReader({
     seriesTitle,
     episodeNumber,
     navigateWithAffiliate,
+    onCatalogNextEpisode,
   ]);
 
   const handleStartNextEpisode = useCallback(() => {
@@ -195,8 +206,20 @@ export default function WebtoonReader({
         title: seriesTitle,
         episodeNumber,
         nextEpisodeNumber: episodeNumber + 1,
-        gate: needsSignup ? "signup" : needsSubscription ? "subscribe" : "open",
+        gate: onCatalogNextEpisode
+          ? "lp_funnel"
+          : needsSignup
+            ? "signup"
+            : needsSubscription
+              ? "subscribe"
+              : "open",
       });
+    }
+
+    if (onCatalogNextEpisode) {
+      trackLpFunnelChapter2UnlockClick();
+      onCatalogNextEpisode();
+      return;
     }
 
     if (
@@ -216,6 +239,7 @@ export default function WebtoonReader({
     episodeNumber,
     loggedIn,
     proceedToNextEpisode,
+    onCatalogNextEpisode,
   ]);
 
   const handleCreateAccountFromLevelUp = useCallback(() => {
@@ -506,7 +530,7 @@ export default function WebtoonReader({
         open={showBeginnerLevelUp}
         onCreateAccount={handleCreateAccountFromLevelUp}
       />
-      <ReaderBackButton seriesId={seriesId} />
+      {!hideBackButton ? <ReaderBackButton seriesId={seriesId} /> : null}
 
       <main className="mx-auto w-full max-w-[720px] pt-12">
         <div className="flex flex-col">

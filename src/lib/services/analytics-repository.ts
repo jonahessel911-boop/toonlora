@@ -2,9 +2,11 @@ import { ensureSession } from "@/lib/services/story-repository";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import {
   humanizeLpFunnelStep,
-  LP_FUNNEL_STEP_ORDER,
-  lpFunnelStepIndex,
+  lpFunnelStepIndexForLp,
+  lpFunnelStepsForLpId,
 } from "@/lib/analytics/lp-funnel";
+import { getConfiguredAngleLabel } from "@/lib/lp/landerAngles";
+import { LP_FUNNEL_CLICK_TARGETS } from "@/lib/analytics/lp-funnel";
 import {
   getSubscriptionPlan,
   planMonthlyRevenueCents,
@@ -88,6 +90,9 @@ export interface LpFunnelStepMetric {
 
 export interface LpFunnelReport {
   lpId: string;
+  angleId: string;
+  angleLabel: string;
+  reportKey: string;
   variant?: string;
   /** Unique sessions that entered the funnel. */
   uniqueVisitors: number;
@@ -99,11 +104,20 @@ export interface LpFunnelReport {
   checkoutStartRate: number;
   paymentSubmitRate: number;
   subscribeRate: number;
+  /** Unique sessions that clicked the intro "Start reading" CTA (LP/5). */
+  introCtaClicks: number;
+  /** Unique sessions that clicked the Chapter 2 unlock card (LP/5). */
+  chapter2UnlockClicks: number;
+  introCtaRate: number;
+  chapter2UnlockRate: number;
   steps: LpFunnelStepMetric[];
 }
 
 export interface LpFunnelOverviewRow {
   lpId: string;
+  angleId: string;
+  angleLabel: string;
+  reportKey: string;
   variant?: string;
   totalPageViews: number;
   uniqueVisitors: number;
@@ -623,11 +637,93 @@ function propString(
   return null;
 }
 
+export async function getLpLanderAngleLabels(): Promise<Record<string, string>> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return {};
+
+  const { data, error } = await supabase
+    .from("lp_lander_angle_labels")
+    .select("report_key, label");
+
+  if (error) {
+    if (
+      error.code === "PGRST205" ||
+      error.message.includes("lp_lander_angle_labels")
+    ) {
+      return {};
+    }
+    throw new Error(error.message);
+  }
+
+  return Object.fromEntries(
+    (data ?? []).map((row) => {
+      const r = row as { report_key: string; label: string };
+      return [r.report_key, r.label];
+    })
+  );
+}
+
+export async function upsertLpLanderAngleLabel(
+  reportKey: string,
+  label: string
+): Promise<void> {
+  const trimmed = label.trim();
+  if (!trimmed) throw new Error("Label is required");
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("Database not configured");
+
+  const { error } = await supabase.from("lp_lander_angle_labels").upsert(
+    {
+      report_key: reportKey,
+      label: trimmed,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "report_key" }
+  );
+
+  if (error) {
+    if (
+      error.code === "PGRST205" ||
+      error.message.includes("lp_lander_angle_labels")
+    ) {
+      throw new Error(
+        "Lander angle labels table missing. Run Supabase migration 024_lp_lander_angle_labels.sql."
+      );
+    }
+    throw new Error(error.message);
+  }
+}
+
+function resolveAngleLabel(
+  reportKey: string,
+  lpId: string,
+  angleId: string,
+  eventLabel: string,
+  labelOverrides: Record<string, string>
+): string {
+  const override =
+    labelOverrides[reportKey]?.trim() ||
+    labelOverrides[lpId]?.trim() ||
+    labelOverrides[`${lpId}::default`]?.trim();
+  if (override) return override;
+
+  const fromEvent = eventLabel.trim();
+  if (fromEvent) return fromEvent;
+
+  const configured = getConfiguredAngleLabel(lpId, angleId);
+  if (configured) return configured;
+
+  return angleId;
+}
+
 export async function getLpFunnelReports(
   days: number | null = 30
 ): Promise<LpFunnelReportsResponse> {
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("Database not configured");
+
+  const labelOverrides = await getLpLanderAngleLabels();
 
   let query = supabase
     .from("analytics_events")
@@ -662,18 +758,20 @@ export async function getLpFunnelReports(
     properties: Record<string, unknown>;
   }>;
 
-  const byLp = new Map<string, typeof events>();
+  const byReport = new Map<string, typeof events>();
   for (const event of events) {
-    const lpId = propString(event.properties ?? {}, "lp_id");
+    const props = event.properties ?? {};
+    const lpId = propString(props, "lp_id");
     if (!lpId) continue;
-    const list = byLp.get(lpId) ?? [];
+    const list = byReport.get(lpId) ?? [];
     list.push(event);
-    byLp.set(lpId, list);
+    byReport.set(lpId, list);
   }
 
   const reports: LpFunnelReport[] = [];
 
-  for (const [lpId, lpEvents] of byLp) {
+  for (const [reportKey, lpEvents] of byReport) {
+    const lpId = reportKey;
     const starts = new Set<string>();
     const stepPageViews = new Map<string, number>();
     const stepUniqueVisitors = new Map<string, Set<string>>();
@@ -683,7 +781,9 @@ export async function getLpFunnelReports(
     const checkoutStarts = new Set<string>();
     const paymentSubmits = new Set<string>();
     const subscribes = new Set<string>();
-    let variant: string | undefined;
+    const introCtaClicks = new Set<string>();
+    const chapter2UnlockClicks = new Set<string>();
+    let angleLabel = "";
 
     const bump = (map: Map<string, number>, key: string) => {
       map.set(key, (map.get(key) ?? 0) + 1);
@@ -696,9 +796,8 @@ export async function getLpFunnelReports(
 
     for (const event of lpEvents) {
       const props = event.properties ?? {};
-      if (!variant) {
-        const v = propString(props, "variant");
-        if (v) variant = v;
+      if (!angleLabel) {
+        angleLabel = propString(props, "lp_angle_label") ?? "";
       }
 
       if (event.event_type === "lp_funnel_start") {
@@ -719,6 +818,13 @@ export async function getLpFunnelReports(
           addUnique(stepUniqueCompletions, step, event.session_id);
         } else if (action === "back") {
           bump(stepBackClicks, step);
+        } else if (action === "click") {
+          const clickTarget = propString(props, "click_target");
+          if (clickTarget === LP_FUNNEL_CLICK_TARGETS.introCta) {
+            introCtaClicks.add(event.session_id);
+          } else if (clickTarget === LP_FUNNEL_CLICK_TARGETS.chapter2Unlock) {
+            chapter2UnlockClicks.add(event.session_id);
+          }
         }
         continue;
       }
@@ -735,11 +841,14 @@ export async function getLpFunnelReports(
       }
     }
 
+    const stepOrder = lpFunnelStepsForLpId(lpId);
+    const orderedSteps = stepOrder;
+
     const steps: LpFunnelStepMetric[] = [];
     let previousUnique = starts.size;
     let totalPageViews = 0;
 
-    for (const step of LP_FUNNEL_STEP_ORDER) {
+    for (const step of orderedSteps) {
       const pageViews = stepPageViews.get(step) ?? 0;
       const uniqueVisitors = stepUniqueVisitors.get(step)?.size ?? 0;
       const completions = stepCompletions.get(step) ?? 0;
@@ -758,7 +867,7 @@ export async function getLpFunnelReports(
 
       steps.push({
         step,
-        stepIndex: lpFunnelStepIndex(step),
+        stepIndex: lpFunnelStepIndexForLp(lpId, step),
         label: humanizeLpFunnelStep(step),
         pageViews,
         uniqueVisitors,
@@ -776,9 +885,24 @@ export async function getLpFunnelReports(
     }
 
     const startCount = starts.size;
+    const introCtaCount =
+      introCtaClicks.size > 0
+        ? introCtaClicks.size
+        : (stepUniqueCompletions.get("intro")?.size ?? 0);
+    const chapter2UnlockCount = chapter2UnlockClicks.size;
+    const resolvedLabel = resolveAngleLabel(
+      reportKey,
+      lpId,
+      "default",
+      angleLabel,
+      labelOverrides
+    );
     reports.push({
       lpId,
-      variant,
+      angleId: "default",
+      angleLabel: resolvedLabel,
+      reportKey,
+      variant: lpId === "5" ? "lp5" : lpId === "4" ? "lp4" : "lp3",
       uniqueVisitors: startCount,
       totalPageViews,
       checkoutStarts: checkoutStarts.size,
@@ -787,6 +911,10 @@ export async function getLpFunnelReports(
       checkoutStartRate: pct(checkoutStarts.size, startCount),
       paymentSubmitRate: pct(paymentSubmits.size, checkoutStarts.size),
       subscribeRate: pct(subscribes.size, startCount),
+      introCtaClicks: introCtaCount,
+      chapter2UnlockClicks: chapter2UnlockCount,
+      introCtaRate: pct(introCtaCount, startCount),
+      chapter2UnlockRate: pct(chapter2UnlockCount, startCount),
       steps,
     });
   }
@@ -797,13 +925,17 @@ export async function getLpFunnelReports(
     if (!Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum !== bNum) {
       return aNum - bNum;
     }
-    return a.lpId.localeCompare(b.lpId);
+    if (a.lpId !== b.lpId) return a.lpId.localeCompare(b.lpId);
+    return a.angleLabel.localeCompare(b.angleLabel);
   });
 
   return {
     reports,
     overview: reports.map((r) => ({
       lpId: r.lpId,
+      angleId: r.angleId,
+      angleLabel: r.angleLabel,
+      reportKey: r.reportKey,
       variant: r.variant,
       totalPageViews: r.totalPageViews,
       uniqueVisitors: r.uniqueVisitors,
@@ -907,8 +1039,13 @@ export async function resetAllAnalytics(): Promise<AnalyticsResetResult> {
   return result;
 }
 
-/** Clear LP funnel events only (`lp_funnel_*` in analytics_events). */
-export async function resetLpFunnelAnalytics(): Promise<{ deleted: number }> {
+/** Clear LP funnel events for one lander (`lp_funnel_*` where `properties.lp_id` matches). */
+export async function resetLpFunnelAnalytics(
+  lpId: string
+): Promise<{ deleted: number; lpId: string }> {
+  const trimmed = lpId.trim();
+  if (!trimmed) throw new Error("lpId is required");
+
   const supabase = getSupabaseAdmin();
   if (!supabase) throw new Error("Database not configured");
 
@@ -917,14 +1054,16 @@ export async function resetLpFunnelAnalytics(): Promise<{ deleted: number }> {
   const { count } = await supabase
     .from("analytics_events")
     .select("id", { count: "exact", head: true })
-    .in("event_type", eventTypes);
+    .in("event_type", eventTypes)
+    .eq("properties->>lp_id", trimmed);
 
   const { error } = await supabase
     .from("analytics_events")
     .delete()
-    .in("event_type", eventTypes);
+    .in("event_type", eventTypes)
+    .eq("properties->>lp_id", trimmed);
 
   if (error) throw new Error(error.message);
 
-  return { deleted: count ?? 0 };
+  return { deleted: count ?? 0, lpId: trimmed };
 }

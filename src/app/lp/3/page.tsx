@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import LP3FunnelClient from "@/components/lp3/LP3FunnelClient";
 import { isServerDatabaseConfigured } from "@/lib/config";
 import { listIndexCatalog } from "@/lib/services/catalog-repository";
@@ -24,5 +25,15 @@ export default async function LandingPage3() {
     }
   }
 
-  return <LP3FunnelClient initialCatalog={initialCatalog} />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-[100dvh] items-center justify-center bg-[#F6F1E7]">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#E6DFD1] border-t-[#2F80ED]" />
+        </div>
+      }
+    >
+      <LP3FunnelClient initialCatalog={initialCatalog} />
+    </Suspense>
+  );
 }

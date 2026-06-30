@@ -10,6 +10,7 @@ import type {
 } from "@stripe/stripe-js";
 import { trackPaywallCheckoutClick, trackPaywallView } from "@/lib/analytics/gtag";
 import { trackLpFunnelConvert } from "@/lib/analytics/lp-funnel-tracking";
+import type { LpLanderContext } from "@/lib/lp/landerAngles";
 import { getStripeBrowser, isStripeBrowserConfigured } from "@/lib/payments/stripe-browser";
 import { formatEur, planApplePayRecurringBilling, type SubscriptionPlan } from "@/lib/payments/subscription-plans";
 import { apiFetch } from "@/lib/session";
@@ -113,9 +114,9 @@ function GooglePayIcon() {
 }
 
 interface LP3CheckoutPaymentsProps {
-  lpId: string;
+  lander: LpLanderContext;
   plan: SubscriptionPlan;
-  funnelVariant?: "lp3" | "lp4";
+  funnelVariant?: "lp3" | "lp4" | "lp5";
   email?: string;
   fullName?: string;
   checkoutError: string;
@@ -129,7 +130,7 @@ interface LP3CheckoutPaymentsProps {
 }
 
 export default function LP3CheckoutPayments({
-  lpId,
+  lander,
   plan,
   funnelVariant = "lp3",
   email,
@@ -190,13 +191,13 @@ export default function LP3CheckoutPayments({
       valueCents: plan.amountCents,
     });
     trackLpFunnelConvert({
-      lpId,
+      lander,
       variant: funnelVariant,
       convertEvent: "checkout_start",
       step: "checkout",
       planId: plan.id,
     });
-  }, [clientSecret, funnelVariant, lpId, plan.amountCents, plan.id, plan.name]);
+  }, [clientSecret, funnelVariant, lander, plan.amountCents, plan.id, plan.name]);
 
   useEffect(() => {
     clientSecretRef.current = clientSecret;
@@ -358,7 +359,7 @@ export default function LP3CheckoutPayments({
       valueCents: plan.amountCents,
     });
     trackLpFunnelConvert({
-      lpId,
+      lander,
       variant: funnelVariant,
       convertEvent: "payment_submit",
       step: "checkout",
@@ -375,7 +376,7 @@ export default function LP3CheckoutPayments({
         err instanceof Error ? err.message : "Payment failed"
       );
     }
-  }, [confirmSubscriptionPayment, funnelVariant, lpId, plan.amountCents, plan.name]);
+  }, [confirmSubscriptionPayment, funnelVariant, lander, plan.amountCents, plan.name]);
 
   useEffect(() => {
     if (method !== "card") {
@@ -550,7 +551,7 @@ export default function LP3CheckoutPayments({
       valueCents: plan.amountCents,
     });
     trackLpFunnelConvert({
-      lpId,
+      lander,
       variant: funnelVariant,
       convertEvent: "payment_submit",
       step: "checkout",
@@ -570,7 +571,7 @@ export default function LP3CheckoutPayments({
     stripeElements,
     clientSecret,
     plan.id,
-    lpId,
+    lander,
     funnelVariant,
     confirmSubscriptionPayment,
   ]);

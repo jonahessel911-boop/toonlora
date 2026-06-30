@@ -4,30 +4,33 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { parseLpNumberFromPath } from "@/lib/analytics/lp-funnel";
 import { trackLpFunnelStart, trackLpFunnelStepView } from "@/lib/analytics/lp-funnel-tracking";
-import type { LP3StepId } from "@/lib/lp3/content";
+import { useLpLanderContext } from "@/lib/lp/useLpLanderContext";
 
-export function useLpFunnelId(variant: "lp3" | "lp4"): string {
+export function useLpFunnelId(variant: "lp3" | "lp4" | "lp5"): string {
   const pathname = usePathname();
-  return parseLpNumberFromPath(pathname) ?? (variant === "lp4" ? "4" : "3");
+  if (variant === "lp4") return parseLpNumberFromPath(pathname) ?? "4";
+  if (variant === "lp5") return parseLpNumberFromPath(pathname) ?? "5";
+  return parseLpNumberFromPath(pathname) ?? "3";
 }
 
 /** Records funnel start + per-step views for /lp/{n} drop-off analytics. */
 export function useLpFunnelStepAnalytics(
-  lpId: string,
-  variant: "lp3" | "lp4",
-  step: LP3StepId
+  variant: "lp3" | "lp4" | "lp5",
+  step: string
 ) {
+  const lpId = useLpFunnelId(variant);
+  const lander = useLpLanderContext(lpId);
   const startedRef = useRef(false);
 
   useEffect(() => {
-    if (!lpId) return;
+    if (!lander.reportKey) return;
     if (startedRef.current) return;
     startedRef.current = true;
-    trackLpFunnelStart(lpId, variant);
-  }, [lpId, variant]);
+    trackLpFunnelStart(lander, variant);
+  }, [lander, variant]);
 
   useEffect(() => {
-    if (!lpId) return;
-    trackLpFunnelStepView(lpId, step, variant);
-  }, [lpId, step, variant]);
+    if (!lander.reportKey) return;
+    trackLpFunnelStepView(lander, step, variant);
+  }, [lander, step, variant]);
 }

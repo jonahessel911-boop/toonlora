@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CoverArt from "@/components/ui/CoverArt";
+import NextMondayEpisodeLabel from "@/components/ui/NextMondayEpisodeLabel";
 
 interface StoryCoverImageProps {
   coverArtUrl?: string;
@@ -47,6 +48,9 @@ export default function StoryCoverImage({
           className="absolute inset-0 h-full w-full"
         />
       )}
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex justify-center">
+        <NextMondayEpisodeLabel className="max-w-full" />
+      </div>
     </div>
   );
 }

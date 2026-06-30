@@ -75,6 +75,9 @@
     "heroEyebrow": "DEZE WEEK",
     "weeklyEpisodes": "Wekelijkse afleveringen"
   },
+  "schedule": {
+    "nextMondayNewEpisode": "Volgende maandag ({date}) nieuwe aflevering"
+  },
   "subscribe": {
     "membership": "Toonlora-lidmaatschap",
     "wantUnlimited": "Onbeperkt willen lezen?",
@@ -143,7 +146,7 @@
       "entrepreneur": ["Alles in Achiever", "Lees nieuwe afleveringen 1 week eerder", "Bewaar verhalen in je bibliotheek", "Deel 1 verhaal per maand met een vriend", "Prioriteit voor nieuwe flagship-series"]
     },
     "membershipIncludes": [
-      "300+ diepgaande businessafleveringen",
+      "3000+ diepgaande businessafleveringen",
       "Elke week nieuwe hoofdstukken",
       "Onderzocht en geschreven door 16 Harvard-studenten",
       "Echte oprichtersverhalen, fraudezaken & bedrijfsanalyses",
@@ -168,6 +171,7 @@
   "lp3": {
     "steps": {
       "intro": "",
+      "storyWhy": "Interesses",
       "categories": "Interesses",
       "stories": "Interesses",
       "time": "Interesses",
@@ -184,14 +188,21 @@
       "checkout": "Lidmaatschap"
     },
     "intro": {
-      "title": "Laten we je watchlist op maat maken",
-      "subtitle": "Beantwoord een paar vragen en ontdek de meest diepgaande businessverhalen ter wereld."
+      "title": "Je staat op het punt de echte verhalen achter iconische bedrijven te lezen",
+      "titleWithCover": "Je staat op het punt het échte verhaal achter {company} te lezen",
+      "subtitle": "Diep onderzocht. Geïllustreerd. Hoofdstukken van 5 minuten.",
+      "moreStories": "+ 3000 andere diepgaande businessverhalen",
+      "startReading": "Start met lezen"
+    },
+    "storyWhy": {
+      "title": "Waarom vind je {story} een interessant businessverhaal?"
     },
     "categories": {
       "title": "Welke kant van business fascineert je het meest?"
     },
     "stories": {
       "title": "Welke businessverhalen wil je het liefst ontdekken?",
+      "titleOther": "Welke andere soorten businessverhalen spreken je aan?",
       "tapOne": "Tik minstens één om door te gaan",
       "selected": "{count} geselecteerd",
       "fallbackSubtitle": "Businessverhaal"
@@ -209,6 +220,14 @@
       "title": "Wat wil je het meest uit een businessverhaal halen?"
     },
     "options": {
+      "storyWhy": {
+        "rise-fall": "De opkomst en ondergang",
+        "founder": "De beslissingen van de oprichter",
+        "money": "Het geld en de hype",
+        "collapse": "Hoe alles instortte",
+        "lessons": "Wat het leert over business",
+        "drama": "Het drama achter de headlines"
+      },
       "feel": {
         "fired-up": "Gemotiveerd",
         "shocked": "Geschokt",
@@ -350,6 +369,8 @@
     },
     "checkout": {
       "readStoriesLike": "Lees verhalen zoals:",
+      "readStoryAndMore": "Lees {story} + andere diepgaande verhalen zoals:",
+      "headlineWithStory": "Lees {story} + 3000 andere geverifieerde businessverhalen geschreven door Harvard-studenten",
       "trustedByReaders": "Vertrouwd door lezers"
     },
     "reviews": {
@@ -368,6 +389,44 @@
         "title": "Ik downloadde dit voor een kort verhaal",
         "body": "Ik verwachtte een snelle escape, maar raakte meteen verslaafd aan het FTX-verhaal. Het voelt als Succession, maar met echte balansen en veel hogere inzet."
       }
+    }
+  },
+  "lp5": {
+    "intro": {
+      "startChapterFree": "Start hoofdstuk 1 gratis",
+      "chapterUnlocked": "Hoofdstuk 1 is ontgrendeld",
+      "riskReversal": "Geen account nodig · Geen betaling · 5 minuten lezen",
+      "bulletsTitle": "In hoofdstuk 1 ontdek je:",
+      "default": {
+        "headlineLine1": "{company} bouwde een verhaal waar de markt in bleef geloven.",
+        "headlineLine2": "Toen begon de illusie te scheuren.",
+        "subtitle": "Lees hoofdstuk 1 gratis — een cinematisch businessverhaal over hype, geld, ego en ondergang.",
+        "bullets": [
+          "Hoe het bedrijf sneller steeg dan iedereen verwachtte",
+          "Waarom investeerders steeds groter bleven inzetten",
+          "De eerste waarschuwingssignalen die bijna iedereen negeerde"
+        ]
+      },
+      "stories": {
+        "wework": {
+          "headlineLine1": "WeWork was $47 miljard waard.",
+          "headlineLine2": "Toen stortte de illusie in.",
+          "subtitle": "Lees hoofdstuk 1 gratis — een cinematisch businessverhaal over hype, geld, ego en ondergang.",
+          "bullets": [
+            "Hoe WeWork een van de meest gehypete startups ter wereld werd",
+            "Waarom investeerders miljarden bleven pompen",
+            "De eerste scheuren achter de $47 miljard droom"
+          ]
+        }
+      }
+    },
+    "read": {
+      "unavailableTitle": "Hoofdstuk nog niet beschikbaar",
+      "unavailableBody": "Dit verhaal wordt nog voorbereid. Je kunt hieronder alsnog volledige toegang ontgrendelen.",
+      "continueToUnlock": "Ontgrendel volledige toegang"
+    },
+    "checkout": {
+      "headline": "Lees {story} + 3000 andere geverifieerde businessverhalen geschreven door Harvard-studenten"
     }
   },
   "lp4": {

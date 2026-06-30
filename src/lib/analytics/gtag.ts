@@ -73,7 +73,7 @@ export function trackNextEpisodeClick(params: {
   title: string;
   episodeNumber: number;
   nextEpisodeNumber: number;
-  gate: "open" | "signup" | "subscribe" | "creator";
+  gate: "open" | "signup" | "subscribe" | "creator" | "lp_funnel";
 }) {
   gtagEvent("next_episode_click", {
     series_id: params.seriesId,
@@ -126,7 +126,7 @@ export function trackPaywallView(params: {
   storyId?: string;
   storyTitle?: string;
   planId?: string;
-  variant: "page" | "modal" | "inline_preview" | "lp3" | "lp4";
+  variant: "page" | "modal" | "inline_preview" | "lp3" | "lp4" | "lp5";
   episodeNumber?: number;
 }) {
   gtagEvent("paywall_view", {
