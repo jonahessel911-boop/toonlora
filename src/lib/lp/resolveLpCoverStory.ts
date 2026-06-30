@@ -4,28 +4,32 @@ import {
   normalizeCoverTitleSlug,
   prioritizeStoriesByCoverTitle,
 } from "@/lib/lp3/coverTitleParam";
-import { formatLp3StoryGridLabel } from "@/lib/lp3/story-labels";
 import type { LpStoryOption } from "@/lib/lp3/storyOptions";
+import {
+  catalogSeriesToStoryOption,
+  mockStoryToStoryOption,
+} from "@/lib/lp3/storyOptions";
 import { resolveStoryIdFromCoverTitle } from "@/lib/lp/storyTeasers";
 import {
   findMockStory,
   type MockCatalogStory,
 } from "@/lib/mock/businessStoryCatalog";
+import type { CatalogSeries } from "@/types/catalog";
 
 function mockStoryToOption(mock: MockCatalogStory): LpStoryOption {
-  return {
-    id: mock.id,
-    title: mock.title,
-    displayTitle: formatLp3StoryGridLabel({
-      id: mock.id,
-      title: mock.title,
-      fullTitle: mock.title,
-      sagaSubtitle: mock.subtitle,
-    }),
-    subtitle: mock.subtitle,
-    coverArtUrl: mock.coverArtUrl,
-    coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
-  };
+  return mockStoryToStoryOption(mock);
+}
+
+function attachCatalogCover(
+  hero: LpStoryOption,
+  catalog: CatalogSeries[]
+): LpStoryOption {
+  if (hero.coverArtUrl) return hero;
+  const match = catalog.find(
+    (s) => normalizeCoverTitleSlug(s.id) === normalizeCoverTitleSlug(hero.id)
+  );
+  if (!match?.coverArtUrl) return hero;
+  return { ...hero, coverArtUrl: match.coverArtUrl };
 }
 
 export interface LpCoverStoryContext {
@@ -42,7 +46,8 @@ export interface LpCoverStoryContext {
 export function resolveLpCoverStoryContext(
   stories: LpStoryOption[],
   coverTitleParam: string | null | undefined,
-  fallbackStoryId = "elon-musk"
+  fallbackStoryId = "elon-musk",
+  catalog: CatalogSeries[] = []
 ): LpCoverStoryContext {
   const param = coverTitleParam?.trim() ? coverTitleParam.trim() : null;
   const coverCompany = param ? formatCoverTitleLabel(param) : null;
@@ -83,15 +88,22 @@ export function resolveLpCoverStoryContext(
   if (!heroStory) {
     if (param) {
       const mock = findMockStory(canonicalStoryId);
+      const fromCatalog = catalog.find(
+        (s) =>
+          normalizeCoverTitleSlug(s.id) ===
+          normalizeCoverTitleSlug(canonicalStoryId)
+      );
       heroStory = mock
         ? mockStoryToOption(mock)
-        : {
-            id: canonicalStoryId,
-            title: storyName,
-            displayTitle: storyName,
-            subtitle: "",
-            coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
-          };
+        : fromCatalog
+          ? catalogSeriesToStoryOption(fromCatalog)
+          : {
+              id: canonicalStoryId,
+              title: storyName,
+              displayTitle: storyName,
+              subtitle: "",
+              coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
+            };
     } else {
       heroStory = stories[0] ?? {
         id: canonicalStoryId,
@@ -102,6 +114,8 @@ export function resolveLpCoverStoryContext(
       };
     }
   }
+
+  heroStory = attachCatalogCover(heroStory, catalog);
 
   const checkoutStories = param
     ? (() => {

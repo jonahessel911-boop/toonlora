@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { optimizeCoverImageUrl } from "@/lib/images/cover-image";
+import { useLpHeroCoverArt } from "@/lib/lp/useLpHeroCoverArt";
 import type { LpStoryTeaser } from "@/lib/lp/storyTeasers";
 import type { LpStoryOption } from "@/lib/lp3/storyOptions";
 
@@ -21,8 +22,9 @@ export default function LpStoryTeaserIntro({
   className = "",
   children,
 }: LpStoryTeaserIntroProps) {
-  const coverSrc = story.coverArtUrl
-    ? optimizeCoverImageUrl(story.coverArtUrl, {
+  const coverArtUrl = useLpHeroCoverArt(story.id, story.coverArtUrl);
+  const coverSrc = coverArtUrl
+    ? optimizeCoverImageUrl(coverArtUrl, {
         width: HERO_COVER_WIDTH * 2,
         height: HERO_COVER_HEIGHT * 2,
         quality: 88,

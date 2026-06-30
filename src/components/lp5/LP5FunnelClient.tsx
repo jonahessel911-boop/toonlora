@@ -26,6 +26,7 @@ import {
 import { LP_FUNNEL_CLICK_TARGETS } from "@/lib/analytics/lp-funnel";
 import { resolveLpCoverStoryContext } from "@/lib/lp/resolveLpCoverStory";
 import { mergeStoryOptions } from "@/lib/lp3/storyOptions";
+import { resolveStoryIdFromCoverTitle } from "@/lib/lp/storyTeasers";
 import type { LP5StepId } from "@/lib/lp5/content";
 import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
 import { episodeToReaderPanels } from "@/lib/readerPanels";
@@ -176,12 +177,26 @@ export default function LP5FunnelClient({
     enabled: initialCatalog.length === 0,
   });
   const catalog = initialCatalog.length > 0 ? initialCatalog : clientCatalog;
-  const stories = useMemo(() => mergeStoryOptions(catalog), [catalog]);
   const searchParams = useSearchParams();
   const coverTitleParam = searchParams.get("cover_title");
+  const pinnedStoryId = useMemo(
+    () => resolveStoryIdFromCoverTitle(coverTitleParam),
+    [coverTitleParam]
+  );
+  const stories = useMemo(
+    () =>
+      mergeStoryOptions(catalog, pinnedStoryId ? [pinnedStoryId] : []),
+    [catalog, pinnedStoryId]
+  );
   const coverContext = useMemo(
-    () => resolveLpCoverStoryContext(stories, coverTitleParam),
-    [stories, coverTitleParam]
+    () =>
+      resolveLpCoverStoryContext(
+        stories,
+        coverTitleParam,
+        "elon-musk",
+        catalog
+      ),
+    [stories, coverTitleParam, catalog]
   );
   const {
     readerStoryId: activeStoryId,
