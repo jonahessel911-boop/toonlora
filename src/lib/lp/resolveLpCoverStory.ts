@@ -60,6 +60,7 @@ export function resolveLpCoverStoryContext(
 
   const storyName =
     coverStory?.displayTitle ??
+    (teaserStoryId ? formatCoverTitleLabel(teaserStoryId) : null) ??
     coverCompany ??
     (param ? formatCoverTitleLabel(param) : null) ??
     coverStory?.title ??
@@ -80,17 +81,34 @@ export function resolveLpCoverStoryContext(
   }
 
   if (!heroStory) {
-    heroStory = stories[0] ?? {
-      id: canonicalStoryId,
-      title: storyName,
-      displayTitle: storyName,
-      subtitle: "",
-      coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
-    };
+    if (param) {
+      const mock = findMockStory(canonicalStoryId);
+      heroStory = mock
+        ? mockStoryToOption(mock)
+        : {
+            id: canonicalStoryId,
+            title: storyName,
+            displayTitle: storyName,
+            subtitle: "",
+            coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
+          };
+    } else {
+      heroStory = stories[0] ?? {
+        id: canonicalStoryId,
+        title: storyName,
+        displayTitle: storyName,
+        subtitle: "",
+        coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
+      };
+    }
   }
 
   const checkoutStories = param
-    ? prioritizeStoriesByCoverTitle(stories, param)
+    ? (() => {
+        const prioritized = prioritizeStoriesByCoverTitle(stories, param);
+        if (prioritized[0]?.id === heroStory.id) return prioritized;
+        return [heroStory, ...stories.filter((s) => s.id !== heroStory.id)];
+      })()
     : stories;
 
   return {

@@ -14,6 +14,11 @@ export function formatCoverTitleLabel(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return trimmed;
 
+  const resolvedId = resolveStoryIdFromCoverTitle(trimmed);
+  if (resolvedId && COMPANY_NAME_BY_ID[resolvedId]) {
+    return primaryCompanyLabel(COMPANY_NAME_BY_ID[resolvedId]);
+  }
+
   const slug = normalizeCoverTitleSlug(trimmed);
 
   if (COMPANY_NAME_BY_ID[slug]) {

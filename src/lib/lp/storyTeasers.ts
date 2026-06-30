@@ -1,5 +1,6 @@
 import { allMockStories } from "@/lib/mock/businessStoryCatalog";
 import { normalizeCoverTitleSlug } from "@/lib/lp3/coverTitleParam";
+import { fuzzyMatchStorySlug } from "@/lib/lp/fuzzyStorySlug";
 import {
   LP_STORY_TEASER_FALLBACK_NL,
   LP_STORY_TEASERS_NL,
@@ -188,6 +189,9 @@ const LP_STORY_TEASER_ALIASES: Record<string, string> = {
   musk: "elon-musk",
   enzo: "ferrari",
   ferrari: "ferrari",
+  ferarri: "ferrari",
+  ferrarri: "ferrari",
+  ferari: "ferrari",
   theranos: "theranos",
   holmes: "theranos",
   nokia: "nokia",
@@ -206,6 +210,12 @@ const GENERIC_FALLBACK: LpStoryTeaser = {
     "Read a cinematic deep-dive into the decisions, egos, and bets that built and broke an empire.",
 };
 
+const ALL_STORY_SLUG_CANDIDATES = (): string[] => [
+  ...Object.keys(LP_STORY_TEASERS),
+  ...Object.keys(LP_STORY_TEASER_ALIASES),
+  ...MOCK_BY_ID.keys(),
+];
+
 function resolveTeaserId(storyId: string, coverTitle?: string | null): string {
   const fromStory = normalizeCoverTitleSlug(storyId);
   if (LP_STORY_TEASERS[fromStory]) return fromStory;
@@ -216,6 +226,9 @@ function resolveTeaserId(storyId: string, coverTitle?: string | null): string {
     if (LP_STORY_TEASERS[slug]) return slug;
     const compact = slug.replace(/-/g, "");
     if (LP_STORY_TEASER_ALIASES[compact]) return LP_STORY_TEASER_ALIASES[compact];
+
+    const fuzzy = fuzzyMatchStorySlug(coverTitle, ALL_STORY_SLUG_CANDIDATES());
+    if (fuzzy) return fuzzy;
   }
 
   if (LP_STORY_TEASER_ALIASES[fromStory]) return LP_STORY_TEASER_ALIASES[fromStory];
