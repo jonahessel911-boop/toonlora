@@ -9,6 +9,7 @@ export const LP_LANDER_ANGLES: Record<string, LpLanderAngle[]> = {
   "3": [{ id: "default", label: "Quiz funnel" }],
   "4": [{ id: "default", label: "LP4 hero" }],
   "5": [{ id: "default", label: "UGC lander" }],
+  "6": [{ id: "default", label: "Personalized story funnel" }],
 };
 
 export interface LpLanderContext {

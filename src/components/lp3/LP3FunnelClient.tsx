@@ -21,6 +21,7 @@ import {
   type LP3StepId,
 } from "@/lib/lp3/content";
 import { useLp3FunnelCopy } from "@/lib/lp3/useLp3FunnelCopy";
+import { useLp6FunnelCopy } from "@/lib/lp6/useLp6FunnelCopy";
 import {
   useLpFunnelId,
   useLpFunnelStepAnalytics,
@@ -61,7 +62,7 @@ import type { CatalogSeries } from "@/types/catalog";
 interface LP3FunnelClientProps {
   initialCatalog?: CatalogSeries[];
   /** LP/4 uses a single hero image on the intro step instead of the cover mosaic. */
-  variant?: "lp3" | "lp4";
+  variant?: "lp3" | "lp4" | "lp6";
 }
 
 function LP3ContinueButton({
@@ -127,7 +128,9 @@ export default function LP3FunnelClient({
     [stories, coverTitleParam]
   );
   const teaserStoryId = resolveStoryIdFromCoverTitle(coverTitleParam);
-  const showStoryTeaser = Boolean(coverTitleParam?.trim());
+  const isLp6 = variant === "lp6";
+  const showStoryTeaser =
+    isLp6 || Boolean(coverTitleParam?.trim());
   const teaserStoryIdResolved =
     coverStory?.id ?? teaserStoryId ?? normalizeCoverTitleSlug(coverTitleParam ?? "");
   const storyTeaser = useMemo(
@@ -156,7 +159,18 @@ export default function LP3FunnelClient({
   const tPaywall = useTranslations("paywall");
   const tLp3 = useTranslations("lp3");
   const tLp4 = useTranslations("lp4");
-  const copy = useLp3FunnelCopy();
+  const lp3Copy = useLp3FunnelCopy();
+  const featuredStoryName =
+    coverStory?.displayTitle ??
+    coverCompany ??
+    (coverTitleParam ? formatCoverTitleLabel(coverTitleParam) : null) ??
+    "this business story";
+  const lp6Copy = useLp6FunnelCopy(
+    teaserStoryIdResolved,
+    featuredStoryName,
+    storyTeaser
+  );
+  const copy = isLp6 ? lp6Copy : lp3Copy;
   const lpId = useLpFunnelId(variant);
   const lander = useLpLanderContext(lpId);
   useLpFunnelStepAnalytics(variant, step);
@@ -164,27 +178,21 @@ export default function LP3FunnelClient({
   const progressSteps =
     variant === "lp4" ? LP4_PROGRESS_STEPS : LP3_PROGRESS_STEPS;
 
-  const featuredStoryName =
-    coverStory?.displayTitle ??
-    coverCompany ??
-    (coverTitleParam ? formatCoverTitleLabel(coverTitleParam) : null) ??
-    "this business story";
-
   const slideshowStories = useMemo(() => {
     const withoutHero = stories.filter((s) => s.id !== teaserStoryIdResolved);
     return withoutHero.length > 0 ? withoutHero : stories;
   }, [stories, teaserStoryIdResolved]);
 
   const checkoutStories = useMemo(() => {
-    if (!coverTitleParam?.trim()) return stories;
+    if (!showStoryTeaser) return stories;
     const hero =
       coverStory ?? stories.find((s) => s.id === teaserStoryIdResolved);
     if (!hero) return stories;
     return [hero, ...stories.filter((s) => s.id !== hero.id)];
-  }, [stories, coverStory, coverTitleParam, teaserStoryIdResolved]);
+  }, [stories, coverStory, showStoryTeaser, teaserStoryIdResolved]);
 
   useEffect(() => {
-    if (variant !== "lp3" || !teaserStoryIdResolved) return;
+    if ((variant !== "lp3" && variant !== "lp6") || !teaserStoryIdResolved) return;
     setSelectedStories((prev) =>
       prev.includes(teaserStoryIdResolved)
         ? prev
@@ -199,9 +207,13 @@ export default function LP3FunnelClient({
       : 0;
 
   const primaryCategory = selectedCategories[0] ?? "founder_stories";
-  const profile =
-    copy.profileArchetypes[primaryCategory] ?? copy.profileArchetypes.default;
-  const revealKey = selectedStories[0] ?? "steve-jobs";
+  const profile = isLp6
+    ? (lp6Copy.profileArchetypes.story ?? lp6Copy.profileArchetypes.default)
+    : (lp3Copy.profileArchetypes[primaryCategory] ??
+      lp3Copy.profileArchetypes.default);
+  const revealKey = isLp6
+    ? teaserStoryIdResolved
+    : (selectedStories[0] ?? "steve-jobs");
   const reveal =
     copy.storyReveals[revealKey] ?? copy.storyReveals.default;
 
@@ -355,7 +367,7 @@ export default function LP3FunnelClient({
     );
   }
 
-  if (step === "storyWhy" && variant === "lp3") {
+  if (step === "storyWhy" && (variant === "lp3" || variant === "lp6")) {
     return (
       <LP3Shell
         stepLabel={copy.stepLabels.storyWhy}
@@ -432,7 +444,7 @@ export default function LP3FunnelClient({
         }
       >
         <h2 className="text-center font-heading text-xl font-extrabold leading-snug text-[#0A1628]">
-          {variant === "lp3"
+          {variant === "lp3" || variant === "lp6"
             ? copy.stories.titleOther
             : copy.stories.title}
         </h2>

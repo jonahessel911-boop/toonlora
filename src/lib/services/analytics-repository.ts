@@ -902,7 +902,14 @@ export async function getLpFunnelReports(
       angleId: "default",
       angleLabel: resolvedLabel,
       reportKey,
-      variant: lpId === "5" ? "lp5" : lpId === "4" ? "lp4" : "lp3",
+      variant:
+        lpId === "5"
+          ? "lp5"
+          : lpId === "6"
+            ? "lp6"
+            : lpId === "4"
+              ? "lp4"
+              : "lp3",
       uniqueVisitors: startCount,
       totalPageViews,
       checkoutStarts: checkoutStarts.size,

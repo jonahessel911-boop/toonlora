@@ -126,7 +126,7 @@ export function trackPaywallView(params: {
   storyId?: string;
   storyTitle?: string;
   planId?: string;
-  variant: "page" | "modal" | "inline_preview" | "lp3" | "lp4" | "lp5";
+  variant: "page" | "modal" | "inline_preview" | "lp3" | "lp4" | "lp5" | "lp6";
   episodeNumber?: number;
 }) {
   gtagEvent("paywall_view", {

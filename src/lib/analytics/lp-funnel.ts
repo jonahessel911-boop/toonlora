@@ -14,6 +14,7 @@ export const LP5_FUNNEL_STEPS = ["intro", "read", "checkout"] as const;
 export function lpFunnelStepsForLpId(lpId: string): string[] {
   if (lpId === "5") return [...LP5_FUNNEL_STEPS];
   if (lpId === "4") return ["intro", ...LP4_PROGRESS_STEPS];
+  if (lpId === "6") return ["intro", ...LP3_PROGRESS_STEPS];
   return ["intro", ...LP3_PROGRESS_STEPS];
 }
 

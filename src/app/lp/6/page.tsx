@@ -1,0 +1,39 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import LP3FunnelClient from "@/components/lp3/LP3FunnelClient";
+import { isServerDatabaseConfigured } from "@/lib/config";
+import { listIndexCatalog } from "@/lib/services/catalog-repository";
+import { PLATFORM_FULL_NAME } from "@/lib/seo/site";
+import { catalogToCard, type CatalogSeries } from "@/types/catalog";
+
+export const metadata: Metadata = {
+  title: `Your story | ${PLATFORM_FULL_NAME}`,
+  description:
+    "A personalized business-story funnel built around the company you clicked.",
+  robots: { index: false, follow: false },
+};
+
+export default async function LandingPage6() {
+  let initialCatalog: CatalogSeries[] = [];
+
+  if (isServerDatabaseConfigured()) {
+    try {
+      const series = await listIndexCatalog({ limit: 24 });
+      initialCatalog = series.map((s) => catalogToCard(s));
+    } catch {
+      /* client hook falls back to mock catalog */
+    }
+  }
+
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-[100dvh] items-center justify-center bg-[#F6F1E7]">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#E6DFD1] border-t-[#2F80ED]" />
+        </div>
+      }
+    >
+      <LP3FunnelClient initialCatalog={initialCatalog} variant="lp6" />
+    </Suspense>
+  );
+}

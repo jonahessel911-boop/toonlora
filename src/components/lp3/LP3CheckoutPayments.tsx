@@ -116,7 +116,7 @@ function GooglePayIcon() {
 interface LP3CheckoutPaymentsProps {
   lander: LpLanderContext;
   plan: SubscriptionPlan;
-  funnelVariant?: "lp3" | "lp4" | "lp5";
+  funnelVariant?: "lp3" | "lp4" | "lp5" | "lp6";
   email?: string;
   fullName?: string;
   checkoutError: string;
