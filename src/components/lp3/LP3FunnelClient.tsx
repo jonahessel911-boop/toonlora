@@ -120,10 +120,11 @@ export default function LP3FunnelClient({
   const catalog = initialCatalog.length > 0 ? initialCatalog : clientCatalog;
   const searchParams = useSearchParams();
   const coverTitleParam = searchParams.get("cover_title");
-  const stories = useMemo(() => {
-    const pinnedId = resolveStoryIdFromCoverTitle(coverTitleParam);
-    return mergeStoryOptions(catalog, pinnedId ? [pinnedId] : []);
-  }, [catalog, coverTitleParam]);
+  const stories = useMemo(
+    () =>
+      mergeStoryOptions(catalog, coverTitleParam ? [coverTitleParam] : []),
+    [catalog, coverTitleParam]
+  );
   const coverCompany = coverTitleParam
     ? formatCoverTitleLabel(coverTitleParam)
     : null;

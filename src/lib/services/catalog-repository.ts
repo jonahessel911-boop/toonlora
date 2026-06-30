@@ -2,6 +2,10 @@ import {
   catalogSectionFromSlug,
   isPipelineCategorySlug,
 } from "@/lib/browseCategories";
+import { normalizeCoverTitleSlug } from "@/lib/lp3/coverTitleParam";
+import { isStoryUuid } from "@/lib/lp/resolveCatalogByCoverTitle";
+import { resolveStoryIdFromCoverTitle } from "@/lib/lp/storyTeasers";
+import { FOUNDER_NAME_BY_ID } from "@/lib/mock/sagaMeta";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatCatalogCategoryLabel } from "@/lib/catalogCategoryLabel";
 import {
@@ -97,6 +101,7 @@ function rowToCatalog(
     display_title?: string | null;
     category?: string | null;
     cover_art_url?: string | null;
+    slug?: string | null;
     research_json?: {
       characters?: Array<{ name: string; role: string }>;
     } | null;
@@ -144,6 +149,8 @@ function rowToCatalog(
     featuredRank: series.featured_rank,
     publishedAt: series.published_at,
     createdAt: series.created_at,
+    slug: extended.slug?.trim() || undefined,
+    mainCharacter: series.main_character?.trim() || undefined,
   };
 }
 
@@ -261,6 +268,85 @@ export async function listIndexCatalog(
       coverFromSeriesRow(row) ?? episodeMeta.cover
     );
   });
+}
+
+/** Resolve `cover_title` to a published catalog row (DB UUID), for LP landers. */
+export async function findPublishedCatalogByCoverTitle(
+  coverTitle: string
+): Promise<CatalogSeries | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase || !coverTitle.trim()) return null;
+
+  const paramSlug = normalizeCoverTitleSlug(coverTitle);
+  const canonicalId = resolveStoryIdFromCoverTitle(coverTitle);
+
+  if (isStoryUuid(paramSlug)) {
+    const { data: byId } = await supabase
+      .from("series")
+      .select("*")
+      .eq("id", paramSlug)
+      .eq("status", "published")
+      .maybeSingle();
+    if (byId) {
+      const meta = await episodeMetaForSeriesIds([byId.id]);
+      const episodeMeta = meta.get(byId.id) ?? { count: 0 };
+      return rowToCatalog(
+        byId as SeriesRow,
+        episodeMeta.count,
+        coverFromSeriesRow(byId as SeriesRow) ?? episodeMeta.cover
+      );
+    }
+  }
+
+  const slugCandidates = [paramSlug, canonicalId].filter(
+    (value, index, all): value is string =>
+      Boolean(value) && all.indexOf(value) === index
+  );
+
+  for (const slugTry of slugCandidates) {
+    const { data: slugMatch } = await supabase
+      .from("series")
+      .select("*")
+      .eq("status", "published")
+      .or(`slug.eq.${slugTry},slug.ilike.${slugTry}-%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (slugMatch) {
+      const meta = await episodeMetaForSeriesIds([slugMatch.id]);
+      const episodeMeta = meta.get(slugMatch.id) ?? { count: 0 };
+      return rowToCatalog(
+        slugMatch as SeriesRow,
+        episodeMeta.count,
+        coverFromSeriesRow(slugMatch as SeriesRow) ?? episodeMeta.cover
+      );
+    }
+  }
+
+  const founder = canonicalId ? FOUNDER_NAME_BY_ID[canonicalId] : undefined;
+  if (founder) {
+    const { data: founderMatch } = await supabase
+      .from("series")
+      .select("*")
+      .eq("status", "published")
+      .or(
+        `main_character.ilike.%${founder}%,title.ilike.%${founder}%,display_title.ilike.%${founder}%`
+      )
+      .limit(1)
+      .maybeSingle();
+
+    if (founderMatch) {
+      const meta = await episodeMetaForSeriesIds([founderMatch.id]);
+      const episodeMeta = meta.get(founderMatch.id) ?? { count: 0 };
+      return rowToCatalog(
+        founderMatch as SeriesRow,
+        episodeMeta.count,
+        coverFromSeriesRow(founderMatch as SeriesRow) ?? episodeMeta.cover
+      );
+    }
+  }
+
+  return null;
 }
 
 export async function listAllSeriesAdmin(): Promise<CatalogSeries[]> {

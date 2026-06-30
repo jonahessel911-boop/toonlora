@@ -1,4 +1,4 @@
-import { COMPANY_NAME_BY_ID } from "@/lib/mock/sagaMeta";
+import { COMPANY_NAME_BY_ID, FOUNDER_NAME_BY_ID } from "@/lib/mock/sagaMeta";
 import { resolveStoryIdFromCoverTitle } from "@/lib/lp/storyTeasers";
 
 function primaryCompanyLabel(company: string): string {
@@ -75,6 +75,20 @@ export function findStoryByCoverTitle<
       (s) => normalizeCoverTitleSlug(s.id) === normalizeCoverTitleSlug(aliasId)
     );
     if (byAlias) return byAlias;
+
+    const founder = FOUNDER_NAME_BY_ID[aliasId]?.toLowerCase();
+    const company = COMPANY_NAME_BY_ID[aliasId]?.split(" · ")[0]?.toLowerCase();
+    if (founder || company) {
+      const byName = stories.find((s) => {
+        const haystack = `${s.title} ${s.displayTitle}`.toLowerCase();
+        if (founder && haystack.includes(founder)) return true;
+        if (company && company.length > 2 && haystack.includes(company)) {
+          return true;
+        }
+        return false;
+      });
+      if (byName) return byName;
+    }
   }
 
   return stories.find((s) => storyMatchesCoverTitle(s, coverTitle));

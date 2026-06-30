@@ -5,6 +5,7 @@ import {
   type MockCatalogStory,
 } from "@/lib/mock/businessStoryCatalog";
 import { normalizeCoverTitleSlug } from "@/lib/lp3/coverTitleParam";
+import { findCatalogSeriesByCoverTitle } from "@/lib/lp/resolveCatalogByCoverTitle";
 import type { CatalogSeries } from "@/types/catalog";
 
 export interface LpStoryOption {
@@ -61,6 +62,9 @@ function storyOptionFromId(
   catalog: CatalogSeries[],
   merged: LpStoryOption[]
 ): LpStoryOption | undefined {
+  const fromCatalogMatch = findCatalogSeriesByCoverTitle(catalog, id);
+  if (fromCatalogMatch) return catalogSeriesToStoryOption(fromCatalogMatch);
+
   const slug = normalizeCoverTitleSlug(id);
   const fromMerged = merged.find(
     (s) => normalizeCoverTitleSlug(s.id) === slug

@@ -37,6 +37,9 @@ export interface CatalogSeries {
   chapterProgress?: number;
   panelIndex?: number;
   totalPanels?: number;
+  /** DB series slug (e.g. ferrari, ferrari-a1b2c3d4) — not the same as mock teaser ids. */
+  slug?: string;
+  mainCharacter?: string;
 }
 
 export function formatCatalogViews(count: number): string {

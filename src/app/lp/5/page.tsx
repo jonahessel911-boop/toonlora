@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import LP5FunnelClient from "@/components/lp5/LP5FunnelClient";
 import { isServerDatabaseConfigured } from "@/lib/config";
-import { listIndexCatalog } from "@/lib/services/catalog-repository";
+import { findPublishedCatalogByCoverTitle, listIndexCatalog } from "@/lib/services/catalog-repository";
 import { PLATFORM_FULL_NAME } from "@/lib/seo/site";
 import { catalogToCard, type CatalogSeries } from "@/types/catalog";
 
@@ -13,13 +13,25 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function LandingPage5() {
+export default async function LandingPage5({
+  searchParams,
+}: {
+  searchParams: Promise<{ cover_title?: string }>;
+}) {
+  const { cover_title: coverTitle } = await searchParams;
   let initialCatalog: CatalogSeries[] = [];
 
   if (isServerDatabaseConfigured()) {
     try {
       const series = await listIndexCatalog({ limit: 24 });
       initialCatalog = series.map((s) => catalogToCard(s));
+
+      if (coverTitle?.trim()) {
+        const pinned = await findPublishedCatalogByCoverTitle(coverTitle);
+        if (pinned && !initialCatalog.some((s) => s.id === pinned.id)) {
+          initialCatalog = [catalogToCard(pinned), ...initialCatalog];
+        }
+      }
     } catch {
       /* client hook falls back to mock catalog */
     }

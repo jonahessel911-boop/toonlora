@@ -4,6 +4,10 @@ import {
   formatFounderStoryTitle,
   isFounderStoryCategory,
 } from "@/lib/founderStoryTitle";
+import { normalizeCoverTitleSlug } from "@/lib/lp3/coverTitleParam";
+import { isStoryUuid } from "@/lib/lp/resolveCatalogByCoverTitle";
+import { resolveStoryIdFromCoverTitle } from "@/lib/lp/storyTeasers";
+import { FOUNDER_NAME_BY_ID } from "@/lib/mock/sagaMeta";
 import {
   fetchPipelinePanelsForEpisodes,
   hydrateEpisodesWithPipelinePanels,
@@ -313,6 +317,69 @@ async function loadStoryWithPipelinePanels(
   return rowToStory(series, episodes);
 }
 
+async function getStoryFromDbByCoverTitle(
+  coverTitle: string
+): Promise<Story | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+
+  const paramSlug = normalizeCoverTitleSlug(coverTitle);
+  const canonicalId = resolveStoryIdFromCoverTitle(coverTitle);
+  const slugCandidates = [paramSlug, canonicalId].filter(
+    (value, index, all): value is string =>
+      Boolean(value) && all.indexOf(value) === index
+  );
+
+  for (const slugTry of slugCandidates) {
+    const { data: slugMatch } = await supabase
+      .from("series")
+      .select("*")
+      .eq("status", "published")
+      .or(`slug.eq.${slugTry},slug.ilike.${slugTry}-%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (slugMatch) {
+      const { data: episodes } = await supabase
+        .from("episodes")
+        .select("*")
+        .eq("series_id", slugMatch.id)
+        .order("episode_number", { ascending: true });
+      return loadStoryWithPipelinePanels(
+        slugMatch as SeriesRow,
+        (episodes ?? []) as EpisodeRow[]
+      );
+    }
+  }
+
+  const founder = canonicalId ? FOUNDER_NAME_BY_ID[canonicalId] : undefined;
+  if (founder) {
+    const { data: founderMatch } = await supabase
+      .from("series")
+      .select("*")
+      .eq("status", "published")
+      .or(
+        `main_character.ilike.%${founder}%,title.ilike.%${founder}%,display_title.ilike.%${founder}%`
+      )
+      .limit(1)
+      .maybeSingle();
+
+    if (founderMatch) {
+      const { data: episodes } = await supabase
+        .from("episodes")
+        .select("*")
+        .eq("series_id", founderMatch.id)
+        .order("episode_number", { ascending: true });
+      return loadStoryWithPipelinePanels(
+        founderMatch as SeriesRow,
+        (episodes ?? []) as EpisodeRow[]
+      );
+    }
+  }
+
+  return null;
+}
+
 export async function getStoryFromDb(id: string): Promise<Story | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
@@ -323,18 +390,24 @@ export async function getStoryFromDb(id: string): Promise<Story | null> {
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !series) return null;
+  if (!error && series) {
+    const { data: episodes } = await supabase
+      .from("episodes")
+      .select("*")
+      .eq("series_id", id)
+      .order("episode_number", { ascending: true });
 
-  const { data: episodes } = await supabase
-    .from("episodes")
-    .select("*")
-    .eq("series_id", id)
-    .order("episode_number", { ascending: true });
+    return loadStoryWithPipelinePanels(
+      series as SeriesRow,
+      (episodes ?? []) as EpisodeRow[]
+    );
+  }
 
-  return loadStoryWithPipelinePanels(
-    series as SeriesRow,
-    (episodes ?? []) as EpisodeRow[]
-  );
+  if (!isStoryUuid(id)) {
+    return getStoryFromDbByCoverTitle(id);
+  }
+
+  return null;
 }
 
 export async function listStoriesFromDb(sessionId: string): Promise<Story[]> {

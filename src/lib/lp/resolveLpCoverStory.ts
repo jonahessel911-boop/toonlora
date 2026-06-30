@@ -1,9 +1,10 @@
 import {
   formatCoverTitleLabel,
   findStoryByCoverTitle,
-  normalizeCoverTitleSlug,
   prioritizeStoriesByCoverTitle,
 } from "@/lib/lp3/coverTitleParam";
+import { findCatalogSeriesByCoverTitle } from "@/lib/lp/resolveCatalogByCoverTitle";
+import { isStoryUuid } from "@/lib/lp/resolveCatalogByCoverTitle";
 import type { LpStoryOption } from "@/lib/lp3/storyOptions";
 import {
   catalogSeriesToStoryOption,
@@ -20,21 +21,11 @@ function mockStoryToOption(mock: MockCatalogStory): LpStoryOption {
   return mockStoryToStoryOption(mock);
 }
 
-function attachCatalogCover(
-  hero: LpStoryOption,
-  catalog: CatalogSeries[]
-): LpStoryOption {
-  if (hero.coverArtUrl) return hero;
-  const match = catalog.find(
-    (s) => normalizeCoverTitleSlug(s.id) === normalizeCoverTitleSlug(hero.id)
-  );
-  if (!match?.coverArtUrl) return hero;
-  return { ...hero, coverArtUrl: match.coverArtUrl };
-}
-
 export interface LpCoverStoryContext {
   coverTitleParam: string | null;
+  /** Teaser / copy key (e.g. ferrari) — for i18n story intros. */
   canonicalStoryId: string;
+  /** Published series id — usually a DB UUID for reader + cover API. */
   readerStoryId: string;
   storyName: string;
   heroStory: LpStoryOption;
@@ -50,63 +41,56 @@ export function resolveLpCoverStoryContext(
   catalog: CatalogSeries[] = []
 ): LpCoverStoryContext {
   const param = coverTitleParam?.trim() ? coverTitleParam.trim() : null;
-  const coverCompany = param ? formatCoverTitleLabel(param) : null;
-  const coverStory = findStoryByCoverTitle(stories, param);
   const teaserStoryId = resolveStoryIdFromCoverTitle(param);
+  const catalogMatch = findCatalogSeriesByCoverTitle(catalog, param);
+  const coverStory = findStoryByCoverTitle(stories, param);
+
   const canonicalStoryId =
-    teaserStoryId ??
-    (normalizeCoverTitleSlug(param ?? "") ||
-      coverStory?.id ||
-      stories[0]?.id ||
-      fallbackStoryId);
+    teaserStoryId ?? catalogMatch?.slug?.split("-")[0] ?? coverStory?.id ?? fallbackStoryId;
 
   const readerStoryId =
-    teaserStoryId ?? coverStory?.id ?? canonicalStoryId;
+    catalogMatch?.id ??
+    (coverStory && isStoryUuid(coverStory.id) ? coverStory.id : undefined) ??
+    coverStory?.id ??
+    teaserStoryId ??
+    fallbackStoryId;
 
   const storyName =
+    catalogMatch?.title ??
     coverStory?.displayTitle ??
     (teaserStoryId ? formatCoverTitleLabel(teaserStoryId) : null) ??
-    coverCompany ??
     (param ? formatCoverTitleLabel(param) : null) ??
     coverStory?.title ??
     stories[0]?.displayTitle ??
     "Business Story";
 
-  let heroStory =
-    coverStory ??
-    stories.find((s) => s.id === canonicalStoryId) ??
-    stories.find(
-      (s) =>
-        normalizeCoverTitleSlug(s.id) === normalizeCoverTitleSlug(canonicalStoryId)
-    );
+  let heroStory: LpStoryOption | undefined;
 
-  if (!heroStory) {
-    const mock = findMockStory(canonicalStoryId);
-    if (mock) heroStory = mockStoryToOption(mock);
+  if (catalogMatch) {
+    heroStory = catalogSeriesToStoryOption(catalogMatch);
+  } else if (coverStory) {
+    heroStory = { ...coverStory, id: readerStoryId };
+  } else {
+    heroStory =
+      stories.find((s) => s.id === readerStoryId) ??
+      (() => {
+        const mock = findMockStory(canonicalStoryId);
+        return mock ? { ...mockStoryToOption(mock), id: readerStoryId } : undefined;
+      })();
   }
 
   if (!heroStory) {
     if (param) {
-      const mock = findMockStory(canonicalStoryId);
-      const fromCatalog = catalog.find(
-        (s) =>
-          normalizeCoverTitleSlug(s.id) ===
-          normalizeCoverTitleSlug(canonicalStoryId)
-      );
-      heroStory = mock
-        ? mockStoryToOption(mock)
-        : fromCatalog
-          ? catalogSeriesToStoryOption(fromCatalog)
-          : {
-              id: canonicalStoryId,
-              title: storyName,
-              displayTitle: storyName,
-              subtitle: "",
-              coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
-            };
+      heroStory = {
+        id: readerStoryId,
+        title: storyName,
+        displayTitle: storyName,
+        subtitle: "",
+        coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
+      };
     } else {
       heroStory = stories[0] ?? {
-        id: canonicalStoryId,
+        id: readerStoryId,
         title: storyName,
         displayTitle: storyName,
         subtitle: "",
@@ -115,12 +99,11 @@ export function resolveLpCoverStoryContext(
     }
   }
 
-  heroStory = attachCatalogCover(heroStory, catalog);
-
   const checkoutStories = param
     ? (() => {
         const prioritized = prioritizeStoriesByCoverTitle(stories, param);
-        if (prioritized[0]?.id === heroStory.id) return prioritized;
+        const heroInList = prioritized.some((s) => s.id === heroStory.id);
+        if (heroInList) return prioritized;
         return [heroStory, ...stories.filter((s) => s.id !== heroStory.id)];
       })()
     : stories;

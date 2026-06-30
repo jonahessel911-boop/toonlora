@@ -5,6 +5,7 @@ import {
   fetchPublishedStory,
   getStoryCoverArtUrl,
 } from "@/lib/fetchPublishedStory";
+import { isStoryUuid } from "@/lib/lp/resolveCatalogByCoverTitle";
 
 /** Load hero cover from the story API when catalog/mock omit coverArtUrl. */
 export function useLpHeroCoverArt(
@@ -12,13 +13,15 @@ export function useLpHeroCoverArt(
   initialCoverArtUrl?: string
 ): string | undefined {
   const [coverArtUrl, setCoverArtUrl] = useState(initialCoverArtUrl);
+  const needsApiCover = Boolean(storyId) && !isStoryUuid(storyId);
 
   useEffect(() => {
     setCoverArtUrl(initialCoverArtUrl);
   }, [initialCoverArtUrl, storyId]);
 
   useEffect(() => {
-    if (coverArtUrl || !storyId) return;
+    if (!storyId) return;
+    if (!needsApiCover && coverArtUrl) return;
 
     let cancelled = false;
     void fetchPublishedStory(storyId).then((story) => {
@@ -30,7 +33,7 @@ export function useLpHeroCoverArt(
     return () => {
       cancelled = true;
     };
-  }, [storyId, coverArtUrl]);
+  }, [storyId, coverArtUrl, needsApiCover]);
 
   return coverArtUrl;
 }
