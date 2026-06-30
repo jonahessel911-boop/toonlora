@@ -1,0 +1,105 @@
+import {
+  formatCoverTitleLabel,
+  findStoryByCoverTitle,
+  normalizeCoverTitleSlug,
+  prioritizeStoriesByCoverTitle,
+} from "@/lib/lp3/coverTitleParam";
+import { formatLp3StoryGridLabel } from "@/lib/lp3/story-labels";
+import type { LpStoryOption } from "@/lib/lp3/storyOptions";
+import { resolveStoryIdFromCoverTitle } from "@/lib/lp/storyTeasers";
+import {
+  findMockStory,
+  type MockCatalogStory,
+} from "@/lib/mock/businessStoryCatalog";
+
+function mockStoryToOption(mock: MockCatalogStory): LpStoryOption {
+  return {
+    id: mock.id,
+    title: mock.title,
+    displayTitle: formatLp3StoryGridLabel({
+      id: mock.id,
+      title: mock.title,
+      fullTitle: mock.title,
+      sagaSubtitle: mock.subtitle,
+    }),
+    subtitle: mock.subtitle,
+    coverArtUrl: mock.coverArtUrl,
+    coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
+  };
+}
+
+export interface LpCoverStoryContext {
+  coverTitleParam: string | null;
+  canonicalStoryId: string;
+  readerStoryId: string;
+  storyName: string;
+  heroStory: LpStoryOption;
+  checkoutStories: LpStoryOption[];
+  hasCoverTitle: boolean;
+}
+
+/** Shared `cover_title` resolution for LP/3, LP/5, and LP/6. */
+export function resolveLpCoverStoryContext(
+  stories: LpStoryOption[],
+  coverTitleParam: string | null | undefined,
+  fallbackStoryId = "elon-musk"
+): LpCoverStoryContext {
+  const param = coverTitleParam?.trim() ? coverTitleParam.trim() : null;
+  const coverCompany = param ? formatCoverTitleLabel(param) : null;
+  const coverStory = findStoryByCoverTitle(stories, param);
+  const teaserStoryId = resolveStoryIdFromCoverTitle(param);
+  const canonicalStoryId =
+    teaserStoryId ??
+    (normalizeCoverTitleSlug(param ?? "") ||
+      coverStory?.id ||
+      stories[0]?.id ||
+      fallbackStoryId);
+
+  const readerStoryId =
+    teaserStoryId ?? coverStory?.id ?? canonicalStoryId;
+
+  const storyName =
+    coverStory?.displayTitle ??
+    coverCompany ??
+    (param ? formatCoverTitleLabel(param) : null) ??
+    coverStory?.title ??
+    stories[0]?.displayTitle ??
+    "Business Story";
+
+  let heroStory =
+    coverStory ??
+    stories.find((s) => s.id === canonicalStoryId) ??
+    stories.find(
+      (s) =>
+        normalizeCoverTitleSlug(s.id) === normalizeCoverTitleSlug(canonicalStoryId)
+    );
+
+  if (!heroStory) {
+    const mock = findMockStory(canonicalStoryId);
+    if (mock) heroStory = mockStoryToOption(mock);
+  }
+
+  if (!heroStory) {
+    heroStory = stories[0] ?? {
+      id: canonicalStoryId,
+      title: storyName,
+      displayTitle: storyName,
+      subtitle: "",
+      coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
+    };
+  }
+
+  const checkoutStories = param
+    ? prioritizeStoriesByCoverTitle(stories, param)
+    : stories;
+
+  return {
+    coverTitleParam: param,
+    canonicalStoryId,
+    readerStoryId,
+    storyName,
+    heroStory,
+    checkoutStories,
+    hasCoverTitle: Boolean(param),
+  };
+}

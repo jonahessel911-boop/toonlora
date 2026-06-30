@@ -24,11 +24,7 @@ import {
   trackLpFunnelStepClick,
 } from "@/lib/analytics/lp-funnel-tracking";
 import { LP_FUNNEL_CLICK_TARGETS } from "@/lib/analytics/lp-funnel";
-import {
-  formatCoverTitleLabel,
-  findStoryByCoverTitle,
-} from "@/lib/lp3/coverTitleParam";
-import { resolveStoryIdFromCoverTitle } from "@/lib/lp/storyTeasers";
+import { resolveLpCoverStoryContext } from "@/lib/lp/resolveLpCoverStory";
 import { mergeStoryOptions } from "@/lib/lp3/storyOptions";
 import type { LP5StepId } from "@/lib/lp5/content";
 import { fetchPublishedStory } from "@/lib/fetchPublishedStory";
@@ -183,18 +179,17 @@ export default function LP5FunnelClient({
   const stories = useMemo(() => mergeStoryOptions(catalog), [catalog]);
   const searchParams = useSearchParams();
   const coverTitleParam = searchParams.get("cover_title");
-  const coverCompany = coverTitleParam
-    ? formatCoverTitleLabel(coverTitleParam)
-    : null;
-  const coverStory = useMemo(
-    () => findStoryByCoverTitle(stories, coverTitleParam),
+  const coverContext = useMemo(
+    () => resolveLpCoverStoryContext(stories, coverTitleParam),
     [stories, coverTitleParam]
   );
-  const teaserStoryId = resolveStoryIdFromCoverTitle(coverTitleParam);
-  const activeStoryId =
-    coverStory?.id ?? teaserStoryId ?? stories[0]?.id ?? "elon-musk";
-  const activeStoryLabel =
-    coverCompany ?? coverStory?.title ?? stories[0]?.title ?? "Business Story";
+  const {
+    readerStoryId: activeStoryId,
+    storyName: activeStoryLabel,
+    heroStory,
+    checkoutStories,
+    hasCoverTitle,
+  } = coverContext;
 
   const [step, setStep] = useState<LP5StepId>("intro");
   const [billingPeriod, setBillingPeriod] = useState<"month" | "year">("month");
@@ -202,9 +197,13 @@ export default function LP5FunnelClient({
   const [checkoutError, setCheckoutError] = useState("");
 
   const tLp5 = useTranslations("lp5");
+  const tLp3 = useTranslations("lp3");
   const tPaywall = useTranslations("paywall");
   const copy = useLp3FunnelCopy();
-  const introCopy = useLp5IntroCopy(activeStoryId, coverTitleParam);
+  const introCopy = useLp5IntroCopy(
+    coverContext.canonicalStoryId,
+    coverTitleParam
+  );
   const lpId = useLpFunnelId("lp5");
   const lander = useLpLanderContext(lpId);
   useLpFunnelStepAnalytics("lp5", step);
@@ -247,17 +246,6 @@ export default function LP5FunnelClient({
   const [inlineCtaVisible, setInlineCtaVisible] = useState(true);
 
   if (step === "intro") {
-    const heroStory =
-      coverStory ??
-      stories.find((s) => s.id === activeStoryId) ??
-      stories[0] ?? {
-        id: activeStoryId,
-        title: activeStoryLabel,
-        displayTitle: activeStoryLabel,
-        subtitle: "",
-        coverGradient: "from-[#0A1628] via-[#1e3a5f] to-[#2F80ED]",
-      };
-
     return (
       <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#F6F1E7]">
         <div
@@ -319,8 +307,12 @@ export default function LP5FunnelClient({
         </p>
 
         <LP3CoverSlideshow
-          stories={stories}
-          label={copy.checkout.readStoriesLike}
+          stories={checkoutStories}
+          label={
+            hasCoverTitle
+              ? tLp3("checkout.readStoryAndMore", { story: activeStoryLabel })
+              : copy.checkout.readStoriesLike
+          }
         />
 
         <div>

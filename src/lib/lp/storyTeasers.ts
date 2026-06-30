@@ -1,5 +1,9 @@
 import { allMockStories } from "@/lib/mock/businessStoryCatalog";
 import { normalizeCoverTitleSlug } from "@/lib/lp3/coverTitleParam";
+import {
+  LP_STORY_TEASER_FALLBACK_NL,
+  LP_STORY_TEASERS_NL,
+} from "@/lib/lp/storyTeasers.nl";
 
 export interface LpStoryTeaser {
   category: string;
@@ -247,15 +251,25 @@ export function resolveStoryIdFromCoverTitle(
 
 export function resolveStoryTeaser(
   storyId: string,
-  coverTitle?: string | null
+  coverTitle?: string | null,
+  locale = "en"
 ): LpStoryTeaser {
   const teaserId = resolveTeaserId(storyId, coverTitle);
-  const explicit = LP_STORY_TEASERS[teaserId];
+  const isNl = locale === "nl";
+  const catalog = isNl ? LP_STORY_TEASERS_NL : LP_STORY_TEASERS;
+  const explicit = catalog[teaserId];
   if (explicit) return explicit;
 
   const fromCatalog =
     mockCatalogFallback(storyId) ?? mockCatalogFallback(teaserId);
-  if (fromCatalog) return fromCatalog;
+  if (fromCatalog) {
+    if (!isNl) return fromCatalog;
+    return {
+      category: fromCatalog.category,
+      hook: fromCatalog.hook,
+      description: fromCatalog.description.replace(/^Read /i, "Lees "),
+    };
+  }
 
-  return GENERIC_FALLBACK;
+  return isNl ? LP_STORY_TEASER_FALLBACK_NL : GENERIC_FALLBACK;
 }

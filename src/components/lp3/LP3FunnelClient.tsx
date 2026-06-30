@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import LP3Shell, { LP3FooterDock } from "@/components/lp3/LP3Shell";
 import LP3LegalFooter from "@/components/lp3/LP3LegalFooter";
 import LP3CheckoutPayments from "@/components/lp3/LP3CheckoutPayments";
@@ -110,6 +110,7 @@ export default function LP3FunnelClient({
   initialCatalog = [],
   variant = "lp3",
 }: LP3FunnelClientProps) {
+  const locale = useLocale();
   const { email, fullName } = useUserStore();
   const { series: clientCatalog } = useCatalog({
     index: true,
@@ -134,8 +135,8 @@ export default function LP3FunnelClient({
   const teaserStoryIdResolved =
     coverStory?.id ?? teaserStoryId ?? normalizeCoverTitleSlug(coverTitleParam ?? "");
   const storyTeaser = useMemo(
-    () => resolveStoryTeaser(teaserStoryIdResolved, coverTitleParam),
-    [teaserStoryIdResolved, coverTitleParam]
+    () => resolveStoryTeaser(teaserStoryIdResolved, coverTitleParam, locale),
+    [teaserStoryIdResolved, coverTitleParam, locale]
   );
 
   const [step, setStep] = useState<LP3StepId>("intro");
